@@ -21,8 +21,8 @@ class JellyfinItemMapperTest {
     private val movie = JellyfinItemDto(
         Id = "m1", Name = "Heat", Overview = "Cops", ProductionYear = 1995, PremiereDate = "1995-12-15T00:00:00.0000000Z",
         DateCreated = "2024-01-01T00:00:00.0000000Z", OfficialRating = "R", CommunityRating = 8.2, RunTimeTicks = 170 * min,
-        Genres = listOf("Action"), Studios = listOf(JellyfinItemDto.Studio("Warner")),
-        MediaSources = listOf(src("s1", 4_000_000)), UserData = JellyfinItemDto.UserData(Played = true),
+        Genres = listOf("Action"), Studios = listOf(JellyfinItemDto.StudioDto("Warner")),
+        MediaSources = listOf(src("s1", 4_000_000)), UserData = JellyfinItemDto.UserDataDto(Played = true),
     )
 
     @Test fun `movie maps core fields`() {
@@ -66,7 +66,7 @@ class JellyfinItemMapperTest {
 
     @Test fun `episode inherits show metadata and builds SxxExx tag`() {
         val show = JellyfinItemDto(Id = "sh", Name = "Seinfeld", Overview = "Nothing", ProductionYear = 1989, OfficialRating = "TV-PG",
-            CommunityRating = 8.9, Genres = listOf("Comedy"), Studios = listOf(JellyfinItemDto.Studio("NBC")))
+            CommunityRating = 8.9, Genres = listOf("Comedy"), Studios = listOf(JellyfinItemDto.StudioDto("NBC")))
         val ep = JellyfinItemDto(Id = "e1", Name = "The Pilot", RunTimeTicks = 22 * min, ParentIndexNumber = 1, IndexNumber = 4,
             MediaSources = listOf(src("es", 1000)), DateCreated = "2024-01-01T00:00:00Z")
         val m = mapper.episode(ep, show)!!

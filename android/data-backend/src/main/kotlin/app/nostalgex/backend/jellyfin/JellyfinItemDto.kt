@@ -19,13 +19,13 @@ data class JellyfinItemDto(
     val CollectionType: String? = null,
     val ParentIndexNumber: Int? = null,
     val IndexNumber: Int? = null,
-    val Studios: List<Studio>? = null,
+    val Studios: List<StudioDto>? = null,
     val MediaSources: List<MediaSource>? = null,
     val ImageTags: Map<String, String>? = null,
-    val UserData: UserData? = null,
+    val UserData: UserDataDto? = null,
 ) {
-    @Serializable data class Studio(val Name: String? = null)
-    @Serializable data class UserData(val Played: Boolean? = null)
+    @Serializable data class StudioDto(val Name: String? = null)
+    @Serializable data class UserDataDto(val Played: Boolean? = null)
 
     @Serializable
     data class MediaSource(
