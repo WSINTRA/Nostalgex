@@ -24,6 +24,7 @@ import app.nostalgex.store.AppRoute
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun NostalgexRoot(container: AppContainer) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var route: AppRoute by remember { mutableStateOf(container.startupRouter.initialRoute()) }
     MaterialTheme(colorScheme = darkColorScheme()) {
         when (val r = route) {
@@ -38,7 +39,7 @@ fun NostalgexRoot(container: AppContainer) {
                     val model = remember(r) { container.newLoadModel(r.session) }
                     LoadScreen(model, onReady = { ready = it }, onSignOut = { route = container.startupRouter.signOut() })
                 } else {
-                    PlaybackScreen(container, r.session, done, onExit = { ready = null })
+                    PlaybackScreen(container, r.session, done, onExit = { (context as? android.app.Activity)?.finish() })
                 }
             }
         }
