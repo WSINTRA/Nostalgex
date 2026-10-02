@@ -9,6 +9,7 @@ import app.nostalgex.backend.jellyfin.JellyfinSession
 import app.nostalgex.filter.ChannelFilter
 import app.nostalgex.filter.ChannelPoolBuilder
 import app.nostalgex.player.DeviceCapabilitiesProvider
+import app.nostalgex.presentation.GuideModel
 import app.nostalgex.presentation.LoadLibraryModel
 import app.nostalgex.playback.PlaybackController
 import app.nostalgex.playback.PlayerEngine
@@ -64,6 +65,10 @@ class AppContainer(private val context: Context) {
         resolver = ScheduleResolver(DayPacker(), manifestStore, clock, ZoneId.systemDefault()),
         engine = engine,
         clock = clock,
+    )
+
+    fun newGuideModel() = GuideModel(
+        ScheduleResolver(DayPacker(), manifestStore, clock, ZoneId.systemDefault()), clock, ZoneId.systemDefault(),
     )
 
     /** A fresh load model per signed-in session. */

@@ -39,6 +39,7 @@ import androidx.tv.material3.Text
 import app.nostalgex.backend.jellyfin.JellyfinSession
 import app.nostalgex.player.Media3PlayerEngine
 import app.nostalgex.playback.PlaybackState
+import app.nostalgex.presentation.GuideRow
 import app.nostalgex.presentation.LoadStatus
 import app.nostalgex.presentation.OsdInfo
 import app.nostalgex.presentation.OsdModel
@@ -66,6 +67,7 @@ fun PlaybackScreen(container: AppContainer, session: JellyfinSession, ready: Loa
         }
     }
     val focus = remember { FocusRequester() }
+    var guideRows by remember { mutableStateOf<List<GuideRow>?>(null) }
 
     DisposableEffect(Unit) {
         controller.tune(ready.lineups.first())
@@ -76,7 +78,7 @@ fun PlaybackScreen(container: AppContainer, session: JellyfinSession, ready: Loa
         while (true) { nowSec = container.clock.instant().epochSecond; delay(1000) }
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
-    BackHandler(onBack = onExit)
+    BackHandler(enabled = guideRows == null, onBack = onExit)
 
     val info = OsdModel.describe(state, nowSec)
 
@@ -88,6 +90,9 @@ fun PlaybackScreen(container: AppContainer, session: JellyfinSession, ready: Loa
                 when (e.key) {
                     Key.DirectionUp, Key.ChannelUp -> { controller.channelUp(ready.lineups); true }
                     Key.DirectionDown, Key.ChannelDown -> { controller.channelDown(ready.lineups); true }
+                    Key.Menu, Key.DirectionLeft -> {
+                        guideRows = container.newGuideModel().rows(ready.lineups); true
+                    }
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> { osd.show(container.clock.instant().epochSecond); true }
                     else -> false
                 }
@@ -108,7 +113,19 @@ fun PlaybackScreen(container: AppContainer, session: JellyfinSession, ready: Loa
         (state as? PlaybackState.Failed)?.let {
             Text(it.reason, color = Color(0xFFFF6B6B), fontSize = 20.sp, modifier = Modifier.align(Alignment.Center))
         }
-        if (info != null && osd.isVisible(nowSec)) Banner(info, Modifier.align(Alignment.BottomStart))
+        guideRows?.let { rows ->
+            GuideScreen(
+                rows = rows,
+                currentChannelId = (state as? PlaybackState.Playing)?.channel?.id ?: -1,
+                onPick = { row ->
+                    guideRows = null
+                    ready.lineups.firstOrNull { it.channel.id == row.channel.id }?.let(controller::tune)
+                    runCatching { focus.requestFocus() }
+                },
+                onClose = { guideRows = null; runCatching { focus.requestFocus() } },
+            )
+        }
+        if (guideRows == null && info != null && osd.isVisible(nowSec)) Banner(info, Modifier.align(Alignment.BottomStart))
     }
 }
 
