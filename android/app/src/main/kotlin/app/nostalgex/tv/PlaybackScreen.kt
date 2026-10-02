@@ -86,7 +86,7 @@ fun PlaybackScreen(container: AppContainer, session: JellyfinSession, ready: Loa
         Modifier.fillMaxSize().background(Color.Black)
             .focusRequester(focus).focusable()
             .onKeyEvent { e ->
-                if (e.type != KeyEventType.KeyDown) return@onKeyEvent false
+                if (guideRows != null || e.type != KeyEventType.KeyDown) return@onKeyEvent false
                 when (e.key) {
                     Key.DirectionUp, Key.ChannelUp -> { controller.channelUp(ready.lineups); true }
                     Key.DirectionDown, Key.ChannelDown -> { controller.channelDown(ready.lineups); true }
