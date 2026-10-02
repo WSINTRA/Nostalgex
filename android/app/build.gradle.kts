@@ -14,6 +14,25 @@ android {
         versionCode = 1
         versionName = "0.1.0"
     }
+    // Release signing comes from properties (never committed). Without them the release APK is
+    // signed with the debug key, which is fine for sideloading to your own device.
+    signingConfigs {
+        val ks = providers.gradleProperty("NOSTALGEX_KEYSTORE").orNull
+        if (ks != null) {
+            create("release") {
+                storeFile = file(ks)
+                storePassword = providers.gradleProperty("NOSTALGEX_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.gradleProperty("NOSTALGEX_KEY_ALIAS").get()
+                keyPassword = providers.gradleProperty("NOSTALGEX_KEY_PASSWORD").get()
+            }
+        }
+    }
+    buildTypes {
+        release {
+            isMinifyEnabled = false // no shrinker config yet; keeps the prototype predictable
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+        }
+    }
     buildFeatures { compose = true }
     // java.time is API 26+; the pure-Kotlin core modules use it, so desugar it for API 25.
     compileOptions {
