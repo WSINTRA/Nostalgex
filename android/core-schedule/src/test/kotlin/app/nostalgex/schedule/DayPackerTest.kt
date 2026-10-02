@@ -57,7 +57,7 @@ class DayPackerTest {
         val out = packer.pack(DayPackRequest(small, dayStart, 20002, channelId = 5, yesterdayLastId = "e01"))
         val text = render(out)
         assertTrue(text.startsWith("e05@0-1320,e01@1320-2640,e03@2640-3960,e04@3960-5280,e02@5280-6600,e05@6600-7642,e03@7642-8962,"), text)
-        assertTrue(text.endsWith("e04@85522-86400".replace("e04@85522", "e05@85522")), text)
+        assertTrue(text.endsWith("e05@85522-86400"), text)
     }
 
     @Test fun `blocks are contiguous and cover exactly 24 hours`() {
