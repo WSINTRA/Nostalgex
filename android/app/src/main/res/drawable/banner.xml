@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder launcher banner (16:9). Replace with real artwork before a release. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#111111" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#FFE500" android:pathData="M20,120h280v14h-280z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M40,40h30v50h-10v-35h-20z M90,40h30v50h-30z M140,40h30v50h-30z" />
+</vector>
