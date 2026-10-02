@@ -1,6 +1,8 @@
 package app.nostalgex.backend.jellyfin
 
+import app.nostalgex.backend.DeviceCapabilities
 import app.nostalgex.backend.LoadProgress
+import app.nostalgex.backend.StreamPlan
 import app.nostalgex.backend.MediaBackend
 import app.nostalgex.model.MediaItem
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +24,7 @@ class JellyfinBackend(
     private val deviceId: String,
     private val deviceName: String = "Fire TV",
     private val mapper: JellyfinItemMapper = JellyfinItemMapper(),
+    private val capabilities: DeviceCapabilities = DeviceCapabilities(hevc = false),
     private val pageSize: Int = 200,
     private val showBatchSize: Int = 10,
 ) : MediaBackend {
@@ -50,6 +53,11 @@ class JellyfinBackend(
         }
         return all
     }
+
+    private val planner = JellyfinStreamPlanner(session.baseUrl, session.accessToken, deviceId, capabilities)
+
+    override fun streamPlan(item: MediaItem, offsetSeconds: Long, forceTranscode: Boolean): StreamPlan =
+        planner.plan(item, offsetSeconds, forceTranscode)
 
     override fun thumbnailUrl(item: MediaItem, width: Int): String? {
         val b = "${session.baseUrl}/Items/${item.id}/Images/Primary".toHttpUrl().newBuilder().addQueryParameter("maxWidth", width.toString())

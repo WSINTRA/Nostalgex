@@ -19,5 +19,8 @@ class FakeMediaBackend(
         return items
     }
 
+    override fun streamPlan(item: MediaItem, offsetSeconds: Long, forceTranscode: Boolean) =
+        StreamPlan("http://fake/${item.id}/stream?t=$offsetSeconds", isDirectPlay = !forceTranscode, startsAtOffset = forceTranscode)
+
     override fun thumbnailUrl(item: MediaItem, width: Int): String? = "http://fake/${item.id}/$width"
 }

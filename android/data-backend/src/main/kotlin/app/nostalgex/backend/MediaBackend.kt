@@ -23,6 +23,9 @@ interface MediaBackend {
     /** Loads every playable item across all libraries. */
     suspend fun loadLibrary(onProgress: (LoadProgress) -> Unit = {}): List<MediaItem>
 
+    /** How to play [item], joining [offsetSeconds] in. Direct play when the device can, else an HLS transcode. */
+    fun streamPlan(item: MediaItem, offsetSeconds: Long = 0, forceTranscode: Boolean = false): StreamPlan
+
     /** Server-side poster URL for an item, if it has artwork. */
     fun thumbnailUrl(item: MediaItem, width: Int = 400): String?
 }
