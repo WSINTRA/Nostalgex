@@ -1,5 +1,7 @@
 package app.nostalgex.model
 
+import kotlinx.serialization.Serializable
+
 enum class MediaType { MOVIE, EPISODE }
 
 /** Which kind of library an item came from. Mirrors tvOS `LibrarySource`. */
@@ -11,6 +13,7 @@ enum class LibrarySource { MOVIE, TV, MUSIC_VIDEO }
  * For episodes, [title] is the *show* title (schedule interleaving groups on it) and
  * [episodeTitle] the episode name. [id] is the server's item id.
  */
+@Serializable
 data class MediaItem(
     val id: String,
     val title: String,

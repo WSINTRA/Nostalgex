@@ -13,4 +13,6 @@ include(
     ":core-filter",
     ":core-schedule",
     ":data-backend",
+    ":core-store",
+    ":data-store",
 )
