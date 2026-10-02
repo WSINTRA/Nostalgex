@@ -10,6 +10,6 @@ android {
 
 dependencies {
     api(project(":core-playback"))
-    implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.hls)
+    api(libs.androidx.media3.exoplayer)
+    api(libs.androidx.media3.hls)
 }
