@@ -22,6 +22,7 @@ android {
 dependencies {
     implementation(project(":core-config"))
     implementation(project(":core-store"))
+    implementation(project(":core-presentation"))
     implementation(project(":data-store"))
     implementation(project(":player"))
     implementation(platform(libs.androidx.compose.bom))

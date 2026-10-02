@@ -3,7 +3,10 @@ package app.nostalgex.tv
 import android.content.Context
 import app.nostalgex.config.ChannelConfigParser
 import app.nostalgex.datastore.SharedPreferencesKeyValueStore
+import app.nostalgex.backend.jellyfin.JellyfinAuthClient
 import app.nostalgex.model.ChannelConfig
+import app.nostalgex.presentation.ConnectModel
+import app.nostalgex.presentation.SignInService
 import app.nostalgex.store.DeviceIdProvider
 import app.nostalgex.store.FileLibrarySnapshotStore
 import app.nostalgex.store.FileManifestStore
@@ -32,6 +35,11 @@ class AppContainer(private val context: Context) {
             .callTimeout(15, TimeUnit.MINUTES)
             .build()
     }
+
+    val authClient: JellyfinAuthClient by lazy { JellyfinAuthClient(httpClient, deviceId) }
+
+    /** A fresh model per connect screen visit. */
+    fun newConnectModel() = ConnectModel(SignInService { c, u, p -> authClient.signInFirstReachable(c, u, p) }, sessionStore)
 
     val snapshotStore: LibrarySnapshotStore by lazy { FileLibrarySnapshotStore(File(context.filesDir, "snapshots")) }
     val manifestStore: FileManifestStore by lazy { FileManifestStore(File(context.filesDir, "manifests")) }

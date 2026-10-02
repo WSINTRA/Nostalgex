@@ -32,7 +32,10 @@ fun NostalgexRoot(container: AppContainer) {
         ) {
             Text("NOSTALGEX", color = Color(0xFFFFE500))
             when (val r = route) {
-                AppRoute.Connect -> Text("Connect screen (next task)", color = Color.White)
+                AppRoute.Connect -> {
+                    val model = remember { container.newConnectModel() }
+                    ConnectScreen(model) { route = AppRoute.LoadLibrary(it) }
+                }
                 is AppRoute.LoadLibrary -> Text("Signed in to ${r.session.serverName} - loading (later task)", color = Color.White)
             }
             Text("${container.channelConfig.channels.size} channels bundled", color = Color.Gray)

@@ -16,6 +16,7 @@ include(
     ":core-store",
     ":data-store",
     ":core-playback",
+    ":core-presentation",
     ":player",
     ":app",
 )
