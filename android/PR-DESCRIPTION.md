@@ -39,7 +39,7 @@ on channel change; the tvOS 6-hour refresh and prime-time premiere logic beyond 
 ## Known issues / follow-ups
 - Session token stored unencrypted (app-private SharedPreferences). Encrypt before any public release.
 - `ratingMin` uses community rating only (no per-user rating field).
-- Placeholder launcher banner.
+- Launcher banner and icon reuse the tvOS artwork (flattened from the App Icon layers).
 - Name and icon: per the README, the Nostalgex name and icon are not covered by the MIT grant, so the
   maintainer should decide branding for any distributed build.
 
