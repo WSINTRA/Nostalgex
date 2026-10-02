@@ -9,6 +9,7 @@ This repo is intentionally **one project, three surfaces**. Everything that ship
 | **Public site** | Marketing + Plex connect; routes users into the tuner | `/` → `index.html` |
 | **Web app (tuner)** | Full in-browser guide + playback | `plex-tuner.html` |
 | **tvOS app** | Native Apple TV experience | Xcode: `Nostalgex/Nostalgex.xcodeproj` |
+| **Android TV / Fire TV app** (prototype) | Native Kotlin client, Jellyfin only | Gradle: `android/` (see `android/README.md`) |
 
 **User flow:** landing → connect Plex → **web tuner** on the same origin. The **tvOS app** shares `channels.json` and filter semantics; release it via Xcode / App Store Connect, not Vercel.
 
@@ -34,6 +35,7 @@ A stale build shows an older version number or a different channel name. Regener
 | `api/` | Vercel serverless (e.g. newsletter `subscribe`) |
 | `vercel.json` | Headers / routing; **web only** |
 | `Nostalgex/` | Xcode project + Swift sources + assets |
+| `android/` | Gradle multi-module Kotlin project; copies `channels.json` in at build time and is tested against the golden vectors in `scripts/nostalgex-schedule-order-smoke.mjs` |
 
 The nested folder `Nostalgex/Nostalgex/` (app target inside the project) is normal for Xcode; **web files still live at the repo root.**
 
@@ -48,6 +50,7 @@ The nested folder `Nostalgex/Nostalgex/` (app target inside the project) is norm
 |--------|----------------|
 | Web | **Vercel** — GitHub integration on this repo, `main` → production |
 | tvOS | **Xcode** — Archive → App Store Connect |
+| Android TV / Fire TV | **Gradle** — `./gradlew :app:assembleDebug`, sideloaded with `adb` (not published) |
 
 Vercel must not attempt to compile the Xcode project.
 

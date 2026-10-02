@@ -27,6 +27,11 @@ Native Apple TV app, free on the App Store, open source. Same channel logic and 
   - `Services/PlexAPIService.swift`, `Services/JellyfinAPIService.swift`, `Services/EmbyAPIService.swift` -- server clients
   - `Views/` -- TunerView, PlayerView, ChannelGuideView, etc.
  
+### Android TV / Fire TV (`android/`)
+Prototype Kotlin client for Jellyfin, built to run on a Fire TV Stick (Fire OS 6+, API 25+) and sideloaded with `adb`. Same `channels.json`, same deterministic schedule: its tests read the golden vectors from `scripts/nostalgex-schedule-order-smoke.mjs`, so it airs the same program as tvOS and the web tuner. See `android/README.md` for the module layout, sideload steps and what is not yet supported (Plex, Emby, TMDB/OMDb enrichment rules).
+
+- **Stack:** Kotlin, Compose for TV, Media3 (ExoPlayer), OkHttp, Gradle
+
 ### Public site (`index.html`)
 Marketing page and the path into the tuner and the App Store. Served at `/` on Vercel.
 
