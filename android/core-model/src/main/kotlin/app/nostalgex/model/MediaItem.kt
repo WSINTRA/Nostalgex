@@ -34,6 +34,12 @@ data class MediaItem(
     val videoBitDepth: Int? = null,
     val videoWidth: Int? = null,
     val videoHeight: Int? = null,
+    val videoProfile: String? = null,
+    val bitrateKbps: Int? = null,
+    /** Backend-specific id of the file to play (Jellyfin MediaSourceId). */
+    val mediaSourceId: String? = null,
+    /** Image tag for the poster, used to cache-bust artwork URLs. */
+    val thumbTag: String? = null,
 ) {
     /** Title without a trailing " (2003)" suffix that metadata agents add. */
     val titleWithoutYear: String get() = title.replace(YEAR_SUFFIX, "")
