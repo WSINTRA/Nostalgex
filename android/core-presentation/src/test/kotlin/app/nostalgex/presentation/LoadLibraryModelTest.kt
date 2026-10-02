@@ -41,7 +41,9 @@ class LoadLibraryModelTest {
 
     private val ready get() = { m: LoadLibraryModel -> assertIs<LoadStatus.Ready>(m.state.value) }
 
-    @Test fun `starts in loading`() = assertIs<LoadStatus.Loading>(model(FakeMediaBackend(items)).state.value)
+    @Test fun `starts in loading`() {
+        assertIs<LoadStatus.Loading>(model(FakeMediaBackend(items)).state.value)
+    }
 
     @Test fun `cold start scans, saves a snapshot and builds the lineup sorted by channel number`() = runTest {
         val m = model(FakeMediaBackend(items))
