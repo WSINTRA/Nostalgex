@@ -10,7 +10,12 @@ import app.nostalgex.filter.ChannelFilter
 import app.nostalgex.filter.ChannelPoolBuilder
 import app.nostalgex.player.DeviceCapabilitiesProvider
 import app.nostalgex.presentation.LoadLibraryModel
+import app.nostalgex.playback.PlaybackController
+import app.nostalgex.playback.PlayerEngine
+import app.nostalgex.schedule.DayPacker
+import app.nostalgex.schedule.ScheduleResolver
 import java.time.Clock
+import java.time.ZoneId
 import app.nostalgex.model.ChannelConfig
 import app.nostalgex.presentation.ConnectModel
 import app.nostalgex.presentation.SignInService
@@ -52,6 +57,14 @@ class AppContainer(private val context: Context) {
 
     fun newBackend(session: JellyfinSession) =
         JellyfinBackend(httpClient, session, deviceId, capabilities = DeviceCapabilitiesProvider.detect())
+
+    /** Controller for one playback session; the engine is supplied by the screen that owns the player. */
+    fun newPlaybackController(session: JellyfinSession, engine: PlayerEngine) = PlaybackController(
+        backend = newBackend(session),
+        resolver = ScheduleResolver(DayPacker(), manifestStore, clock, ZoneId.systemDefault()),
+        engine = engine,
+        clock = clock,
+    )
 
     /** A fresh load model per signed-in session. */
     fun newLoadModel(session: JellyfinSession) = LoadLibraryModel(

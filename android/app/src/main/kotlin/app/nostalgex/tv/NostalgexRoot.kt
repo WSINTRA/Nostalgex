@@ -38,14 +38,7 @@ fun NostalgexRoot(container: AppContainer) {
                     val model = remember(r) { container.newLoadModel(r.session) }
                     LoadScreen(model, onReady = { ready = it }, onSignOut = { route = container.startupRouter.signOut() })
                 } else {
-                    Column(
-                        Modifier.fillMaxSize().background(Color.Black),
-                        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text("NOSTALGEX", color = Color(0xFFFFE500))
-                        Text("${done.lineups.size} channels from ${done.itemCount} titles (player: next task)", color = Color.White)
-                    }
+                    PlaybackScreen(container, r.session, done, onExit = { ready = null })
                 }
             }
         }
