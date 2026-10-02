@@ -20,6 +20,7 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
       tvos: ${{ steps.filter.outputs.tvos }}
       config: ${{ steps.filter.outputs.config }}
+      android: ${{ steps.filter.outputs.android }}
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +52,11 @@ jobs:
             tvos:
               - '.github/workflows/ci.yml'
               - 'Nostalgex/**'
+            android:
+              - '.github/workflows/ci.yml'
+              - 'android/**'
+              - 'channels.json'
+              - 'channels-memberships.json'
             config:
               - '.github/workflows/ci.yml'
               - 'package.json'
@@ -133,3 +139,23 @@ jobs:
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+  android-unit-tests:
+    name: Android (Fire TV) unit tests
+    needs: changes
+    if: ${{ needs.changes.outputs.android == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: ./gradlew test --stacktrace
