@@ -36,3 +36,10 @@ class FileLibrarySnapshotStore(private val dir: File) : LibrarySnapshotStore {
         return File(dir, "library_$hash.json")
     }
 }
+
+class InMemoryLibrarySnapshotStore : LibrarySnapshotStore {
+    private val map = HashMap<String, LibrarySnapshot>()
+    override fun load(serverId: String) = map[serverId]
+    override fun save(snapshot: LibrarySnapshot) { map[snapshot.serverId] = snapshot }
+    override fun clear(serverId: String) { map.remove(serverId) }
+}
