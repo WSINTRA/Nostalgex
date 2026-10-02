@@ -4,6 +4,13 @@ import android.content.Context
 import app.nostalgex.config.ChannelConfigParser
 import app.nostalgex.datastore.SharedPreferencesKeyValueStore
 import app.nostalgex.backend.jellyfin.JellyfinAuthClient
+import app.nostalgex.backend.jellyfin.JellyfinBackend
+import app.nostalgex.backend.jellyfin.JellyfinSession
+import app.nostalgex.filter.ChannelFilter
+import app.nostalgex.filter.ChannelPoolBuilder
+import app.nostalgex.player.DeviceCapabilitiesProvider
+import app.nostalgex.presentation.LoadLibraryModel
+import java.time.Clock
 import app.nostalgex.model.ChannelConfig
 import app.nostalgex.presentation.ConnectModel
 import app.nostalgex.presentation.SignInService
@@ -40,6 +47,20 @@ class AppContainer(private val context: Context) {
 
     /** A fresh model per connect screen visit. */
     fun newConnectModel() = ConnectModel(SignInService { c, u, p -> authClient.signInFirstReachable(c, u, p) }, sessionStore)
+
+    val clock: Clock = Clock.systemDefaultZone()
+
+    fun newBackend(session: JellyfinSession) =
+        JellyfinBackend(httpClient, session, deviceId, capabilities = DeviceCapabilitiesProvider.detect())
+
+    /** A fresh load model per signed-in session. */
+    fun newLoadModel(session: JellyfinSession) = LoadLibraryModel(
+        backend = newBackend(session),
+        snapshots = snapshotStore,
+        config = channelConfig,
+        poolBuilder = ChannelPoolBuilder(ChannelFilter(channelConfig.exclusiveRules, clock), clock),
+        clock = clock,
+    )
 
     val snapshotStore: LibrarySnapshotStore by lazy { FileLibrarySnapshotStore(File(context.filesDir, "snapshots")) }
     val manifestStore: FileManifestStore by lazy { FileManifestStore(File(context.filesDir, "manifests")) }

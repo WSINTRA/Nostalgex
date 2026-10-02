@@ -17,6 +17,7 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import androidx.tv.material3.darkColorScheme
+import app.nostalgex.presentation.LoadStatus
 import app.nostalgex.store.AppRoute
 
 /** Renders the current route. Routes are plain data; screens arrive in the next tasks. */
@@ -30,14 +31,22 @@ fun NostalgexRoot(container: AppContainer) {
                 val model = remember { container.newConnectModel() }
                 ConnectScreen(model) { route = AppRoute.LoadLibrary(it) }
             }
-            is AppRoute.LoadLibrary -> Column(
-                Modifier.fillMaxSize().background(Color.Black),
-                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text("NOSTALGEX", color = Color(0xFFFFE500))
-                Text("Signed in to ${r.session.serverName} - loading (next task)", color = Color.White)
-                Text("${container.channelConfig.channels.size} channels bundled", color = Color.Gray)
+            is AppRoute.LoadLibrary -> {
+                var ready by remember(r) { mutableStateOf<LoadStatus.Ready?>(null) }
+                val done = ready
+                if (done == null) {
+                    val model = remember(r) { container.newLoadModel(r.session) }
+                    LoadScreen(model, onReady = { ready = it }, onSignOut = { route = container.startupRouter.signOut() })
+                } else {
+                    Column(
+                        Modifier.fillMaxSize().background(Color.Black),
+                        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text("NOSTALGEX", color = Color(0xFFFFE500))
+                        Text("${done.lineups.size} channels from ${done.itemCount} titles (player: next task)", color = Color.White)
+                    }
+                }
             }
         }
     }
