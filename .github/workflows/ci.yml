@@ -57,6 +57,7 @@ jobs:
               - 'android/**'
               - 'channels.json'
               - 'channels-memberships.json'
+              - 'scripts/nostalgex-schedule-order-smoke.mjs'
             config:
               - '.github/workflows/ci.yml'
               - 'package.json'
@@ -158,4 +159,4 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - run: ./gradlew test --stacktrace
+      - run: ./gradlew test :app:assembleDebug --stacktrace
