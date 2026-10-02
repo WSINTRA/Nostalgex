@@ -15,4 +15,6 @@ include(
     ":data-backend",
     ":core-store",
     ":data-store",
+    ":core-playback",
+    ":player",
 )
