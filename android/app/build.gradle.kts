@@ -9,17 +9,23 @@ android {
     compileSdk = 35
     defaultConfig {
         applicationId = "app.nostalgex.tv"
-        minSdk = 28 // Fire OS 7 (Android 9) and later
+        minSdk = 25 // Fire OS 6 (Fire TV Stick 4K gen 1) and later
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
     }
     buildFeatures { compose = true }
-    compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+    // java.time is API 26+; the pure-Kotlin core modules use it, so desugar it for API 25.
+    compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":core-config"))
     implementation(project(":core-store"))
     implementation(project(":core-presentation"))
