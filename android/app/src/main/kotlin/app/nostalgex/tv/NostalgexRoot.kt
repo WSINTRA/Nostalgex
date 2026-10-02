@@ -25,20 +25,20 @@ import app.nostalgex.store.AppRoute
 fun NostalgexRoot(container: AppContainer) {
     var route: AppRoute by remember { mutableStateOf(container.startupRouter.initialRoute()) }
     MaterialTheme(colorScheme = darkColorScheme()) {
-        Column(
-            Modifier.fillMaxSize().background(Color.Black),
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text("NOSTALGEX", color = Color(0xFFFFE500))
-            when (val r = route) {
-                AppRoute.Connect -> {
-                    val model = remember { container.newConnectModel() }
-                    ConnectScreen(model) { route = AppRoute.LoadLibrary(it) }
-                }
-                is AppRoute.LoadLibrary -> Text("Signed in to ${r.session.serverName} - loading (later task)", color = Color.White)
+        when (val r = route) {
+            AppRoute.Connect -> {
+                val model = remember { container.newConnectModel() }
+                ConnectScreen(model) { route = AppRoute.LoadLibrary(it) }
             }
-            Text("${container.channelConfig.channels.size} channels bundled", color = Color.Gray)
+            is AppRoute.LoadLibrary -> Column(
+                Modifier.fillMaxSize().background(Color.Black),
+                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("NOSTALGEX", color = Color(0xFFFFE500))
+                Text("Signed in to ${r.session.serverName} - loading (next task)", color = Color.White)
+                Text("${container.channelConfig.channels.size} channels bundled", color = Color.Gray)
+            }
         }
     }
 }
