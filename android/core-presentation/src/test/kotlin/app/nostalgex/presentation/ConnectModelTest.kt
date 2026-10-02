@@ -78,7 +78,7 @@ class ConnectModelTest {
     }
 
     @Test fun `unusable address fails without calling the server`() = runTest {
-        val m = model().apply { fill(server = "   ") }
+        val m = model().apply { fill(server = "http://") }
         m.submit()
         assertIs<ConnectStatus.Failed>(m.state.value.status)
         assertTrue(calls.isEmpty())
