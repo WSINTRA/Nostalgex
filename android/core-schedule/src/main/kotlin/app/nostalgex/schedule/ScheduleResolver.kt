@@ -16,14 +16,19 @@ class ScheduleResolver(
     private val clock: Clock,
     private val zone: ZoneId,
 ) {
-    fun nowPlaying(channel: Channel, pool: List<MediaItem>): NowPlaying? {
+    /**
+     * [pool] is the channel's stable base pool; [allows] filters by time of day without changing the
+     * packed day. A disallowed current block means the channel is off air; up-next skips disallowed blocks.
+     */
+    fun nowPlaying(channel: Channel, pool: List<MediaItem>, allows: (MediaItem) -> Boolean = { true }): NowPlaying? {
         val now = clock.instant().epochSecond
         val today = LocalDate.now(clock.withZone(zone))
         val blocks = blocksForDay(channel, pool, today)
         val idx = blocks.indexOfFirst { it.contains(now) }
         if (idx < 0) return null
         val block = blocks[idx]
-        val upNext = blocks.getOrNull(idx + 1) ?: blocksForDay(channel, pool, today.plusDays(1)).firstOrNull()
+        if (!allows(block.item)) return null
+        val upNext = (blocks.drop(idx + 1) + blocksForDay(channel, pool, today.plusDays(1))).firstOrNull { allows(it.item) }
         return NowPlaying(block, block.offsetAt(now), upNext)
     }
 

@@ -36,8 +36,13 @@ class LoadLibraryModelTest {
         emptyList(), emptyList(),
     )
 
-    private fun model(backend: FakeMediaBackend) =
-        LoadLibraryModel(backend, snapshots, config, ChannelPoolBuilder(ChannelFilter(clock = clock), clock), clock, maxSnapshotAgeSec = 3600)
+    private val lineups = app.nostalgex.store.InMemoryLineupIndexStore()
+
+    private fun model(backend: FakeMediaBackend, configKey: String = "k") =
+        LoadLibraryModel(
+            backend, snapshots, config, ChannelPoolBuilder(ChannelFilter(clock = clock), clock), clock,
+            maxSnapshotAgeSec = 3600, lineupIndex = lineups, configKey = configKey,
+        )
 
     private val ready get() = { m: LoadLibraryModel -> assertIs<LoadStatus.Ready>(m.state.value) }
 
@@ -79,6 +84,50 @@ class LoadLibraryModelTest {
     @Test fun `scan failure falls back to a stale snapshot`() = runTest {
         snapshots.save(LibrarySnapshot("fake", now.epochSecond - 7200, items))
         val m = model(FakeMediaBackend(failure = IOException("offline")))
+        m.load()
+        assertEquals(4, ready(m).itemCount)
+    }
+
+    @Test fun `building saves a lineup index and a second launch reuses it`() = runTest {
+        snapshots.save(LibrarySnapshot("fake", now.epochSecond - 60, items))
+        model(FakeMediaBackend(items)).load()
+        val saved = lineups.load("fake")!!
+        assertEquals(setOf(1, 2), saved.channelItemIds.keys)
+        // Tamper with the cache: if the next launch reads it, channel 1 shows only m1.
+        lineups.save("fake", saved.copy(channelItemIds = saved.channelItemIds + (1 to listOf("m1", "m2", "m3"))))
+        val m = model(FakeMediaBackend(items)); m.load()
+        assertEquals(3, ready(m).lineups.first { it.channel.id == 1 }.pool.size)
+    }
+
+    @Test fun `a changed config key refilters instead of using the cache`() = runTest {
+        snapshots.save(LibrarySnapshot("fake", now.epochSecond - 60, items))
+        model(FakeMediaBackend(items), configKey = "old").load()
+        val saved = lineups.load("fake")!!
+        lineups.save("fake", saved.copy(channelItemIds = saved.channelItemIds + (1 to listOf("m1", "m2", "m3"))))
+        val m = model(FakeMediaBackend(items), configKey = "new"); m.load()
+        assertEquals(4, ready(m).lineups.first { it.channel.id == 1 }.pool.size)
+    }
+
+    @Test fun `a cache naming an item no longer in the library is ignored`() = runTest {
+        snapshots.save(LibrarySnapshot("fake", now.epochSecond - 60, items))
+        model(FakeMediaBackend(items)).load()
+        val saved = lineups.load("fake")!!
+        lineups.save("fake", saved.copy(channelItemIds = mapOf(1 to listOf("gone", "m1", "m2"), 2 to listOf("m1", "m2", "m3"))))
+        val m = model(FakeMediaBackend(items)); m.load()
+        assertEquals(4, ready(m).lineups.first { it.channel.id == 1 }.pool.size)
+    }
+
+    @Test fun `building reports per-channel progress`() = runTest {
+        snapshots.save(LibrarySnapshot("fake", now.epochSecond - 60, items))
+        val seen = mutableListOf<LoadStatus>()
+        val m = model(FakeMediaBackend(items)); m.onProgress = { seen += it }
+        m.load()
+        assertTrue(seen.any { it is LoadStatus.Loading && it.message.startsWith("Building channels (3 of 3)") })
+    }
+
+    @Test fun `empty scan falls back to a stale snapshot`() = runTest {
+        snapshots.save(LibrarySnapshot("fake", now.epochSecond - 7200, items))
+        val m = model(FakeMediaBackend(emptyList()))
         m.load()
         assertEquals(4, ready(m).itemCount)
     }

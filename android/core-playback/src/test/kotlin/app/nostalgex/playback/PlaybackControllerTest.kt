@@ -27,6 +27,8 @@ class FakeEngine : PlayerEngine {
     override var listener: PlayerEngine.Listener? = null
     val played = mutableListOf<PlayRequest>()
     var stopped = 0
+    val subtitleCalls = mutableListOf<Boolean>()
+    override fun setSubtitlesEnabled(enabled: Boolean) { subtitleCalls += enabled }
     override fun play(request: PlayRequest) { played += request }
     override fun stop() { stopped++ }
 }
@@ -53,6 +55,16 @@ class PlaybackControllerTest {
         assertEquals((now - playing.block.startEpochSec) * 1000, req.startPositionMs)
         assertTrue(req.url.contains(playing.block.item.id))
         assertEquals(channel, playing.channel)
+    }
+
+    @Test fun `subtitle choice is applied on every tune and when toggled`() {
+        val c = controller()
+        c.subtitlesEnabled = true
+        c.tune(lineups[0])
+        c.channelUp(lineups)
+        assertEquals(listOf(true, true, true), engine.subtitleCalls)
+        c.subtitlesEnabled = false
+        assertEquals(false, engine.subtitleCalls.last())
     }
 
     @Test fun `transcode that starts at the offset is not seeked`() {

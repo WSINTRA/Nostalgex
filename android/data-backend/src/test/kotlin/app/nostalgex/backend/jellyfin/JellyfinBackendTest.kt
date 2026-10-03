@@ -88,10 +88,25 @@ class JellyfinBackendTest {
         assertEquals("Show", items.single().title)
     }
 
-    @Test fun `music video library is tagged`() = runTest {
+    @Test fun `music video library is tagged and requests MusicVideo items`() = runTest {
         views("mv" to "musicvideos")
-        routes["/Items"] = { MockResponse().setBody("""{"TotalRecordCount":1,"Items":[${movieJson("x", "Artist - Song")}]}""") }
+        routes["/Items"] = { r ->
+            if ("MusicVideo" in r.requestUrl!!.queryParameter("IncludeItemTypes")!!.split(","))
+                MockResponse().setBody("""{"TotalRecordCount":1,"Items":[${movieJson("x", "Artist - Song")}]}""")
+            else MockResponse().setBody("""{"TotalRecordCount":0,"Items":[]}""")
+        }
         assertEquals("MUSIC_VIDEO", backend().loadLibrary().single().librarySource.toString())
+    }
+
+    @Test fun `a show with malformed JSON is skipped`() = runTest {
+        views("tv" to "tvshows")
+        routes["/Items"] = { r ->
+            if (r.requestUrl!!.queryParameter("IncludeItemTypes") == "Series")
+                MockResponse().setBody("""{"TotalRecordCount":2,"Items":[{"Id":"bad","Name":"Bad"},{"Id":"ok","Name":"Ok"}]}""")
+            else if (r.requestUrl!!.queryParameter("ParentId") == "bad") MockResponse().setBody("not json")
+            else MockResponse().setBody("""{"TotalRecordCount":1,"Items":[{"Id":"e","RunTimeTicks":${20 * tick}}]}""")
+        }
+        assertEquals(listOf("Ok"), backend().loadLibrary().map { it.title })
     }
 
     @Test fun `progress is reported per section`() = runTest {
@@ -119,6 +134,17 @@ class JellyfinBackendTest {
         views("v" to "movies")
         routes["/Items"] = { MockResponse().setResponseCode(500) }
         assertIs<SignInError.ServerError>(runCatching { backend().loadLibrary() }.exceptionOrNull())
+    }
+
+    @Test fun `overview is fetched for one item`() = runTest {
+        routes["/Users/user1/Items/m1"] = { MockResponse().setBody("""{"Id":"m1","Overview":"A toaster travels."}""") }
+        val item = app.nostalgex.model.MediaItem("m1", "T", 90, MediaType.MOVIE)
+        assertEquals("A toaster travels.", backend().overview(item))
+    }
+
+    @Test fun `blank overview is null`() = runTest {
+        routes["/Users/user1/Items/m1"] = { MockResponse().setBody("""{"Id":"m1","Overview":"  "}""") }
+        assertEquals(null, backend().overview(app.nostalgex.model.MediaItem("m1", "T", 90, MediaType.MOVIE)))
     }
 
     @Test fun `thumbnail url uses image tag and width`() {

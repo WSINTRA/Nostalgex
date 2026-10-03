@@ -54,6 +54,11 @@ class JellyfinBackend(
         return all
     }
 
+    @Serializable private data class OverviewDto(val Overview: String? = null)
+
+    override suspend fun overview(item: MediaItem): String? =
+        json.decodeFromString(OverviewDto.serializer(), get("/Users/${session.userId}/Items/${item.id}")).Overview?.takeIf { it.isNotBlank() }
+
     private val planner = JellyfinStreamPlanner(session.baseUrl, session.accessToken, deviceId, capabilities)
 
     override fun streamPlan(item: MediaItem, offsetSeconds: Long, forceTranscode: Boolean): StreamPlan =
@@ -69,7 +74,7 @@ class JellyfinBackend(
         json.decodeFromString(ItemsResponseDto.serializer(), get("/UserViews", "userId" to session.userId)).Items.orEmpty()
 
     private suspend fun movieSection(parentId: String, music: Boolean) =
-        fetchAll(parentId, "Movie").mapNotNull { mapper.movie(it, music) }
+        fetchAll(parentId, if (music) "Movie,MusicVideo" else "Movie").mapNotNull { mapper.movie(it, music) }
 
     /** Lists series, then fetches each series' episodes in small concurrent batches. */
     private suspend fun showsSection(parentId: String): List<MediaItem> {
@@ -85,6 +90,7 @@ class JellyfinBackend(
         try { fetchAll(show.Id, "Episode").mapNotNull { mapper.episode(it, show) } }
         catch (e: IOException) { emptyList() } // skip a show that fails, like tvOS
         catch (e: SignInError.ServerError) { emptyList() }
+        catch (e: kotlinx.serialization.SerializationException) { emptyList() } // malformed JSON for one show
 
     private suspend fun fetchAll(parentId: String, types: String): List<JellyfinItemDto> {
         val collected = ArrayList<JellyfinItemDto>()
@@ -96,7 +102,7 @@ class JellyfinBackend(
                     "/Items",
                     "userId" to session.userId, "ParentId" to parentId, "Recursive" to "true",
                     "IncludeItemTypes" to types,
-                    "Fields" to "Overview,Genres,Studios,MediaSources,ProductionYear,PremiereDate,DateCreated",
+                    "Fields" to "Genres,Studios,MediaSources,ProductionYear,PremiereDate,DateCreated",
                     "StartIndex" to start.toString(), "Limit" to pageSize.toString(), "SortBy" to "SortName",
                 ),
             )

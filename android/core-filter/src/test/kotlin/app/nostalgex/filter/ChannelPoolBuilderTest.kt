@@ -34,25 +34,34 @@ class ChannelPoolBuilderTest {
 
     @Test fun `blockRatings applies before the block hour`() {
         val tr = TimeRestrictions(blockRatings = BlockRatings(listOf("R"), blockBefore = 20))
-        assertEquals(3, builderAt(12).build(lib, listOf(ch(tr = tr))).single().pool.size)
-        assertEquals(4, builderAt(21).build(lib, listOf(ch(tr = tr))).single().pool.size)
+        assertEquals(3, builderAt(12).build(lib, listOf(ch(tr = tr))).single().eligible().size)
+        assertEquals(4, builderAt(21).build(lib, listOf(ch(tr = tr))).single().eligible().size)
     }
 
     @Test fun `blockRatings is skipped if it would leave fewer than two items`() {
         val tr = TimeRestrictions(blockRatings = BlockRatings(listOf("PG", "R"), blockBefore = 20))
-        assertEquals(4, builderAt(12).build(lib, listOf(ch(tr = tr))).single().pool.size)
+        assertEquals(4, builderAt(12).build(lib, listOf(ch(tr = tr))).single().eligible().size)
     }
 
     @Test fun `tvOnlyBefore keeps episodes only early in the day`() {
         val tr = TimeRestrictions(tvOnlyBefore = 11)
         val lib2 = lib + item("e", MediaType.EPISODE)
-        assertEquals(2, builderAt(9).build(lib2, listOf(ch(tr = tr))).single().pool.size)
-        assertEquals(5, builderAt(12).build(lib2, listOf(ch(tr = tr))).single().pool.size)
+        assertEquals(2, builderAt(9).build(lib2, listOf(ch(tr = tr))).single().eligible().size)
+        assertEquals(5, builderAt(12).build(lib2, listOf(ch(tr = tr))).single().eligible().size)
     }
 
     @Test fun `onlyAfterHour empties the pool before the gate`() {
         val tr = TimeRestrictions(onlyAfterHour = 19)
-        assertEquals(0, builderAt(12).build(lib, listOf(ch(min = 0, tr = tr))).single().pool.size)
-        assertEquals(4, builderAt(20).build(lib, listOf(ch(tr = tr))).single().pool.size)
+        assertEquals(0, builderAt(12).build(lib, listOf(ch(min = 0, tr = tr))).single().eligible().size)
+        assertEquals(4, builderAt(20).build(lib, listOf(ch(tr = tr))).single().eligible().size)
+    }
+
+    @Test fun `base pool is stable across hours while eligibility changes`() {
+        val tr = TimeRestrictions(blockRatings = BlockRatings(listOf("R"), blockBefore = 20))
+        val day = builderAt(12).build(lib, listOf(ch(tr = tr))).single()
+        val night = builderAt(21).build(lib, listOf(ch(tr = tr))).single()
+        assertEquals(day.pool.map { it.id }, night.pool.map { it.id })
+        assertEquals(3, day.eligible().size)
+        assertEquals(4, night.eligible().size)
     }
 }

@@ -42,8 +42,16 @@ class GuideModelTest {
         assertTrue(r.progress in 0f..1f)
     }
 
-    @Test fun `channels with nothing scheduled are omitted`() {
-        assertEquals(listOf(1), guide.rows(listOf(lineup(1), lineup(2, emptyList()))).map { it.channel.number })
+    @Test fun `channels with nothing scheduled stay as off-air rows`() {
+        val rows = guide.rows(listOf(lineup(1), lineup(2, emptyList())))
+        assertEquals(listOf(1, 2), rows.map { it.channel.number })
+        assertEquals(listOf(true, false), rows.map { it.onAir })
+        assertEquals(1, GuideModel.indexOfChannel(rows, 2))
+    }
+
+    @Test fun `a disallowed current block puts the channel off air`() {
+        val l = ChannelLineup(Channel(1, 1, "CH1", "#000"), pool) { false }
+        assertEquals(false, guide.rows(listOf(l)).single().onAir)
     }
 
     @Test fun `initial selection is the channel being watched, else the first`() {
@@ -51,5 +59,27 @@ class GuideModelTest {
         assertEquals(1, GuideModel.indexOfChannel(rows, 2))
         assertEquals(0, GuideModel.indexOfChannel(rows, 99))
         assertEquals(0, GuideModel.indexOfChannel(emptyList(), 1))
+    }
+
+    @Test fun `cells cover the window with exactly one now block and the right fractions`() {
+        val start = GuideModel.snapToHalfHour(clock.instant().epochSecond)
+        val c = guide.cells(lineup(1), start, 7200).cells
+        assertTrue(c.sumOf { it.fraction.toDouble() } <= 1.0 + 1e-6)
+        assertEquals(1, c.count { it.isNow })
+        assertTrue(c.none { it.title == null }) // a packed day has no gaps
+    }
+
+    @Test fun `disallowed blocks become gaps`() {
+        val start = GuideModel.snapToHalfHour(clock.instant().epochSecond)
+        val l = ChannelLineup(Channel(1, 1, "CH1", "#000"), pool) { false }
+        val c = guide.cells(l, start, 7200).cells
+        assertTrue(c.isEmpty() || c.all { it.title == null })
+    }
+
+    @Test fun `rows carry the now item and channel colour`() {
+        val r = guide.rows(listOf(ChannelLineup(Channel(1, 1, "CH1", "#FA47B2"), pool))).single()
+        assertNotNull(r.nowItem)
+        assertEquals(0xFFFA47B2, r.colorArgb)
+        assertTrue(r.nowStartEpochSec <= clock.instant().epochSecond)
     }
 }

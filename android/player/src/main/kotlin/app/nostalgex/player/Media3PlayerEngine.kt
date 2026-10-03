@@ -1,6 +1,7 @@
 package app.nostalgex.player
 
 import android.content.Context
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -38,6 +39,18 @@ class Media3PlayerEngine(context: Context) : PlayerEngine {
         http.setDefaultRequestProperties(request.headers)
         player.setMediaItem(MediaItem.fromUri(request.url), request.startPositionMs)
         player.prepare()
+    }
+
+    /**
+     * Text tracks are off by default. Enabling lets ExoPlayer pick the track matching the device
+     * language, or an undetermined/default one. Applies to direct play; transcodes carry no subtitles.
+     */
+    override fun setSubtitlesEnabled(enabled: Boolean) {
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !enabled)
+            .setPreferredTextLanguage(java.util.Locale.getDefault().language)
+            .setSelectUndeterminedTextLanguage(true)
+            .build()
     }
 
     override fun stop() { player.stop(); player.clearMediaItems() }

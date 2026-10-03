@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -44,41 +45,75 @@ import app.nostalgex.presentation.LoadStatus
 import app.nostalgex.presentation.OsdInfo
 import app.nostalgex.presentation.OsdModel
 import app.nostalgex.presentation.OsdVisibility
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 /**
- * Full-screen live TV. D-pad Up/Down change channel (wrapping), OK shows the info banner,
- * which also appears on every tune and hides after a few seconds.
+ * Live TV. The guide opens first (live preview top-right) and again on Menu/OK/Left; in fullscreen
+ * D-pad Up/Down change channel, OK/Menu open the guide, Play/Pause toggles subtitles, and Back exits.
+ * The player view is one view that resizes between the two layouts, so the stream never restarts.
  */
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun PlaybackScreen(container: AppContainer, session: JellyfinSession, ready: LoadStatus.Ready, onExit: () -> Unit) {
     val context = LocalContext.current
     var state by remember { mutableStateOf<PlaybackState>(PlaybackState.Idle) }
+    var currentChannelId by remember { mutableStateOf(-1) }
     var nowSec by remember { mutableLongStateOf(container.clock.instant().epochSecond) }
     val osd = remember { OsdVisibility(hideAfterSec = 5) }
     val engine = remember { Media3PlayerEngine(context) }
+    val backend = remember { container.newBackend(session) }
+    val subtitlePref = remember { container.subtitlePreference }
+    var subtitlesEnabled by remember { mutableStateOf(subtitlePref.enabled) }
     val controller = remember {
-        container.newPlaybackController(session, engine).also {
+        container.newPlaybackController(session, engine, backend).also {
+            it.subtitlesEnabled = subtitlePref.enabled
             it.onState = { s ->
                 state = s
+                when (s) {
+                    is PlaybackState.Playing -> currentChannelId = s.channel.id
+                    is PlaybackState.Failed -> s.channel?.let { c -> currentChannelId = c.id }
+                    else -> {}
+                }
                 if (s is PlaybackState.Playing) osd.show(container.clock.instant().epochSecond)
             }
         }
     }
     val focus = remember { FocusRequester() }
+    val guideModel = remember { container.newGuideModel(session) }
+    var guideWanted by remember { mutableStateOf(true) } // the guide is the first thing you see
     var guideRows by remember { mutableStateOf<List<GuideRow>?>(null) }
+    val guideVisible = guideWanted && guideRows != null
+    val overviews = remember { HashMap<String, String?>() }
 
     DisposableEffect(Unit) {
-        controller.tune(ready.lineups.first())
+        // Start on the first channel that is on air; if none is, the last attempt shows "Nothing scheduled".
+        ready.lineups.any { controller.tune(it) }
         onDispose { controller.stop(); engine.release() }
     }
-    // Tick once a second so the banner's countdown and auto-hide stay current.
+    // Tick once a second so the banner's countdown, now-line and progress stay current.
     LaunchedEffect(Unit) {
         while (true) { nowSec = container.clock.instant().epochSecond; delay(1000) }
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
-    BackHandler(enabled = guideRows == null, onBack = onExit)
+    // Build now/next rows off the UI thread, and refresh them while the guide is open.
+    LaunchedEffect(guideWanted) {
+        while (guideWanted) {
+            guideRows = withContext(Dispatchers.Default) { guideModel.rows(ready.lineups) }
+            delay(30_000)
+        }
+    }
+    LaunchedEffect(guideVisible) { if (!guideVisible) runCatching { focus.requestFocus() } }
+    BackHandler(enabled = guideVisible) { guideWanted = false }
+    BackHandler(enabled = !guideVisible, onBack = onExit)
+
+    fun toggleSubtitles() {
+        subtitlesEnabled = !subtitlesEnabled
+        subtitlePref.enabled = subtitlesEnabled
+        controller.subtitlesEnabled = subtitlesEnabled
+        osd.show(container.clock.instant().epochSecond)
+    }
 
     val info = OsdModel.describe(state, nowSec)
 
@@ -86,52 +121,56 @@ fun PlaybackScreen(container: AppContainer, session: JellyfinSession, ready: Loa
         Modifier.fillMaxSize().background(Color.Black)
             .focusRequester(focus).focusable()
             .onKeyEvent { e ->
-                if (guideRows != null || e.type != KeyEventType.KeyDown) return@onKeyEvent false
+                if (guideVisible || e.type != KeyEventType.KeyDown) return@onKeyEvent false
                 when (e.key) {
                     Key.DirectionUp, Key.ChannelUp -> { controller.channelUp(ready.lineups); true }
                     Key.DirectionDown, Key.ChannelDown -> { controller.channelDown(ready.lineups); true }
-                    Key.Menu, Key.DirectionLeft -> {
-                        guideRows = container.newGuideModel().rows(ready.lineups); true
-                    }
-                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> { osd.show(container.clock.instant().epochSecond); true }
+                    Key.Menu, Key.DirectionLeft, Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> { guideWanted = true; true }
+                    Key.MediaPlayPause, Key.MediaPlay, Key.MediaPause -> { toggleSubtitles(); true }
                     else -> false
                 }
             },
     ) {
+        // One player view for both layouts: full screen, or the top-right preview beside the guide.
         AndroidView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = if (guideVisible) Modifier.align(Alignment.TopEnd).fillMaxWidth(0.38f).fillMaxHeight(0.5f) else Modifier.fillMaxSize(),
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                     useController = false
                     isFocusable = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     player = engine.player
                 }
             },
+            update = { it.resizeMode = if (guideVisible) AspectRatioFrameLayout.RESIZE_MODE_ZOOM else AspectRatioFrameLayout.RESIZE_MODE_FIT },
         )
         (state as? PlaybackState.Failed)?.let {
-            Text(it.reason, color = Color(0xFFFF6B6B), fontSize = 20.sp, modifier = Modifier.align(Alignment.Center))
+            Box(
+                if (guideVisible) Modifier.align(Alignment.TopEnd).fillMaxWidth(0.38f).fillMaxHeight(0.5f) else Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) { Text(it.reason, color = Color(0xFFFF6B6B), fontSize = 18.sp) }
         }
-        guideRows?.let { rows ->
+        guideRows?.takeIf { guideWanted }?.let { rows ->
             GuideScreen(
-                rows = rows,
-                currentChannelId = (state as? PlaybackState.Playing)?.channel?.id ?: -1,
-                onPick = { row ->
-                    guideRows = null
-                    ready.lineups.firstOrNull { it.channel.id == row.channel.id }?.let(controller::tune)
-                    runCatching { focus.requestFocus() }
+                rows = rows, lineups = ready.lineups, model = guideModel, currentChannelId = currentChannelId,
+                nowSec = { nowSec }, subtitlesEnabled = subtitlesEnabled,
+                loadOverview = { item ->
+                    // Cached per item; a failed fetch is not cached so it can be retried.
+                    if (overviews.containsKey(item.id)) overviews[item.id]
+                    else backend.overview(item).also { overviews[item.id] = it }
                 },
-                onClose = { guideRows = null; runCatching { focus.requestFocus() } },
+                onTune = { row -> ready.lineups.firstOrNull { it.channel.id == row.channel.id }?.let { controller.tune(it) } },
+                onFullscreen = { guideWanted = false },
+                onToggleSubtitles = ::toggleSubtitles,
             )
         }
-        if (guideRows == null && info != null && osd.isVisible(nowSec)) Banner(info, Modifier.align(Alignment.BottomStart))
+        if (!guideVisible && info != null && osd.isVisible(nowSec)) Banner(info, subtitlesEnabled, Modifier.align(Alignment.BottomStart))
     }
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun Banner(info: OsdInfo, modifier: Modifier = Modifier) {
+private fun Banner(info: OsdInfo, subtitlesEnabled: Boolean, modifier: Modifier = Modifier) {
     Column(
         modifier.fillMaxWidth().background(Color(0xCC000000)).padding(horizontal = 48.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -143,6 +182,7 @@ private fun Banner(info: OsdInfo, modifier: Modifier = Modifier) {
             buildString {
                 append(info.remainingLabel)
                 info.upNextTitle?.let { append("   |   Up next: ").append(it) }
+                append("   |   CC ").append(if (subtitlesEnabled) "on" else "off").append(" (Play/Pause)")
             },
             color = Color.Gray, fontSize = 16.sp,
         )

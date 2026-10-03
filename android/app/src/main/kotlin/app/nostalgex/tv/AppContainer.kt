@@ -24,9 +24,12 @@ import app.nostalgex.store.DeviceIdProvider
 import app.nostalgex.store.FileLibrarySnapshotStore
 import app.nostalgex.store.FileManifestStore
 import app.nostalgex.store.KeyValueStore
+import app.nostalgex.store.FileLineupIndexStore
 import app.nostalgex.store.LibrarySnapshotStore
+import app.nostalgex.store.LineupIndexStore
 import app.nostalgex.store.SessionStore
 import app.nostalgex.store.StartupRouter
+import app.nostalgex.store.SubtitlePreference
 import okhttp3.OkHttpClient
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -49,6 +52,8 @@ class AppContainer(private val context: Context) {
             .build()
     }
 
+    val subtitlePreference: SubtitlePreference by lazy { SubtitlePreference(keyValueStore) }
+
     val authClient: JellyfinAuthClient by lazy { JellyfinAuthClient(httpClient, deviceId) }
 
     /** A fresh model per connect screen visit. */
@@ -60,15 +65,15 @@ class AppContainer(private val context: Context) {
         JellyfinBackend(httpClient, session, deviceId, capabilities = DeviceCapabilitiesProvider.detect())
 
     /** Controller for one playback session; the engine is supplied by the screen that owns the player. */
-    fun newPlaybackController(session: JellyfinSession, engine: PlayerEngine) = PlaybackController(
-        backend = newBackend(session),
-        resolver = ScheduleResolver(DayPacker(), manifestStore, clock, ZoneId.systemDefault()),
+    fun newPlaybackController(session: JellyfinSession, engine: PlayerEngine, backend: JellyfinBackend = newBackend(session)) = PlaybackController(
+        backend = backend,
+        resolver = ScheduleResolver(DayPacker(), manifestStoreFor(session), clock, ZoneId.systemDefault()),
         engine = engine,
         clock = clock,
     )
 
-    fun newGuideModel() = GuideModel(
-        ScheduleResolver(DayPacker(), manifestStore, clock, ZoneId.systemDefault()), clock, ZoneId.systemDefault(),
+    fun newGuideModel(session: JellyfinSession) = GuideModel(
+        ScheduleResolver(DayPacker(), manifestStoreFor(session), clock, ZoneId.systemDefault()), clock, ZoneId.systemDefault(),
     )
 
     /** A fresh load model per signed-in session. */
@@ -78,13 +83,36 @@ class AppContainer(private val context: Context) {
         config = channelConfig,
         poolBuilder = ChannelPoolBuilder(ChannelFilter(channelConfig.exclusiveRules, clock), clock),
         clock = clock,
+        lineupIndex = lineupIndexStore,
+        configKey = channelConfigKey,
     )
 
+    val lineupIndexStore: LineupIndexStore by lazy { FileLineupIndexStore(File(context.filesDir, "lineups")) }
+
+    private val channelsJson: String by lazy { context.assets.open("channels.json").bufferedReader().use { it.readText() } }
+    private val channelConfigKey: String by lazy { channelsJson.hashCode().toString() }
+
     val snapshotStore: LibrarySnapshotStore by lazy { FileLibrarySnapshotStore(File(context.filesDir, "snapshots")) }
-    val manifestStore: FileManifestStore by lazy { FileManifestStore(File(context.filesDir, "manifests")) }
+    private val manifestStores = HashMap<String, FileManifestStore>()
+
+    /**
+     * Manifests live in a per-server directory so signing in to another server never reuses them.
+     * Days older than yesterday are pruned once per store (yesterday's lineup feeds today's packing).
+     */
+    @Synchronized
+    fun manifestStoreFor(session: JellyfinSession): FileManifestStore {
+        val serverKey = session.serverId.ifEmpty { session.baseUrl }
+        return manifestStores.getOrPut(serverKey) {
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest(serverKey.toByteArray())
+                .joinToString("") { "%02x".format(it) }.take(16)
+            FileManifestStore(File(context.filesDir, "manifests/$hash")).also {
+                it.pruneBefore(java.time.LocalDate.now(clock.withZone(ZoneId.systemDefault())).minusDays(1).toString())
+            }
+        }
+    }
 
     /** Bundled copy of the repo-root channels.json (see the Gradle copy task in :app). */
     val channelConfig: ChannelConfig by lazy {
-        ChannelConfigParser().parse(context.assets.open("channels.json").bufferedReader().use { it.readText() })
+        ChannelConfigParser().parse(channelsJson)
     }
 }

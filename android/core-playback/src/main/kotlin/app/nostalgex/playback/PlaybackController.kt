@@ -19,6 +19,10 @@ class PlaybackController(
 ) : PlayerEngine.Listener {
     var onState: (PlaybackState) -> Unit = {}
 
+    /** Applied to every program that starts, so the choice survives channel changes. */
+    var subtitlesEnabled: Boolean = false
+        set(value) { field = value; engine.setSubtitlesEnabled(value) }
+
     private var current: ChannelLineup? = null
     private var state: PlaybackState = PlaybackState.Idle
     private var failures = 0
@@ -26,13 +30,15 @@ class PlaybackController(
 
     init { engine.listener = this }
 
-    fun tune(lineup: ChannelLineup) {
+    /** Returns false (and publishes Failed) when the channel has nothing on air. */
+    fun tune(lineup: ChannelLineup): Boolean {
         current = lineup
         failures = 0
         retriedBlockStart = null
-        val np = resolver.nowPlaying(lineup.channel, lineup.pool)
-        if (np == null) { publish(PlaybackState.Failed(lineup.channel, "Nothing scheduled")); return }
+        val np = resolver.nowPlaying(lineup.channel, lineup.pool, lineup.allows)
+        if (np == null) { publish(PlaybackState.Failed(lineup.channel, "Nothing scheduled")); return false }
         start(lineup, np.block, np.upNext, np.offsetSeconds, forceTranscode = false)
+        return true
     }
 
     fun channelUp(all: List<ChannelLineup>) = step(all, +1)
@@ -47,7 +53,10 @@ class PlaybackController(
     private fun step(all: List<ChannelLineup>, delta: Int) {
         if (all.isEmpty()) return
         val idx = all.indexOfFirst { it.channel.id == current?.channel?.id }
-        tune(all[Math.floorMod(idx + delta, all.size)])
+        // Skip channels that are off air right now; if none is on air, the last attempt stays Failed.
+        for (i in 1..all.size) {
+            if (tune(all[Math.floorMod(idx + delta * i, all.size)])) return
+        }
     }
 
     override fun onReady() { failures = 0 }
@@ -56,7 +65,7 @@ class PlaybackController(
         val playing = state as? PlaybackState.Playing ?: return
         // Re-resolve against the clock; if the file ended early and the same block is still
         // "now", move to the next program instead of replaying this one.
-        val np = resolver.nowPlaying(playing.channel, current?.pool.orEmpty()) ?: return fail("Nothing scheduled")
+        val np = resolver.nowPlaying(playing.channel, current?.pool.orEmpty(), current?.allows ?: { true }) ?: return fail("Nothing scheduled")
         if (np.block.startEpochSec == playing.block.startEpochSec) advanceTo(playing.upNext) else begin(np.block, np.upNext, np.offsetSeconds)
     }
 
@@ -76,7 +85,7 @@ class PlaybackController(
     private fun advanceTo(next: app.nostalgex.model.ScheduleBlock?) {
         val lineup = current ?: return
         if (next == null) return fail("Nothing scheduled")
-        val following = resolver.blocksInRange(lineup.channel, lineup.pool, next.endEpochSec, next.endEpochSec + 1).firstOrNull()
+        val following = resolver.blocksInRange(lineup.channel, lineup.pool, next.endEpochSec, next.endEpochSec + 1).firstOrNull { lineup.allows(it.item) }
         begin(next, following, offsetSeconds = 0)
     }
 
@@ -93,6 +102,7 @@ class PlaybackController(
         // A transcode that starts at the offset must not be seeked again: that never completes.
         val position = if (plan.startsAtOffset) 0L else offsetSeconds * 1000
         publish(PlaybackState.Playing(lineup.channel, block, upNext))
+        engine.setSubtitlesEnabled(subtitlesEnabled)
         engine.play(PlayRequest(plan.url, backend.authHeaders, position))
     }
 

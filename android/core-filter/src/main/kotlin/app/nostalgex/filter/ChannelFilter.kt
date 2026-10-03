@@ -20,23 +20,77 @@ class ChannelFilter(
     private val clock: Clock = Clock.systemDefaultZone(),
 ) {
 
-    fun pool(library: List<MediaItem>, channel: Channel): List<MediaItem> =
-        library.filter { passes(it, channel) }
+    /** Per-rules lowercased/compiled lookups, keyed by identity so edited rules are never stale. */
+    private class Compiled(val editorial: Set<String>, val excludes: Regex?, val contains: Regex?)
+    private val compiledCache = java.util.Collections.synchronizedMap(java.util.IdentityHashMap<ChannelRules, Compiled>())
 
-    fun passes(item: MediaItem, channel: Channel): Boolean {
-        val rules = channel.rules
+    private fun compiled(rules: ChannelRules): Compiled = compiledCache.getOrPut(rules) {
+        Compiled(
+            rules.editorialOverrides.orEmpty().mapTo(HashSet()) { it.lowercase() },
+            wordAlternation(rules.titleExcludes.orEmpty()),
+            wordAlternation(rules.titleContains.orEmpty()),
+        )
+    }
+
+    /** One regex for all needles: same `\b needle \b` semantics as matching them one by one, in a single pass. */
+    private fun wordAlternation(needles: List<String>): Regex? {
+        val parts = needles.map { it.lowercase() }.filter { it.isNotEmpty() }.distinct()
+        if (parts.isEmpty()) return null
+        return Regex("""\b(?:${parts.joinToString("|") { Regex.escape(it) }})\b""")
+    }
+
+    /** An item with its lowercased title and genres computed once, so they are shared by every channel. */
+    class Prepared internal constructor(
+        internal val item: MediaItem, internal val genres: List<String>, internal val title: String,
+        /** Per exclusive rule: does this item match it? Channel-independent, so computed once. */
+        internal val exclusiveHits: BooleanArray,
+    )
+
+    private val loweredExclusive: List<LoweredExclusive> = exclusiveRules.map { r ->
+        LoweredExclusive(
+            r.channelIds.toSet(), r.editorialTitles.mapTo(HashSet()) { it.lowercase() },
+            r.titleContains.map { it.lowercase() }, r.genres.map { it.lowercase() },
+        )
+    }
+
+    private class LoweredExclusive(val channelIds: Set<Int>, val titles: Set<String>, val contains: List<String>, val genres: List<String>) {
+        fun matches(title: String, itemGenres: List<String>): Boolean =
+            title in titles || contains.any { title.contains(it) } ||
+                (genres.isNotEmpty() && itemGenres.any { g -> genres.any { g.contains(it) } })
+    }
+
+    private fun prepared(item: MediaItem): Prepared {
         val genres = item.genres.map { it.lowercase() }
         val title = item.titleWithoutYear.lowercase()
+        return Prepared(item, genres, title, BooleanArray(loweredExclusive.size) { loweredExclusive[it].matches(title, genres) })
+    }
+
+    fun prepare(library: List<MediaItem>): List<Prepared> = library.map(::prepared)
+
+    fun pool(library: List<MediaItem>, channel: Channel): List<MediaItem> = poolPrepared(prepare(library), channel)
+
+    fun poolPrepared(prepared: List<Prepared>, channel: Channel): List<MediaItem> =
+        prepared.filter { passes(it, channel) }.map { it.item }
+
+    fun passes(item: MediaItem, channel: Channel): Boolean =
+        passes(prepared(item), channel)
+
+    private fun passes(p: Prepared, channel: Channel): Boolean {
+        val item = p.item
+        val rules = channel.rules
+        val genres = p.genres
+        val title = p.title
         if (!passesSource(item, rules) ||
             !passesFamilySafety(item, channel) ||
             !passesGenreLocks(genres, rules, channel)
         ) return false
 
-        if (rules.editorialOverrides.orEmpty().any { it.lowercase() == title }) return true
+        val c = compiled(rules)
+        if (title in c.editorial) return true
         if (rules.manifestOnly) return false // membership only via a manifest we do not have
-        if (rules.titleExcludes.orEmpty().any { containsWord(title, it) }) return false
+        if (c.excludes?.containsMatchIn(title) == true) return false
 
-        return passesExclusivity(item, title, genres, channel.id) &&
+        return passesExclusivityPrepared(p, channel.id) &&
             passesType(item, rules) &&
             passesYear(item, rules) &&
             passesContentRatings(item, rules) &&
@@ -45,8 +99,11 @@ class ChannelFilter(
             passesGenreExcludeAndRequireAll(genres, rules) &&
             passesRecency(item, rules) &&
             passesRatingMin(item, rules) &&
-            passesContentMatch(item, title, genres, rules)
+            passesContentMatch(item, title, genres, rules, c.contains)
     }
+
+    private fun passesExclusivityPrepared(p: Prepared, channelId: Int): Boolean =
+        loweredExclusive.indices.none { i -> channelId !in loweredExclusive[i].channelIds && p.exclusiveHits[i] }
 
     // --- individual checks (internal for focused tests) ---
 
@@ -145,7 +202,10 @@ class ChannelFilter(
      * Title, keyword, studio and genre-include rules. Keyword rules need enrichment we do not
      * have, so they never match (tvOS behaviour with a missing enrichment record).
      */
-    internal fun passesContentMatch(item: MediaItem, title: String, itemGenres: List<String>, rules: ChannelRules): Boolean {
+    internal fun passesContentMatch(
+        item: MediaItem, title: String, itemGenres: List<String>, rules: ChannelRules,
+        titleRegex: Regex? = compiled(rules).contains,
+    ): Boolean {
         val include = includeList(rules)
         val hasTitle = !rules.titleContains.isNullOrEmpty()
         val hasStudio = !rules.studios.isNullOrEmpty()
@@ -153,7 +213,7 @@ class ChannelFilter(
         val hasKeyword = !rules.keywords.isNullOrEmpty()
         if (!hasTitle && !hasStudio && !hasGenre && !hasKeyword) return true
 
-        val titleHit = hasTitle && rules.titleContains!!.any { containsWord(title, it) }
+        val titleHit = hasTitle && titleRegex?.containsMatchIn(title) == true
         if (hasTitle && !hasStudio && !hasGenre && !hasKeyword) return titleHit // title-curated allow-list
         if (titleHit) return true
 
@@ -168,11 +228,6 @@ class ChannelFilter(
     }
 
     // --- helpers ---
-
-    private fun containsWord(haystack: String, needle: String): Boolean {
-        val n = needle.lowercase()
-        return n.isNotEmpty() && Regex("""\b${Regex.escape(n)}\b""").containsMatchIn(haystack)
-    }
 
     private fun today(): LocalDate = ZonedDateTime.now(clock).toLocalDate()
     private fun currentYear(): Int = today().year
