@@ -392,11 +392,17 @@ extension AppState {
             return
         }
 
-        // Create a fresh tracker for this item. The API is nil for Jellyfin/Emby/demo, or
-        // when the user has turned off Plex activity sync — tracker still accumulates time
-        // but skips all Plex API calls (no timeline, so nothing lands in Continue Watching).
-        let trackerAPI = (backendKind == .plex && !isDemoMode && syncPlexActivity) ? api(for: item.serverID) as? PlexAPIService : nil
-        playbackTracker = PlaybackTracker(item: item, seekOffset: seekOffset, plexAPI: trackerAPI)
+        // Create a fresh tracker for this item. Reporting stays off unless the user
+        // turned it on: Plex gets timeline + scrobble, Jellyfin and Emby get the same
+        // watch counted on their server. Either way the tracker still accumulates time.
+        let reportingOn = !isDemoMode && syncPlexActivity
+        let reportingBackend: (any MediaBackend)? = reportingOn ? api(for: item.serverID) : nil
+        playbackTracker = PlaybackTracker(
+            item: item,
+            seekOffset: seekOffset,
+            plexAPI: reportingBackend as? PlexAPIService,
+            watchReporter: reportingBackend as? any WatchActivityReporting
+        )
 
         // Show the retro "tuning" loading state while we resolve + start playback. The
         // overlay itself only appears after a ~0.75s threshold (view-side), so fast starts

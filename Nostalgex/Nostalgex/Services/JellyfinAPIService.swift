@@ -9,7 +9,7 @@ import VideoToolbox
 /// The big reuse win is `ProviderIds`: Jellyfin items carry `{"Tmdb":"…","Imdb":"…"}`
 /// natively, so mapping those into `PlexMediaItem.tmdbID/imdbID` lets Jellyfin content
 /// flow through the exact same channel-building + enrichment pipeline as Plex.
-struct JellyfinAPIService: MediaBackend {
+struct JellyfinAPIService: MediaBackend, WatchActivityReporting {
     let serverURL: String
     let accessToken: String
     let userId: String
@@ -179,7 +179,7 @@ struct JellyfinAPIService: MediaBackend {
                 .init(name: "ParentId", value: parentId),
                 .init(name: "Recursive", value: "true"),
                 .init(name: "IncludeItemTypes", value: includeItemTypes),
-                .init(name: "Fields", value: "ProviderIds,Overview,Genres,Studios,MediaSources,ProductionYear,PremiereDate,DateCreated"),
+                .init(name: "Fields", value: "ProviderIds,Overview,Genres,Studios,MediaSources,ProductionYear,PremiereDate,DateCreated,UserData"),
                 .init(name: "StartIndex", value: "\(start)"),
                 .init(name: "Limit", value: "\(Self.pageSize)"),
                 .init(name: "SortBy", value: "SortName"),
@@ -261,7 +261,7 @@ struct JellyfinAPIService: MediaBackend {
                     type: .episode,
                     thumb: ep.ImageTags?["Primary"] ?? show.ImageTags?["Primary"],
                     art: show.ImageTags?["Backdrop"],
-                    viewCount: (ep.UserData?.Played ?? false) ? 1 : 0,
+                    viewCount: ServerWatchCount.viewCount(playCount: ep.UserData?.PlayCount, played: ep.UserData?.Played),
                     addedAt: Self.unixSeconds(fromISO: ep.DateCreated),
                     studio: show.Studios?.first?.Name,
                     tmdbID: show.tmdbID,
@@ -325,7 +325,7 @@ struct JellyfinAPIService: MediaBackend {
             type: .movie,
             thumb: item.ImageTags?["Primary"],
             art: item.ImageTags?["Backdrop"],
-            viewCount: (item.UserData?.Played ?? false) ? 1 : 0,
+            viewCount: ServerWatchCount.viewCount(playCount: item.UserData?.PlayCount, played: item.UserData?.Played),
             addedAt: Self.unixSeconds(fromISO: item.DateCreated),
             studio: item.Studios?.first?.Name,
             tmdbID: item.tmdbID,
@@ -514,6 +514,33 @@ struct JellyfinAPIService: MediaBackend {
         return PlaybackResolution(url: url, playSessionId: nil, isDirectPlay: false)
     }
 
+    func reportWatchActivity(
+        itemId: String,
+        mediaSourceId: String,
+        playSessionId: String,
+        positionTicks: Int,
+        event: MediaServerPlaybackReport.Event
+    ) async {
+        await MediaServerPlaybackReport.post(
+            serverURL: serverURL,
+            authorization: Self.authorizationHeader(deviceID: deviceID, token: accessToken),
+            event: event,
+            itemId: itemId,
+            mediaSourceId: mediaSourceId,
+            playSessionId: playSessionId,
+            positionTicks: positionTicks
+        )
+    }
+
+    func markWatched(itemId: String) async {
+        await MediaServerPlaybackReport.markPlayed(
+            serverURL: serverURL,
+            authorization: Self.authorizationHeader(deviceID: deviceID, token: accessToken),
+            userId: userId,
+            itemId: itemId
+        )
+    }
+
     /// Frees a server-side transcode session immediately rather than waiting on Jellyfin's
     /// inactivity timeout. Fire-and-forget; failures are ignored.
     func stopTranscode(playSessionId: String?) async {
@@ -693,7 +720,10 @@ struct JellyfinItem: Decodable {
     let UserData: UserData?
 
     struct Studio: Decodable { let Name: String? }
-    struct UserData: Decodable { let Played: Bool? }
+    struct UserData: Decodable {
+        let Played: Bool?
+        let PlayCount: Int?
+    }
 
     struct MediaSource: Decodable {
         let Id: String?

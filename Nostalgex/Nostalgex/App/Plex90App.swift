@@ -18,7 +18,13 @@ struct RootView: View {
                     TunerView(navigationPath: $navigationPath)
                 } else if appState.needsServerSelection {
                     ServerPickerView()
-                } else if forceSettings || !appState.hasCredentials {
+                } else if forceSettings {
+                    SettingsView()
+                } else if !appState.didAttemptCredentialHydration {
+                    // Keychain not read yet. Showing SettingsView here put the connect
+                    // screen in front of users who were already signed in.
+                    LoadingView()
+                } else if !appState.hasCredentials {
                     SettingsView()
                 } else if appState.isLoading {
                     LoadingView()
@@ -45,10 +51,11 @@ struct RootView: View {
             UIApplication.shared.isIdleTimerDisabled = (newState == .playing)
         }
         .task {
-            if forceSettings { return }
-            if reproAppReviewFlow { return }
+            if forceSettings { appState.didAttemptCredentialHydration = true; return }
+            if reproAppReviewFlow { appState.didAttemptCredentialHydration = true; return }
             emitLaunchAnalyticsIfNeeded()
             if uiTestInstantAuth {
+                appState.didAttemptCredentialHydration = true
                 appState.startPINAuth()
                 return
             }
@@ -114,10 +121,44 @@ struct LoadingView: View {
     /// step rail. The old compact "your lineup is already loaded for today" mode is gone: the
     /// one case still reaching it was a manual rescan, which clears the snapshot and re-crawls
     /// the whole server, so the reassurance it showed was the opposite of what was happening.
+    private var mode: LoadingScreenMode {
+        LoadingScreenMode.decide(
+            didAttemptCredentialHydration: appState.didAttemptCredentialHydration,
+            isFirstLibraryLoad: appState.isFirstLibraryLoad,
+            loadingMessage: appState.loadingMessage,
+            scanTotalSections: appState.scanTotalSections,
+            channelBuildTotal: appState.channelBuildTotal
+        )
+    }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            fullLoadBody
+            if mode.showsStepRail {
+                fullLoadBody
+            } else {
+                splashBody
+            }
+        }
+    }
+
+    /// Shown when there is nothing to report. The logo and a heartbeat, no rail, no
+    /// headline, no empty progress — a short wait should look deliberate.
+    private var splashBody: some View {
+        VStack(spacing: 26) {
+            Image("NostalgexLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 460)
+
+            Text(String(repeating: "\u{25A0}", count: 3))
+                .font(.custom("DMMono-Medium", size: 14))
+                .tracking(10)
+                .foregroundStyle(Color("BrandCyan").opacity(0.25 + 0.25 * Double(dots.count)))
+                .onReceive(timer) { _ in
+                    dots = dots.count >= 3 ? "" : dots + "."
+                }
+                .accessibilityHidden(true)
         }
     }
 
@@ -129,7 +170,7 @@ struct LoadingView: View {
                 .frame(maxWidth: 500)
                 .padding(.bottom, 20)
 
-            if appState.isFirstLibraryLoad {
+            if mode.showsFirstRunWarning {
                     Text("First setup can take a few minutes to scan and build channels.")
                         .font(.custom("DMMono-Regular", size: 22))
                         .foregroundStyle(.white.opacity(0.55))

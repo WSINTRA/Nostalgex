@@ -7,6 +7,8 @@ struct TunerView: View {
     @Binding var navigationPath: NavigationPath
     @State private var schedules: [Int: ChannelSchedule] = [:]
     @State private var windowStart: Date = Date()
+    /// Guards against an older schedule rebuild landing after a newer one.
+    @State private var scheduleBuildToken: Int = 0
     @State private var previewChannelID: Int? = nil
     // Refresh schedules every 30 seconds (progress bar + entry transitions)
     let scheduleTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
@@ -74,7 +76,8 @@ struct TunerView: View {
                 ChannelGuideView(
                     schedules: schedules,
                     windowStart: windowStart,
-                    onFocusChanged: { id in previewChannelID = id }
+                    onFocusChanged: { id in previewChannelID = id },
+                    onOpenSettings: { navigationPath.append(AppDestination.settings) }
                 )
                 .frame(maxHeight: .infinity)
             }
@@ -132,22 +135,43 @@ struct TunerView: View {
 
     // MARK: - Schedule management
 
+    /// Rebuilds every channel's schedule off the main thread.
+    ///
+    /// This runs on a 30s timer for as long as the guide is open, and again on every
+    /// program change. Measured on a Mac it costs 114ms for 40 channels and 921ms for 90,
+    /// and it used to run inline — so the focus engine froze for that long, every thirty
+    /// seconds, forever. It is the jank that was still there minutes after launch, once
+    /// the one-off channel rebuild had long finished.
     private func buildAllSchedules() {
         let now = Date()
         windowStart = ChannelScheduleBuilder.windowStart(at: now)
 
-        var newSchedules: [Int: ChannelSchedule] = [:]
-        for channel in appState.channels {
-            if let schedule = ChannelScheduleBuilder.buildSchedule(
-                for: channel,
-                at: now,
-                credentialFingerprint: appState.scheduleCredentialFingerprint
-            ) {
-                newSchedules[channel.id] = schedule
+        let channels = appState.channels
+        let fingerprint = appState.scheduleCredentialFingerprint
+        scheduleBuildToken &+= 1
+        let token = scheduleBuildToken
+
+        Task.detached(priority: .userInitiated) {
+            var newSchedules: [Int: ChannelSchedule] = [:]
+            for channel in channels {
+                if let schedule = ChannelScheduleBuilder.buildSchedule(
+                    for: channel,
+                    at: now,
+                    credentialFingerprint: fingerprint
+                ) {
+                    newSchedules[channel.id] = schedule
+                }
+            }
+            ChannelScheduleBuilder.resolveConflicts(&newSchedules)
+            let built = newSchedules
+            await MainActor.run {
+                // A later rebuild may have started while this one ran — the timer and a
+                // program change can overlap. Only the newest result may land, or the
+                // guide would flick back to a stale window.
+                guard token == scheduleBuildToken else { return }
+                schedules = built
             }
         }
-        ChannelScheduleBuilder.resolveConflicts(&newSchedules)
-        schedules = newSchedules
     }
 }
 

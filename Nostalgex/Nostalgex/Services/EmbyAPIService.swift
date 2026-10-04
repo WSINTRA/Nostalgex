@@ -4,7 +4,7 @@ import VideoToolbox
 /// Emby backend. Mirrors `JellyfinAPIService` — Emby and Jellyfin forked from the same
 /// codebase in 2018 so their REST APIs are ~90% identical. Key difference: Emby does not
 /// support Quick Connect, so username/password is the only login path.
-struct EmbyAPIService: MediaBackend {
+struct EmbyAPIService: MediaBackend, WatchActivityReporting {
     let serverURL: String
     let accessToken: String
     let userId: String
@@ -161,7 +161,7 @@ struct EmbyAPIService: MediaBackend {
                 // DateCreated is what parseMovieItem reads for addedAt. Without it in
                 // this list Emby items all came back with addedAt 0, so the schedule's
                 // premiere promotion could never fire on an Emby server.
-                .init(name: "Fields", value: "ProviderIds,Overview,Genres,Studios,MediaSources,ProductionYear,PremiereDate,DateCreated"),
+                .init(name: "Fields", value: "ProviderIds,Overview,Genres,Studios,MediaSources,ProductionYear,PremiereDate,DateCreated,UserData"),
                 .init(name: "StartIndex", value: "\(start)"),
                 .init(name: "Limit", value: "\(Self.pageSize)"),
                 .init(name: "SortBy", value: "SortName"),
@@ -240,7 +240,7 @@ struct EmbyAPIService: MediaBackend {
                     type: .episode,
                     thumb: ep.ImageTags?["Primary"] ?? show.ImageTags?["Primary"],
                     art: show.ImageTags?["Backdrop"],
-                    viewCount: (ep.UserData?.Played ?? false) ? 1 : 0,
+                    viewCount: ServerWatchCount.viewCount(playCount: ep.UserData?.PlayCount, played: ep.UserData?.Played),
                     addedAt: JellyfinAPIService.unixSeconds(fromISO: ep.DateCreated),
                     studio: show.Studios?.first?.Name,
                     tmdbID: show.tmdbID,
@@ -304,7 +304,7 @@ struct EmbyAPIService: MediaBackend {
             type: .movie,
             thumb: item.ImageTags?["Primary"],
             art: item.ImageTags?["Backdrop"],
-            viewCount: (item.UserData?.Played ?? false) ? 1 : 0,
+            viewCount: ServerWatchCount.viewCount(playCount: item.UserData?.PlayCount, played: item.UserData?.Played),
             addedAt: JellyfinAPIService.unixSeconds(fromISO: item.DateCreated),
             studio: item.Studios?.first?.Name,
             tmdbID: item.tmdbID,
@@ -445,6 +445,33 @@ struct EmbyAPIService: MediaBackend {
     private func fallbackResolution(for item: PlexMediaItem) -> PlaybackResolution? {
         guard let url = buildTranscodeURL(for: item) else { return nil }
         return PlaybackResolution(url: url, playSessionId: nil, isDirectPlay: false)
+    }
+
+    func reportWatchActivity(
+        itemId: String,
+        mediaSourceId: String,
+        playSessionId: String,
+        positionTicks: Int,
+        event: MediaServerPlaybackReport.Event
+    ) async {
+        await MediaServerPlaybackReport.post(
+            serverURL: serverURL,
+            authorization: Self.authorizationHeader(deviceID: deviceID, token: accessToken),
+            event: event,
+            itemId: itemId,
+            mediaSourceId: mediaSourceId,
+            playSessionId: playSessionId,
+            positionTicks: positionTicks
+        )
+    }
+
+    func markWatched(itemId: String) async {
+        await MediaServerPlaybackReport.markPlayed(
+            serverURL: serverURL,
+            authorization: Self.authorizationHeader(deviceID: deviceID, token: accessToken),
+            userId: userId,
+            itemId: itemId
+        )
     }
 
     func stopTranscode(playSessionId: String?) async {

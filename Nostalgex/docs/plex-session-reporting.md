@@ -1,11 +1,11 @@
 # Plex Session Reporting & Scrobbling
 
-**Status:** Shipped in 1.0.9 (June 2026). Off by default since 1.0.11.  
-**Why:** Keep Plex watch history accurate while Nostalgex is in use. Enables a Rewatchables channel powered by real watch data.
+**Status:** Shipped in 1.0.9 (June 2026). Off by default since 1.0.11. Jellyfin and Emby use the same switch and the same 75% watch rule.  
+**Why:** Keep watch history accurate while Nostalgex is in use. Rewatchables filters on real play counts from whichever server is connected.
 
-Timeline reporting and scrobbling both ship in the tvOS app, implemented in `Services/PlaybackTracker.swift` and `Services/PlexAPIService.swift`. Rewatchables now filters on `viewCount >= 3`.
+Timeline reporting and scrobbling ship in the tvOS app, implemented in `Services/PlaybackTracker.swift`. Plex uses its timeline and scrobble endpoints. Jellyfin and Emby use their session reports, and the app reads `PlayCount` back when it loads the library. Rewatchables filters on `viewCount >= 3` for all three.
 
-**Plex activity sync defaults to OFF.** The user turns it on in Settings under PLEX ACTIVITY (web tuner: Settings > PLAYBACK). Nothing is reported to the Plex server until they do. This is Plex-only: Jellyfin and Emby connections do not report activity at all.
+**Activity sync defaults to OFF.** The user turns it on in Settings under PLAYBACK REPORTING. Nothing is reported until they do. Plays they already made in Plex, Jellyfin, or Emby still count toward Rewatchables, because those counts live on the server.
 
 The rest of this document is the original design, kept because the gates, endpoints, and edge cases below are what actually shipped.
 
@@ -102,7 +102,7 @@ Verify params against your Plex server before implementation.
 
 ## Opt-in default
 
-Reporting is **off unless the user turns it on** (Settings → PLEX ACTIVITY → SYNC TO PLEX; web tuner: Settings → PLAYBACK). Channel surfing tunes past far more programs than a user deliberately starts, and reporting each one buries the household's real Continue Watching row. Consequence for the Rewatchables channel: `viewCount` stays as reliable as it ever was, but Nostalgex only adds to it for users who opted in.
+Reporting is **off unless the user turns it on** (Settings → PLAYBACK REPORTING; web tuner: Settings → PLAYBACK). Channel surfing tunes past far more programs than a user deliberately starts, and reporting each one buries the household's real Continue Watching row. Consequence for the Rewatchables channel: `viewCount` stays as reliable as it ever was, but Nostalgex only adds to it for users who opted in.
 
 ---
 

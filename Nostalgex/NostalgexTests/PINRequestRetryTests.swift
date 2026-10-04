@@ -57,9 +57,25 @@ final class ServerUnreachableMessageTests: XCTestCase {
     }
 
     func testArbitraryLoadsAreAllowedSoVPNAddressesWork() throws {
+        let ats = try Self.appTransportSecurity()
+        XCTAssertEqual(ats["NSAllowsArbitraryLoads"] as? Bool, true, "Tailscale/VPN http:// servers need this; local-only ATS blocks 100.x addresses")
+    }
+
+    /// The previous version of this suite asserted only that NSAllowsArbitraryLoads was
+    /// true, and passed for two releases while the shipped app refused every plain
+    /// http:// LAN server. On tvOS 10+ the system IGNORES NSAllowsArbitraryLoads (and
+    /// uses NO) whenever one of these companion keys is present, so asserting the flag
+    /// alone proves nothing about what the app can actually reach.
+    func testNoCompanionATSKeyCancelsArbitraryLoads() throws {
+        let ats = try Self.appTransportSecurity()
+        for key in ["NSAllowsLocalNetworking", "NSAllowsArbitraryLoadsInWebContent", "NSAllowsArbitraryLoadsForMedia"] {
+            XCTAssertNil(ats[key], "\(key) makes tvOS ignore NSAllowsArbitraryLoads — http:// servers on 192.168/10.x/100.x then fail with -1022")
+        }
+    }
+
+    private static func appTransportSecurity() throws -> [String: Any] {
         let url = try XCTUnwrap(Bundle(for: AppState.self).url(forResource: "Info", withExtension: "plist"))
         let plist = try XCTUnwrap(NSDictionary(contentsOf: url))
-        let ats = try XCTUnwrap(plist["NSAppTransportSecurity"] as? [String: Any])
-        XCTAssertEqual(ats["NSAllowsArbitraryLoads"] as? Bool, true, "Tailscale/VPN http:// servers need this; local-only ATS blocks 100.x addresses")
+        return try XCTUnwrap(plist["NSAppTransportSecurity"] as? [String: Any])
     }
 }

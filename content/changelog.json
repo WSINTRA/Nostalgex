@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.0.23",
+      "date": "SEP 2026",
+      "title": "Rewatchables on every server",
+      "bullets": [
+        "REWATCHABLES MOVIES and REWATCHABLES TV now fill from Jellyfin and Emby play counts, the same way they already did for Plex. A title needs 3 or more plays.",
+        "Playback reporting works for Jellyfin and Emby too. It is still off until you turn it on in Settings, and a watch here only counts on your own server.",
+        "Audio follows the AirPlay speakers you already picked as the Apple TV's output.",
+        "From anywhere in the guide, Play goes full screen on what's already on. Menu jumps back to that channel. Settings is one press up in the package list."
+      ]
+    },
+    {
       "version": "1.0.21",
       "date": "SEP 2026",
       "title": "Channels play again",

@@ -2,17 +2,25 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AVInitialRouteSharingPolicy</key>
+	<string>LongFormAudio</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>plex</string>
 	</array>
+	<!-- NSAllowsArbitraryLoads ONLY. On tvOS 10+ the presence of any of
+	     NSAllowsLocalNetworking, NSAllowsArbitraryLoadsInWebContent or
+	     NSAllowsArbitraryLoadsForMedia makes the system IGNORE
+	     NSAllowsArbitraryLoads and fall back to NO. We shipped both keys, so ATS
+	     was on the whole time and refused every plain http:// server that wasn't
+	     a .local or single-label name: 192.168.x.x, 10.x.x.x and Tailscale 100.x
+	     all failed with -1022 while SwiftFin (arbitrary loads alone) connected to
+	     the same address. Do not add a companion ATS key back. -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>

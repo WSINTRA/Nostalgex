@@ -1,13 +1,13 @@
 import Foundation
 
 /// Tracks a single playback session for one item on one channel.
-/// Handles Plex timeline reporting (Now Playing) and scrobbling (mark watched).
-/// Only fires API calls when a PlexAPIService is provided; Jellyfin/Emby/demo are no-ops.
+/// Reports to Plex (timeline + scrobble) or to Jellyfin/Emby (session + play count).
+/// With neither reporter, it only accumulates watch time for analytics.
 ///
-/// Scrobble rule (hybrid gate):
+/// Scrobble rule (hybrid gate), same on every server:
 ///   1. Entry gate — tuned in during the first 15% of the program
 ///   2. Active time — accumulated ≥ 75% of total runtime while this tracker is active
-/// Both gates must pass. Scrobble triggers as soon as threshold is crossed or on stop.
+/// Both gates must pass. The count increments as soon as the threshold is crossed or on stop.
 @MainActor
 final class PlaybackTracker {
 
@@ -36,21 +36,30 @@ final class PlaybackTracker {
 
     private(set) var scrobbled = false
     private var stopped = false
+    /// Jellyfin/Emby need a Playing call before Progress. Reset when a stop closes the session.
+    private var didStartSession = false
 
     // MARK: - 10-second timeline pulse
 
     private var timelineTimer: Timer?
 
-    // MARK: - Plex API (nil = Jellyfin / Emby / demo)
+    // MARK: - Server reporting (nil = reporting off, or demo)
 
     private let plexAPI: PlexAPIService?
+    private let watchReporter: (any WatchActivityReporting)?
 
     // MARK: - Init
 
-    init(item: PlexMediaItem, seekOffset: Int, plexAPI: PlexAPIService?) {
+    init(
+        item: PlexMediaItem,
+        seekOffset: Int,
+        plexAPI: PlexAPIService?,
+        watchReporter: (any WatchActivityReporting)? = nil
+    ) {
         self.item = item
         self.seekOffset = seekOffset
         self.plexAPI = plexAPI
+        self.watchReporter = watchReporter
 
         let totalSec = Double(item.duration * 60)
         let entryFrac = totalSec > 0 ? Double(seekOffset) / totalSec : 1.0
@@ -83,6 +92,7 @@ final class PlaybackTracker {
         guard !stopped else { return }
         accumulateTime()
         sendTimeline(state: "stopped")
+        didStartSession = false
         timelineTimer?.invalidate()
         timelineTimer = nil
     }
@@ -178,31 +188,68 @@ final class PlaybackTracker {
     }
 
     private func sendTimeline(state: String, timeMs: Int? = nil, durationMs: Int? = nil) {
-        guard let api = plexAPI else { return }
         let t = timeMs ?? currentTimeMs()
         let d = durationMs ?? (item.duration * 60 * 1000)
-        let rk = item.ratingKey
-        let key = "/library/metadata/\(rk)"
+        if let api = plexAPI {
+            let rk = item.ratingKey
+            let key = "/library/metadata/\(rk)"
+            let sid = sessionID
+            Task.detached {
+                await api.reportTimeline(ratingKey: rk, key: key, state: state, timeMs: t, durationMs: d, sessionID: sid)
+            }
+        }
+        guard let reporter = watchReporter else { return }
+        if state == "stopped", !didStartSession { return }
+        let event: MediaServerPlaybackReport.Event
+        if state == "stopped" {
+            event = .stopped
+        } else if didStartSession {
+            event = .progress
+        } else {
+            event = .started
+            didStartSession = true
+        }
+        let ticks = reportedTicks(actual: t * 10_000, event: event)
+        let itemId = item.ratingKey
+        let mediaSourceId = item.partKey ?? item.ratingKey
         let sid = sessionID
         Task.detached {
-            await api.reportTimeline(ratingKey: rk, key: key, state: state, timeMs: t, durationMs: d, sessionID: sid)
+            await reporter.reportWatchActivity(
+                itemId: itemId,
+                mediaSourceId: mediaSourceId,
+                playSessionId: sid,
+                positionTicks: ticks,
+                event: event
+            )
         }
+    }
+
+    /// Jellyfin and Emby count a play when a stop lands at about 90% of the runtime.
+    /// Once this session already counted the watch, later stops stay under that line
+    /// so the same viewing is not counted twice.
+    private func reportedTicks(actual: Int, event: MediaServerPlaybackReport.Event) -> Int {
+        guard event == .stopped, scrobbled, watchReporter != nil else { return actual }
+        let durationTicks = item.duration * 60 * 10_000_000
+        guard durationTicks > 0 else { return actual }
+        return min(actual, Int(Double(durationTicks) * 0.89))
     }
 
     private func evaluateAndScrobble() {
         guard eligibleEntry, !scrobbled else { return }
         let totalSec = Double(item.duration * 60)
         guard totalSec > 0, activeWatchSeconds / totalSec >= 0.75 else { return }
-        scrobble()
-    }
-
-    private func scrobble() {
-        guard !scrobbled, let api = plexAPI else { return }
         scrobbled = true
-        let rk = item.ratingKey
-        print("[Tracker] \(sessionID.prefix(8)) SCROBBLE \"\(item.title)\" rk=\(rk)")
-        Task.detached {
-            await api.scrobble(ratingKey: rk)
+        print("[Tracker] \(sessionID.prefix(8)) SCROBBLE \"\(item.title)\" rk=\(item.ratingKey)")
+        if let api = plexAPI {
+            let rk = item.ratingKey
+            Task.detached { await api.scrobble(ratingKey: rk) }
+        }
+        if let reporter = watchReporter {
+            let fraction = Double(currentTimeMs()) / (totalSec * 1000)
+            // At or past the server's own completion line, the stop report counts it.
+            guard fraction < 0.9 else { return }
+            let itemId = item.ratingKey
+            Task.detached { await reporter.markWatched(itemId: itemId) }
         }
     }
 }

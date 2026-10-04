@@ -78,6 +78,100 @@ protocol MediaBackend: Sendable {
     func thumbnailURL(for item: PlexMediaItem, width: Int) -> URL?
 }
 
+/// Play count the rewatch channels use. A server that only says "played", with no
+/// count, still counts as one watch, so watched and unwatched channels keep working.
+enum ServerWatchCount {
+    static func viewCount(playCount: Int?, played: Bool?) -> Int {
+        let count = max(0, playCount ?? 0)
+        if count > 0 { return count }
+        return (played == true) ? 1 : 0
+    }
+}
+
+/// Jellyfin and Emby session reports. Both servers increment PlayCount themselves
+/// when a stop lands near the end of the item, so the tracker sends the real
+/// position and only calls `markPlayed` when a watch crossed Plex's 75% gate
+/// without reaching that completion zone.
+enum MediaServerPlaybackReport {
+    enum Event {
+        case started
+        case progress
+        case stopped
+
+        var path: String {
+            switch self {
+            case .started: return "/Sessions/Playing"
+            case .progress: return "/Sessions/Playing/Progress"
+            case .stopped: return "/Sessions/Playing/Stopped"
+            }
+        }
+    }
+
+    private struct Body: Encodable {
+        let ItemId: String
+        let PlaySessionId: String
+        let MediaSourceId: String
+        let PositionTicks: Int
+        let IsPaused: Bool
+    }
+
+    private static let session: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 12
+        return URLSession(configuration: config)
+    }()
+
+    static func post(
+        serverURL: String,
+        authorization: String,
+        event: Event,
+        itemId: String,
+        mediaSourceId: String,
+        playSessionId: String,
+        positionTicks: Int
+    ) async {
+        guard let url = URL(string: "\(serverURL)\(event.path)") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(authorization, forHTTPHeaderField: "Authorization")
+        req.httpBody = try? JSONEncoder().encode(Body(
+            ItemId: itemId,
+            PlaySessionId: playSessionId,
+            MediaSourceId: mediaSourceId,
+            PositionTicks: positionTicks,
+            IsPaused: false
+        ))
+        _ = try? await session.data(for: req)
+    }
+
+    /// One increment, matching a Plex scrobble. Used when the watch cleared the
+    /// 75% gate but the stop position is still short of the server's own
+    /// "finished" threshold, which would otherwise not count it.
+    static func markPlayed(serverURL: String, authorization: String, userId: String, itemId: String) async {
+        guard let itemPath = itemId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let userPath = userId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let url = URL(string: "\(serverURL)/Users/\(userPath)/PlayedItems/\(itemPath)") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue(authorization, forHTTPHeaderField: "Authorization")
+        _ = try? await session.data(for: req)
+    }
+}
+
+protocol WatchActivityReporting: Sendable {
+    func reportWatchActivity(
+        itemId: String,
+        mediaSourceId: String,
+        playSessionId: String,
+        positionTicks: Int,
+        event: MediaServerPlaybackReport.Event
+    ) async
+
+    func markWatched(itemId: String) async
+}
+
 extension MediaBackend {
     /// Default convenience: try direct play, fall back to transcode.
     func buildStreamURL(for item: PlexMediaItem) -> URL? {

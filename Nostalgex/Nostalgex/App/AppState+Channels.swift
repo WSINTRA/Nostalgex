@@ -114,7 +114,11 @@ extension AppState {
     func autoEnableBundlesWithContent() -> Bool {
         let availableChannelIDs = Set(allChannels.map(\.id))
         var changed = false
-        for bundle in bundles where !bundle.id.hasPrefix("collections-") && bundle.isInSeason {
+        // Seasonal bundles are deliberately excluded: they are offered through
+        // SeasonalPrompt and switched on only when the viewer says yes. Auto-enabling
+        // them would put horror in front of someone every October without asking.
+        for bundle in bundles where !bundle.id.hasPrefix("collections-")
+            && bundle.isInSeason && bundle.activeMonths == nil {
             guard !enabledBundleIDs.contains(bundle.id) else { continue }
             let hasContent = bundle.channelIDs.contains { availableChannelIDs.contains($0) }
             if hasContent {
@@ -150,7 +154,8 @@ extension AppState {
         let poolIDs = staticChannelIDsForPoolBuild(buildAllConfigChannels: false)
         var validStatic: [Channel] = []
         for var ch in channelConfigChannels where poolIDs.contains(ch.id) {
-            ch.itemPool = filterItems(cached, rules: ch.rules, forChannelID: ch.id, category: ch.category)
+            ch.itemPool = Self.filterItems(cached, rules: ch.rules, forChannelID: ch.id, category: ch.category,
+                                          memberships: channelMemberships, exclusiveRules: exclusiveRules)
             if ch.itemPool.count >= ch.minItems {
                 validStatic.append(ch)
             }
@@ -165,6 +170,29 @@ extension AppState {
         let configCount = channelConfigChannels.count
         print("[Plex90] ENRICHMENT: \(newCount)/\(configCount) enabled-bundle channels have enough content after enrichment")
         printChannelAudit()
+    }
+
+    // MARK: - Seasonal invitations
+
+    /// The seasonal bundle to invite the viewer to add, or nil. Seasonal bundles are never
+    /// switched on for people — see `autoEnableBundlesWithContent`, which skips them.
+    var seasonalBundleOnOffer: ChannelBundle? {
+        _ = seasonalPromptRevision   // observation dependency; see the property's note
+        return SeasonalPrompt.bundleToOffer(
+            bundles: bundles,
+            enabledBundleIDs: enabledBundleIDs,
+            now: Date()
+        ) { SeasonalPrompt.isSilenced(bundleID: $0, now: Date()) }
+    }
+
+    /// Applies the viewer's answer. "Yes" turns the bundle on for the rest of its season;
+    /// it goes away by itself when the season ends, because `isInSeason` stops matching.
+    func answerSeasonalPrompt(_ answer: SeasonalPrompt.Answer, for bundle: ChannelBundle) {
+        let turnOn = SeasonalPrompt.record(answer, bundleID: bundle.id, now: Date())
+        Analytics.track(.settingChanged(key: "seasonalPrompt:\(bundle.id)", value: "\(answer)"))
+        seasonalPromptRevision += 1
+        guard turnOn else { return }   // declined: the invite row just stops being offered
+        toggleBundle(bundle)
     }
 
     func applyBundleFilter() {
@@ -598,17 +626,28 @@ extension AppState {
         // the same precomputed titleLower/genreSet/enrichment — avoids 425k+
         // redundant lowercase + regex calls across the channel loop.
         let cached = makeFilterCache(items)
+        let memberships = channelMemberships
+        let rules = exclusiveRules
+        let targets = configChannels.filter { onlyChannelIDs.contains($0.id) }
 
-        var built: [Channel] = []
-        for var ch in configChannels where onlyChannelIDs.contains(ch.id) {
-            channelBuildIndex += 1
-            setLibraryPhase(.buildingChannels, detail: ch.name)
-            ch.itemPool = filterItems(cached, rules: ch.rules, forChannelID: ch.id, category: ch.category)
-            if ch.itemPool.count >= ch.minItems {
-                built.append(ch)
+        // The filtering runs off the main actor. Only the per-channel progress tick hops
+        // back, so the focus engine stays responsive while a background refresh rebuilds
+        // the lineup — the guide used to be unscrollable for the whole rebuild.
+        let built = await Task.detached(priority: .utility) { () -> [Channel] in
+            var out: [Channel] = []
+            for var ch in targets {
+                ch.itemPool = AppState.filterItems(cached, rules: ch.rules, forChannelID: ch.id,
+                                                   category: ch.category,
+                                                   memberships: memberships, exclusiveRules: rules)
+                let name = ch.name
+                if ch.itemPool.count >= ch.minItems { out.append(ch) }
+                await MainActor.run { [weak self] in
+                    self?.channelBuildIndex += 1
+                    self?.setLibraryPhase(.buildingChannels, detail: name)
+                }
             }
-            if channelBuildIndex % 3 == 0 { await Task.yield() }
-        }
+            return out
+        }.value
         return built.sorted { $0.number < $1.number }
     }
 
@@ -627,11 +666,13 @@ extension AppState {
         var builtStatic = allChannels.filter { $0.rules != nil }
         for var template in channelConfigChannels where ids.contains(template.id) {
             channelBuildIndex += 1
-            template.itemPool = filterItems(
+            template.itemPool = Self.filterItems(
                 cached,
                 rules: template.rules,
                 forChannelID: template.id,
-                category: template.category
+                category: template.category,
+                memberships: channelMemberships,
+                exclusiveRules: exclusiveRules
             )
             if template.itemPool.count >= template.minItems {
                 if let idx = builtStatic.firstIndex(where: { $0.id == template.id }) {
@@ -654,7 +695,7 @@ extension AppState {
 
     // MARK: - Filtering (keep in sync with scripts/nostalgex-channel-filter.cjs + plex-tuner)
 
-    private static let adultRatings: Set<String> = ["R", "NC-17", "TV-MA", "18", "18+", "X", "NR"]
+    nonisolated private static let adultRatings: Set<String> = ["R", "NC-17", "TV-MA", "18", "18+", "X", "NR"]
 
     /// Compute how much a discovered Plex collection's content overlaps with what
     /// an existing channel already claims via the TMDB membership manifest.
@@ -680,7 +721,7 @@ extension AppState {
     }
 
     // Plex's originallyAvailableAt comes back as "YYYY-MM-DD"
-    private static let releaseDateFormatter: DateFormatter = {
+    nonisolated private static let releaseDateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.timeZone = TimeZone(identifier: "UTC")
@@ -688,22 +729,22 @@ extension AppState {
         return f
     }()
     // Genre-locked content: these genres ONLY appear on channels that explicitly include them
-    private static let horrorGenres: Set<String> = ["horror"]
-    private static let realityGenres: Set<String> = ["reality", "game show", "game-show", "reality-tv"]
-    private static let animationGenres: Set<String> = ["animation", "animated", "cartoon"]
+    nonisolated private static let horrorGenres: Set<String> = ["horror"]
+    nonisolated private static let realityGenres: Set<String> = ["reality", "game show", "game-show", "reality-tv"]
+    nonisolated private static let animationGenres: Set<String> = ["animation", "animated", "cartoon"]
     // "history" is deliberately not in documentaryGenres or warGenres. Plex tags
     // dramas like Apollo 13 and 12 Years a Slave as History, and no channel
     // includes History, so locking it barred them from every channel. Mirrors
     // scripts/nostalgex-channel-filter.cjs.
-    private static let documentaryGenres: Set<String> = ["documentary", "docuseries"]
-    private static let sportGenres: Set<String> = ["sport", "sports", "sports film"]
-    private static let musicGenres: Set<String> = ["music", "music video", "musical"]
-    private static let warGenres: Set<String> = ["war", "war & politics"]
-    private static let westernGenres: Set<String> = ["western"]
-    private static let talkShowGenres: Set<String> = ["talk show", "talk", "news"]
+    nonisolated private static let documentaryGenres: Set<String> = ["documentary", "docuseries"]
+    nonisolated private static let sportGenres: Set<String> = ["sport", "sports", "sports film"]
+    nonisolated private static let musicGenres: Set<String> = ["music", "music video", "musical"]
+    nonisolated private static let warGenres: Set<String> = ["war", "war & politics"]
+    nonisolated private static let westernGenres: Set<String> = ["western"]
+    nonisolated private static let talkShowGenres: Set<String> = ["talk show", "talk", "news"]
 
     /// Checks if a channel's genre include list contains any genre from the given set
-    private static func channelIncludesGenre(_ rules: ChannelRules?, from genreSet: Set<String>) -> Bool {
+    nonisolated private static func channelIncludesGenre(_ rules: ChannelRules?, from genreSet: Set<String>) -> Bool {
         rules?.genres?.include.contains(where: { genreSet.contains($0.lowercased()) }) ?? false
     }
 
@@ -722,7 +763,7 @@ extension AppState {
     /// Backward-compatible wrapper. Hot paths inside `filterItems` precompute
     /// lowercased rule arrays and call `titleContainsWordLower` directly to
     /// skip per-call lowercasing.
-    static func titleContainsWord(_ haystack: String, _ needle: String) -> Bool {
+    nonisolated static func titleContainsWord(_ haystack: String, _ needle: String) -> Bool {
         titleContainsWordLower(haystack, needle.lowercased())
     }
 
@@ -732,7 +773,7 @@ extension AppState {
     /// `Character.isLetter` / `isNumber`). This is the hot-path version called
     /// once per (item × rule entry) inside the filter loop, where the
     /// regex-based original was recompiling ~50k+ patterns per channel.
-    static func titleContainsWordLower(_ haystackLower: String, _ needleLower: String) -> Bool {
+    nonisolated static func titleContainsWordLower(_ haystackLower: String, _ needleLower: String) -> Bool {
         guard !needleLower.isEmpty else { return false }
         var searchStart = haystackLower.startIndex
         while let range = haystackLower.range(of: needleLower, range: searchStart..<haystackLower.endIndex) {
@@ -801,7 +842,7 @@ extension AppState {
         return String(s[..<endIdx])
     }
 
-    private func itemReleaseYear(_ item: PlexMediaItem) -> Int? {
+    nonisolated static func itemReleaseYear(_ item: PlexMediaItem) -> Int? {
         if let year = item.year { return year }
         if let dateStr = item.originallyAvailableAt,
            let date = Self.releaseDateFormatter.date(from: dateStr) {
@@ -814,9 +855,9 @@ extension AppState {
     /// items with a known year outside the range; items with no year metadata pass
     /// (avoid dropping good matches on sparse Plex data). Still applies to TMDB
     /// manifest claims so recommendations can't bypass era rules.
-    private func passesYearRange(_ item: PlexMediaItem, rules: ChannelRules) -> Bool {
+    nonisolated static func passesYearRange(_ item: PlexMediaItem, rules: ChannelRules) -> Bool {
         guard let yr = rules.yearRange else { return true }
-        guard let year = itemReleaseYear(item) else { return true }
+        guard let year = Self.itemReleaseYear(item) else { return true }
         if let min = yr.min, year < min { return false }
         if let max = yr.max, year > max { return false }
         return true
@@ -851,7 +892,19 @@ extension AppState {
         }
     }
 
-    private func filterItems(_ cached: [FilterCache], rules: ChannelRules?, forChannelID channelID: Int = 0, category: String? = nil) -> [PlexMediaItem] {
+    /// Pure, `nonisolated` so the channel build can run OFF the main actor. It used to be a
+    /// main-actor method, and a post-launch background refresh rebuilding ~121 channel pools
+    /// held the main actor in long blocks — measured at 240ms (2.6k items) and 1.1s (9.5k
+    /// items) per block on a Mac, several times that on an Apple TV HD. The focus engine
+    /// cannot move during those, which is what made the guide feel unscrollable.
+    nonisolated static func filterItems(
+        _ cached: [FilterCache],
+        rules: ChannelRules?,
+        forChannelID channelID: Int = 0,
+        category: String? = nil,
+        memberships: ChannelMemberships,
+        exclusiveRules: [ExclusiveRule]
+    ) -> [PlexMediaItem] {
         guard let rules else { return cached.map(\.item) }
         let currentYear = Calendar.current.component(.year, from: Date())
         let isKids = category == "kids"
@@ -957,7 +1010,7 @@ extension AppState {
             // Mirrors the check in nostalgex-channel-filter.cjs.
             if let tmdbID = item.tmdbID {
                 let mediaType = item.type == .episode ? "tv" : "movie"
-                if let locked = channelMemberships.exclusive(forMediaType: mediaType, tmdbID: tmdbID),
+                if let locked = memberships.exclusive(forMediaType: mediaType, tmdbID: tmdbID),
                    locked != channelID {
                     return nil
                 }
@@ -970,7 +1023,7 @@ extension AppState {
             // rewatch count. For content exclusivity, use `exclusiveRules`.
             if let tmdbID = item.tmdbID {
                 let mediaType = item.type == .episode ? "tv" : "movie"
-                if let claimed = channelMemberships.channels(forMediaType: mediaType, tmdbID: tmdbID),
+                if let claimed = memberships.channels(forMediaType: mediaType, tmdbID: tmdbID),
                    claimed.contains(channelID) {
                     if let type = rules.type, item.type != type { return nil }
                     if !passesYearRange(item, rules: rules) { return nil }
@@ -1019,7 +1072,7 @@ extension AppState {
                 // one of the rule's channels (catches anime tagged only "Animation").
                 if rule.manifestExclusive, let tmdbID = item.tmdbID {
                     let mt = item.type == .episode ? "tv" : "movie"
-                    if let claimed = channelMemberships.channels(forMediaType: mt, tmdbID: tmdbID),
+                    if let claimed = memberships.channels(forMediaType: mt, tmdbID: tmdbID),
                        claimed.contains(where: { rule.channelIDs.contains($0) }) {
                         return nil
                     }

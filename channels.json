@@ -1,5 +1,5 @@
 {
-  "version": 24,
+  "version": 29,
   "exclusiveRules": [
     {
       "channelID": 130,
@@ -128,7 +128,10 @@
         12,
         13,
         14,
-        215
+        215,
+        225,
+        226,
+        227
       ]
     },
     {
@@ -183,6 +186,7 @@
         66,
         200,
         210,
+        224,
         222,
         223
       ]
@@ -291,12 +295,27 @@
     },
     {
       "id": "seasonal",
-      "name": "SEASONAL",
-      "description": "Halloween and holiday channels",
+      "name": "SCREAM",
+      "description": "Horror, all year's worth, front and centre every October",
       "channelIDs": [
-        130,
+        141,
+        132,
         131,
-        132
+        228
+      ],
+      "activeMonths": [
+        10
+      ]
+    },
+    {
+      "id": "tis-the-season",
+      "name": "TIS THE SEASON",
+      "description": "Christmas and holiday channels",
+      "channelIDs": [
+        130
+      ],
+      "activeMonths": [
+        12
       ]
     },
     {
@@ -312,7 +331,6 @@
         155,
         156,
         157,
-        158,
         159,
         160,
         161,
@@ -789,6 +807,74 @@
       }
     },
     {
+      "id": 225,
+      "number": 16,
+      "name": "DVD SHELF",
+      "colorHex": "#C0392B",
+      "category": "nostalgex",
+      "minItems": 5,
+      "rules": {
+        "type": "movie",
+        "yearRange": {
+          "min": 2000,
+          "max": 2009
+        }
+      }
+    },
+    {
+      "id": 226,
+      "number": 17,
+      "name": "MILLENNIAL COMEDY",
+      "colorHex": "#E67E22",
+      "category": "nostalgex",
+      "minItems": 3,
+      "rules": {
+        "type": "movie",
+        "genres": {
+          "include": [
+            "Comedy"
+          ],
+          "exclude": [
+            "Animation",
+            "Animated"
+          ]
+        },
+        "keywordsExclude": [
+          "dark comedy",
+          "black comedy",
+          "satire"
+        ],
+        "yearRange": {
+          "min": 2000,
+          "max": 2009
+        }
+      }
+    },
+    {
+      "id": 227,
+      "number": 18,
+      "name": "MILLENNIAL SITCOMS",
+      "colorHex": "#F1C40F",
+      "category": "nostalgex",
+      "minItems": 10,
+      "rules": {
+        "type": "episode",
+        "genres": {
+          "include": [
+            "Comedy"
+          ],
+          "exclude": [
+            "Anime",
+            "Animation"
+          ]
+        },
+        "yearRange": {
+          "min": 2000,
+          "max": 2009
+        }
+      }
+    },
+    {
       "id": 215,
       "number": 15,
       "name": "CARTOON NETWORK",
@@ -841,6 +927,33 @@
           "Teen Titans",
           "Total Drama"
         ]
+      }
+    },
+    {
+      "id": 228,
+      "number": 19,
+      "name": "NOSTALGEX HORROR",
+      "colorHex": "#8E44AD",
+      "category": "seasonal",
+      "minItems": 3,
+      "rules": {
+        "type": "movie",
+        "genres": {
+          "include": [
+            "Horror"
+          ],
+          "exclude": [
+            "Family",
+            "Children",
+            "Kids",
+            "Animation",
+            "Animated"
+          ]
+        },
+        "yearRange": {
+          "min": 1975,
+          "max": 1999
+        }
       }
     },
     {
@@ -2390,20 +2503,50 @@
         "keywords": [
           "world war ii",
           "world war i",
-          "vietnam war",
+          "korean war",
           "civil war",
           "cold war",
-          "military",
-          "battle",
-          "soldier",
+          "prisoner of war",
+          "holocaust",
+          "nazi",
+          "war crimes",
           "siege",
           "combat",
-          "historical",
-          "biopic",
-          "empire",
-          "revolution",
-          "medieval"
+          "soldier",
+          "battle",
+          "military",
+          "resistance",
+          "special forces"
+        ],
+        "keywordsRequireAnyGenre": [
+          "War",
+          "War & Politics",
+          "History",
+          "Biography"
         ]
+      }
+    },
+    {
+      "id": 224,
+      "number": 83,
+      "name": "HISTORY & BIO",
+      "colorHex": "#A0522D",
+      "category": "essentials",
+      "minItems": 5,
+      "rules": {
+        "type": "movie",
+        "genres": {
+          "include": [
+            "History",
+            "Biography"
+          ],
+          "exclude": [
+            "Documentary",
+            "Docuseries",
+            "Animation",
+            "Animated"
+          ]
+        }
       }
     },
     {
@@ -3761,11 +3904,7 @@
       "category": "high-rotation",
       "minItems": 3,
       "rules": {
-        "source": "musicVideo",
-        "yearRange": {
-          "min": 1980,
-          "max": 1999
-        }
+        "source": "musicVideo"
       }
     },
     {
@@ -3886,17 +4025,6 @@
             "Acoustic"
           ]
         }
-      }
-    },
-    {
-      "id": 158,
-      "number": 158,
-      "name": "MUSIC VIDEOS",
-      "colorHex": "#FF2DB4",
-      "category": "high-rotation",
-      "minItems": 3,
-      "rules": {
-        "source": "musicVideo"
       }
     },
     {

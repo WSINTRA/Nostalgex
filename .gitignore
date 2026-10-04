@@ -43,3 +43,6 @@ AuthKey_*.p8
 *.pem
 *.key
 .env*
+
+# Local xcodebuild archive/export output
+build-archive/

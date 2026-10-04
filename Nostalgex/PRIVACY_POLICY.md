@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Effective: September 2, 2026
+Effective: September 30, 2026
 
 Nostalgex turns your own Plex, Jellyfin, or Emby library into live TV channels. We do not host, supply, or stream any media. Everything you watch comes off your own server.
 
@@ -125,9 +125,9 @@ These lookups use public identifiers and titles for the purpose of matching meta
 
 Plex sign-in runs through Plex's own PIN system. We never see your Plex username or password. Jellyfin and Emby sign-in goes straight from the app to the server you typed in. Tokens are held in the Keychain on your Apple TV and are never sent to us.
 
-## Plex activity sync
+## Playback reporting
 
-The app can report what you are watching back to your own Plex server, so Continue Watching and play counts stay accurate. This is **off by default** and you turn it on in Settings under Plex Activity. When it is on, the reports go only to your own Plex server. They do not come to us.
+The app can report what you are watching back to your own Plex, Jellyfin, or Emby server, so Continue Watching and play counts stay accurate. This is **off by default** and you turn it on in Settings under Playback Reporting. When it is on, the reports go only to the server you connected. They do not come to us.
 
 ## Tracking
 
@@ -140,7 +140,7 @@ Analytics events are held by TelemetryDeck in aggregate and are not tied to an i
 ## Your choices
 
 - Deleting Nostalgex removes everything the app stored on your Apple TV, including your server token.
-- Plex activity sync is off unless you turn it on, and you can turn it back off at any time.
+- Playback reporting is off unless you turn it on, and you can turn it back off at any time.
 - If you want your app analytics removed, email us and we will ask TelemetryDeck to delete them.
 - If you contact support, you decide what goes in the message.
 

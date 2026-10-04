@@ -100,26 +100,30 @@ struct SettingsPageView: View {
                             .allowsHitTesting(false)
                         }
 
-                        // Plex activity — only meaningful on a Plex connection.
-                        // Jellyfin/Emby/demo never report playback regardless of this setting.
-                        // Sits first among the real settings: this is the one people come to
-                        // settings looking for after their Plex "Continue Watching" fills up.
-                        if appState.backendKind == .plex && !appState.isDemoMode {
+                        // Playback reporting. Same switch on every server: off, a watch here
+                        // stays in the app; on, it counts on the server they connected.
+                        if !appState.isDemoMode {
                             settingsDivider
+
+                            let serverName = switch appState.backendKind {
+                            case .jellyfin: "Jellyfin"
+                            case .emby: "Emby"
+                            case .plex: "Plex"
+                            }
 
                             VStack(alignment: .leading, spacing: 20) {
                                 sectionHeader(
-                                    "PLEX PLAYBACK REPORTING",
-                                    subtitle: "Whether watching here writes back to your Plex server"
+                                    "PLAYBACK REPORTING",
+                                    subtitle: "Whether watching here writes back to your \(serverName) server"
                                 )
 
                                 SettingsToggleRow(
-                                    title: "REPORT PLAYBACK TO PLEX",
-                                    subtitle: "Off by default. When on, everything you tune past counts as watched in Plex.",
+                                    title: "REPORT PLAYBACK TO \(serverName.uppercased())",
+                                    subtitle: "Off by default. When on, a real watch here counts on your server.",
                                     // Warning stays full-brightness while the row's own text dims,
                                     // so the side effect is legible exactly when it applies.
                                     warning: appState.syncPlexActivity
-                                        ? "Channel surfing will mark plays and leave resume points"
+                                        ? "Channel surfing can mark plays and leave resume points"
                                         : nil,
                                     isOn: appState.syncPlexActivity,
                                     isFocused: focusedItem == "plex_sync"
@@ -128,7 +132,7 @@ struct SettingsPageView: View {
                                 }
                                 .focused($focusedItem, equals: "plex_sync")
                                 .id("plex_sync")
-                                .accessibilityHint("Updates play counts, resume points and Continue Watching in Plex")
+                                .accessibilityHint("Updates play counts, resume points and Continue Watching in \(serverName)")
                             }
                         }
 
@@ -605,8 +609,11 @@ struct SettingsPageView: View {
                 title: "RESCAN LIBRARY",
                 subtitle: {
                     let updated = appState.libraryLastUpdatedText
+                    // What the app is actually holding, so a support report can say it in
+                    // one screenshot. See LibraryDiagnostics.
+                    let held = LibraryDiagnostics.summary(appState.allItems)
                     let base = "Pull a fresh copy of your \(appState.backendDisplayName) library after adding content"
-                    return "Last updated \(updated). \(base)"
+                    return "\(held)\nLast updated \(updated). \(base)"
                 }(),
                 isOn: true,
                 isFocused: focusedItem == "rescan",

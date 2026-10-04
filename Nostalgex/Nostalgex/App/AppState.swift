@@ -190,6 +190,21 @@ class AppState {
 
     var isConnected: Bool = false
     var isLoading: Bool = false
+
+    /// False until launch has finished reading the Keychain. RootView gates on this so a
+    /// signed-in user is never shown the connect screen: credentials are loaded in a
+    /// `.task`, which SwiftUI runs AFTER the first body evaluation, so `hasCredentials`
+    /// is false for at least one frame on every launch. On an Apple TV HD the Keychain
+    /// read is slow enough (and `hydrateCredentialsWithRetry` sleeps a second per
+    /// transient refusal) that the connect screen was on screen long enough to press,
+    /// and the press appeared to "go straight through" when hydration landed underneath.
+    var didAttemptCredentialHydration: Bool = false
+
+    /// Bumped whenever a seasonal invite is answered. `seasonalBundleOnOffer` reads it so
+    /// @Observable re-evaluates the guide: the silencing itself lives in UserDefaults,
+    /// which observation cannot see, so without this the invite row would sit there after
+    /// the viewer declined it.
+    var seasonalPromptRevision: Int = 0
     var isBackgroundRefreshing: Bool = false
     var isLibraryStale: Bool = false
     /// Change signature of the library as of the last full scan; nil when unknown.
@@ -360,13 +375,14 @@ class AppState {
 
     static let syncPlexActivityDefaultsKey = "nostalgex_sync_plex_activity"
 
-    /// When true, playback is reported to Plex (timeline + scrobble) so items surface in
-    /// "Continue Watching" and play counts grow. Off = watch privately, no Plex activity.
-    /// Plex-only; Jellyfin/Emby/demo never report regardless.
+    /// When true, playback is reported to the connected server so play counts grow
+    /// and items can surface in Continue Watching. Off = watch privately.
+    /// Same switch for Plex, Jellyfin, and Emby. Demo never reports.
     ///
     /// Defaults OFF. Channel surfing tunes past dozens of programs in a sitting, and
     /// reporting each one buries the household's real "Continue Watching" row under
     /// half-watched items nobody chose to start. Opt in, don't opt out.
+    /// Rewatch channels still fill from plays the server already recorded.
     var syncPlexActivity: Bool = AppState.resolveSyncPlexActivity(
         stored: UserDefaults.standard.object(forKey: AppState.syncPlexActivityDefaultsKey)
     ) {

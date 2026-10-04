@@ -79,4 +79,19 @@ final class PlexActivitySyncTests: XCTestCase {
         tracker.stop()
         XCTAssertFalse(tracker.scrobbled)
     }
+
+    func testServerWatchCount_usesPlayCountWhenTheServerHasOne() {
+        XCTAssertEqual(ServerWatchCount.viewCount(playCount: 4, played: true), 4)
+        XCTAssertEqual(ServerWatchCount.viewCount(playCount: 3, played: false), 3)
+    }
+
+    func testServerWatchCount_playedWithNoCountStillCountsAsOneWatch() {
+        XCTAssertEqual(ServerWatchCount.viewCount(playCount: 0, played: true), 1)
+        XCTAssertEqual(ServerWatchCount.viewCount(playCount: nil, played: true), 1)
+    }
+
+    func testServerWatchCount_unplayedIsZero() {
+        XCTAssertEqual(ServerWatchCount.viewCount(playCount: nil, played: false), 0)
+        XCTAssertEqual(ServerWatchCount.viewCount(playCount: nil, played: nil), 0)
+    }
 }

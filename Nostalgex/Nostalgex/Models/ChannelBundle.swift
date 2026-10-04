@@ -33,9 +33,11 @@ struct ChannelBundle: Identifiable {
 
     /// Whether this bundle should be visible right now based on activeMonths
     /// September is special: only active from Sep 15+ (late September)
-    var isInSeason: Bool {
+    var isInSeason: Bool { isInSeason(on: Date()) }
+
+    /// Date-injectable so the seasonal gate can be tested without waiting for October.
+    func isInSeason(on now: Date) -> Bool {
         guard let months = activeMonths else { return true }
-        let now = Date()
         let cal = Calendar.current
         let currentMonth = cal.component(.month, from: now)
         guard months.contains(currentMonth) else { return false }

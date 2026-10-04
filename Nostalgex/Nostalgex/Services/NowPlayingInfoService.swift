@@ -25,7 +25,16 @@ enum NowPlayingInfoService {
     /// video app that should keep playing rather than duck or mix.
     static func configureAudioSession() {
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+            // .longFormAudio is what makes tvOS send this app's audio to the
+            // AirPlay speakers the user picked as the Apple TV's audio output.
+            // The video equivalent (.longFormVideo) is iOS-only and unavailable
+            // here. Without a long-form policy, playback stays on the TV's own
+            // speakers even while the system is routing other apps elsewhere.
+            try AVAudioSession.sharedInstance().setCategory(
+                .playback,
+                mode: .moviePlayback,
+                policy: .longFormAudio
+            )
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             // Not fatal: playback still works, the system just will not show a

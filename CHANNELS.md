@@ -44,7 +44,7 @@ only name the channel's own defining genre.
 
 **`rewatched` means `viewCount >= 3`** in both implementations.
 
-**Config version:** 24 · **121 channels** across **13 bundles** · 37 channels whose `id` differs from their `number`.
+**Config version:** 29 · **125 channels** across **14 bundles** · 42 channels whose `id` differs from their `number`.
 
 ---
 
@@ -52,9 +52,10 @@ only name the channel's own defining genre.
 
 | Bundle | Bundle ID | Channels | Range | Description |
 |---|---|---|---|---|
-| NOSTALGEX | `nostalgex` | 15 | CH 1–15 | The 80s and 90s. All retro, all the time |
+| NOSTALGEX | `nostalgex` | 18 | CH 1–18 | The 80s and 90s. All retro, all the time |
+| SCREAM | `seasonal` | 4 | CH 19–132 | Horror, all year's worth, front and centre every October |
 | KIDZ ZONE | `kids` | 16 | CH 20–35 | Disney, Nickelodeon, Pixar, and more |
-| PRIME TIME | `essentials` | 14 | CH 40–84 | Everyday favorites and feel-good viewing |
+| PRIME TIME | `essentials` | 15 | CH 40–84 | Everyday favorites and feel-good viewing |
 | MARQUEE | `premium` | 11 | CH 59–69 | Premium channels |
 | ADVENTURELAND | `adventureland` | 10 | CH 70–79 | Epic quests, disasters, and adrenaline |
 | OVERTIME | `sports` | 3 | CH 80–82 | Movies, shows, and docs |
@@ -62,11 +63,11 @@ only name the channel's own defining genre.
 | DECADES | `decades` | 7 | CH 90–96 | Movies and shows sorted by decade |
 | FRANCHISES | `franchises` | 7 | CH 100–106 | Movie franchise marathons |
 | NETWORKS | `streamers` | 11 | CH 119–129 | Channels by streaming service and studio |
-| SEASONAL | `seasonal` | 3 | CH 130–132 | Halloween and holiday channels |
+| TIS THE SEASON | `tis-the-season` | 1 | CH 130 | Christmas and holiday channels |
 | ARTHOUSE | `arthouse` | 4 | CH 140–143 | Criterion, foreign films, midnight movies, and cult classics |
-| HIGH ROTATION | `high-rotation` | 15 | CH 150–164 | Music videos by genre |
+| HIGH ROTATION | `high-rotation` | 14 | CH 150–164 | Music videos by genre |
 
-Bundled channels: 121 of 121.
+Bundled channels: 126 of 125.
 
 ---
 
@@ -88,7 +89,7 @@ the year.
 
 ## Channels by bundle
 
-### NOSTALGEX · CH 1–15
+### NOSTALGEX · CH 1–18
 
 _The 80s and 90s. All retro, all the time_
 
@@ -109,6 +110,20 @@ _The 80s and 90s. All retro, all the time_
 | 13 | `13` | LAST ACTION HEROES | `#B7410E` | Movies | 5 | incl Action/Thriller, no Family/Kids/Children/Animation/Animated/Fantasy/Comedy, kw +13, kw needs genre Action/Thriller, 1980-2002, ≥ 85 min |
 | 14 | `14` | BUDDIES | `#F39C12` | Movies | 5 | incl Action/Comedy, no Animation/Animated/Horror/Kids/Children/Family/Romance, kw +10, kw needs genre Action/Comedy, 1980-2004 |
 | 15 | **`215`** ⚠︎ | CARTOON NETWORK | `#00BFFF` | Episodes | 5 | networks Cartoon Network, title allowlist (39) |
+| 16 | **`225`** ⚠︎ | DVD SHELF | `#C0392B` | Movies | 5 | 2000-2009 |
+| 17 | **`226`** ⚠︎ | MILLENNIAL COMEDY | `#E67E22` | Movies | 3 | incl Comedy, no Animation/Animated, kw excl (3), 2000-2009 |
+| 18 | **`227`** ⚠︎ | MILLENNIAL SITCOMS | `#F1C40F` | Episodes | 10 | incl Comedy, no Anime/Animation, 2000-2009 |
+
+### SCREAM · CH 19–132
+
+_Horror, all year's worth, front and centre every October_
+
+| CH | `id` | Name | Color | Type | Min items | Rules |
+|---|---|---|---|---|---|---|
+| 19 | **`228`** ⚠︎ | NOSTALGEX HORROR | `#8E44AD` | Movies | 3 | incl Horror, no Family/Children/Kids/Animation/Animated, 1975-1999 |
+| 77 | **`141`** ⚠︎ | FRIGHT NIGHT | `#8B0000` | Any | 5 | incl Horror |
+| 131 | `131` | SCREAM KIDS | `#FF8C00` | Movies | 3 | no Horror, title allowlist (37), editorial always-in (43), rated G/PG/TV-Y/TV-Y7/TV-G/TV-PG |
+| 132 | `132` | SCREAM ADULTS | `#8B0000` | Movies | 3 | incl Horror/Thriller, no Family/Children/Kids/Animation/Animated, title allowlist (53), title blocklist (11), rated R/NC-17/PG-13/TV-MA |
 
 ### KIDZ ZONE · CH 20–35
 
@@ -152,6 +167,7 @@ _Everyday favorites and feel-good viewing_
 | 50 | **`200`** ⚠︎ | DRAMA TV | `#5A3E8A` | Episodes | 10 | incl Drama, no Animation/Comedy/Documentary/Horror/Reality/Kids/Children/Family, kw +5, kw needs genre Drama |
 | 51 | **`210`** ⚠︎ | RECORD STORE | `#FF6B35` | Movies | 3 | incl Music, kw excl (4) |
 | 53 | **`223`** ⚠︎ | PREMIERES | `#F72585` | Any | 1 | incl Action/Adventure/Animation/Anime/Biography/Cartoon +23 more, added ≤ 14 d ago |
+| 83 | **`224`** ⚠︎ | HISTORY & BIO | `#A0522D` | Movies | 5 | incl History/Biography, no Documentary/Docuseries/Animation/Animated |
 | 84 | **`222`** ⚠︎ | R RATED COMEDY | `#E84393` | Movies | 5 | incl Comedy, no Animation/Family/Children/Kids, title blocklist (6), 1995-2029, rated R |
 
 ### MARQUEE · CH 59–69
@@ -184,7 +200,7 @@ _Epic quests, disasters, and adrenaline_
 | 73 | `73` | SCI-FI | `#16A0C8` | Movies | 5 | incl Science Fiction/Horror, needs ALL Science Fiction, no Animation/Family/Kids, kw +8, kw needs genre Science Fiction |
 | 74 | `74` | FANTASY | `#8E44AD` | Movies | 5 | incl Fantasy/Adventure, no Animation/Horror/Science Fiction, kw +7, kw needs genre Fantasy/Adventure |
 | 75 | `75` | WESTERNS | `#B9770E` | Any | 3 | incl Western, kw +7, kw needs genre Western |
-| 76 | `76` | FRONT LINE | `#5D6D7E` | Any | 3 | incl War/War & Politics, no Documentary/Docuseries/Animation/Animated, kw +15 |
+| 76 | `76` | FRONT LINE | `#5D6D7E` | Any | 3 | incl War/War & Politics, no Documentary/Docuseries/Animation/Animated, kw +16, kw needs genre War/War & Politics/History/Biography |
 | 77 | **`141`** ⚠︎ | FRIGHT NIGHT | `#8B0000` | Any | 5 | incl Horror |
 | 78 | **`65`** ⚠︎ | SUPERHERO MOVIES | `#E74C3C` | Movies | 3 | title allowlist (31), title blocklist (5) |
 | 79 | **`219`** ⚠︎ | SPY GAMES | `#34495E` | Movies | 5 | kw +8, kw needs genre Action/Thriller/Adventure/Comedy |
@@ -257,15 +273,13 @@ _Channels by streaming service and studio_
 | 128 | `128` | UNIVERSAL | `#00A651` | Movies | 3 | studios Universal/Universal Pictures/Universal Television +3 more, prodCo Universal Pictures/DreamWorks Pictures/DreamWorks Animation +2 more |
 | 129 | `129` | 20TH CENTURY | `#C8A951` | Movies | 3 | studios 20th Century Fox/20th Century Studios/20th Television +5 more, prodCo 20th Century Fox/20th Century Studios/Searchlight Pictures +2 more |
 
-### SEASONAL · CH 130–132
+### TIS THE SEASON · CH 130
 
-_Halloween and holiday channels_
+_Christmas and holiday channels_
 
 | CH | `id` | Name | Color | Type | Min items | Rules |
 |---|---|---|---|---|---|---|
 | 130 | `130` | HOLIDAZE | `#C41E3A` | Movies | 3 | incl Holiday/Christmas, title allowlist (19), editorial always-in (96), Plex rating ≥ 5 |
-| 131 | `131` | SCREAM KIDS | `#FF8C00` | Movies | 3 | no Horror, title allowlist (37), editorial always-in (43), rated G/PG/TV-Y/TV-Y7/TV-G/TV-PG |
-| 132 | `132` | SCREAM ADULTS | `#8B0000` | Movies | 3 | incl Horror/Thriller, no Family/Children/Kids/Animation/Animated, title allowlist (53), title blocklist (11), rated R/NC-17/PG-13/TV-MA |
 
 ### ARTHOUSE · CH 140–143
 
@@ -284,7 +298,7 @@ _Music videos by genre_
 
 | CH | `id` | Name | Color | Type | Min items | Rules |
 |---|---|---|---|---|---|---|
-| 150 | `150` | HIGH ROTATION | `#FF2DB4` | Any | 3 | source: music videos, 1980-1999 |
+| 150 | `150` | HIGH ROTATION | `#FF2DB4` | Any | 3 | source: music videos |
 | 151 | `151` | POP | `#FF2DB4` | Any | 3 | source: music videos, incl Pop |
 | 152 | `152` | ROCK'N | `#FF2DB4` | Any | 3 | source: music videos, incl Rock/Hard Rock/Classic Rock |
 | 153 | `153` | COUNTRY SWAGGER | `#FF2DB4` | Any | 3 | source: music videos, incl Country/Country Rock |
@@ -292,7 +306,6 @@ _Music videos by genre_
 | 155 | `155` | RAP GODS | `#FF2DB4` | Any | 3 | source: music videos, incl Rap |
 | 156 | `156` | ALT ROCK | `#FF2DB4` | Any | 3 | source: music videos, incl Alternative/Indie Rock/Alternative Rock |
 | 157 | `157` | SLOW JAMS | `#FF2DB4` | Any | 3 | source: music videos, incl R&B/Soul/Acoustic |
-| 158 | `158` | MUSIC VIDEOS | `#FF2DB4` | Any | 3 | source: music videos |
 | 159 | `159` | Y2K | `#FF2DB4` | Any | 3 | source: music videos, 2000-2019 |
 | 160 | `160` | CURRENT SPIN | `#FF2DB4` | Any | 3 | source: music videos, 2020-2100 |
 | 161 | `161` | DANCE FLOOR | `#FF2DB4` | Any | 3 | source: music videos, incl Electronic/Dance/House/Techno/EDM/Trance |
@@ -304,11 +317,15 @@ _Music videos by genre_
 
 ## `id` ≠ `number`
 
-37 channels whose manifest/exclusivity key (`id`) is not their on-screen number. Marked ⚠︎ in the tables above.
+42 channels whose manifest/exclusivity key (`id`) is not their on-screen number. Marked ⚠︎ in the tables above.
 
 | `id` | Airs as | Name |
 |---|---|---|
 | `215` | CH15 | CARTOON NETWORK |
+| `225` | CH16 | DVD SHELF |
+| `226` | CH17 | MILLENNIAL COMEDY |
+| `227` | CH18 | MILLENNIAL SITCOMS |
+| `228` | CH19 | NOSTALGEX HORROR |
 | `33` | CH31 | FAMILY TV |
 | `34` | CH32 | NETFLIX KIDS |
 | `216` | CH33 | MILLENNIUM CARTOONS |
@@ -334,6 +351,7 @@ _Music videos by genre_
 | `141` | CH77 | FRIGHT NIGHT |
 | `65` | CH78 | SUPERHERO MOVIES |
 | `219` | CH79 | SPY GAMES |
+| `224` | CH83 | HISTORY & BIO |
 | `222` | CH84 | R RATED COMEDY |
 | `40` | CH85 | TRUE CRIME |
 | `41` | CH86 | CRIME FLICKS |
@@ -348,4 +366,4 @@ _Music videos by genre_
 
 ---
 
-_Generated from `channels.json` v24 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
+_Generated from `channels.json` v29 by `scripts/render-channels-doc.mjs`. Do not edit by hand._

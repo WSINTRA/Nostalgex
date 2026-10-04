@@ -8,6 +8,7 @@ struct ChannelGuideView: View {
     let schedules: [Int: ChannelSchedule]
     let windowStart: Date
     var onFocusChanged: ((Int?) -> Void)? = nil
+    var onOpenSettings: (() -> Void)? = nil
 
     // How many 30-min slots the user has scrolled forward (0-44 for 24-hour window)
     @State private var slotOffset: Int = 0
@@ -20,6 +21,11 @@ struct ChannelGuideView: View {
     @State private var lastFocusMoveAt: Date = .distantPast
 
     @State private var showBundleSidebar: Bool = false
+
+    /// Sentinel focus id for the seasonal invite row. Real channels use their own id, and
+    /// none of them is negative.
+    private static let seasonalRowID = -900
+    @State private var seasonalPromptShown = false
 
     private let channelColumnWidth: CGFloat = 220
     private let rowHeight: CGFloat = 80
@@ -61,6 +67,20 @@ struct ChannelGuideView: View {
                                         .frame(maxWidth: .infinity, minHeight: 200)
                                         .focusable()
                                 }
+                                if let offer = appState.seasonalBundleOnOffer {
+                                    Button { seasonalPromptShown = true } label: {
+                                        SeasonalInviteRow(
+                                            bundle: offer,
+                                            isFocused: focusedChannelID == Self.seasonalRowID,
+                                            rowHeight: rowHeight
+                                        )
+                                    }
+                                    .buttonStyle(NoHighlightButtonStyle())
+                                    .focused($focusedChannelID, equals: Self.seasonalRowID)
+                                    .accessibilityIdentifier("seasonalInviteRow")
+                                    .accessibilityLabel("Turn on the \(offer.name) package")
+                                    .id(Self.seasonalRowID)
+                                }
                                 ForEach(Array(appState.channels.enumerated()), id: \.element.id) { index, channel in
                                     Button {
                                         if appState.currentChannel?.id == channel.id {
@@ -88,11 +108,14 @@ struct ChannelGuideView: View {
                                             : "Channel \(channel.number), \(channel.name)"
                                     )
                                     .id(channel.id)
+                                    // Play/Pause full-screens whatever is already tuned, from any row.
+                                    // Select (the button action above) is what tunes the
+                                    // highlighted row. Handling it here matters: a focused
+                                    // row would otherwise swallow the press before the
+                                    // guide-level handler, and used to retune instead.
                                     .onPlayPauseCommand {
-                                        if appState.currentChannel?.id == channel.id {
+                                        if appState.currentChannel != nil {
                                             appState.isFullScreen = true
-                                        } else {
-                                            appState.tuneChannelFromUser(channel, method: .guide, precomputedSchedule: schedules[channel.id])
                                         }
                                     }
                                 }
@@ -217,6 +240,26 @@ struct ChannelGuideView: View {
                     appState.isFullScreen = true
                 }
             }
+            // Menu jumps back to the channel that's actually playing, so a long
+            // scroll down the grid doesn't mean scrolling all the way back up.
+            // A second press, once focus is already there, does nothing — Menu
+            // on the root screen has nowhere else to go.
+            .confirmationDialog(
+                seasonalDialogTitle,
+                isPresented: $seasonalPromptShown,
+                titleVisibility: .visible
+            ) {
+                if let offer = appState.seasonalBundleOnOffer {
+                    Button("YES, TURN IT ON") { appState.answerSeasonalPrompt(.yes, for: offer) }
+                    Button("NOT THIS YEAR") { appState.answerSeasonalPrompt(.notNow, for: offer) }
+                    Button("DON'T ASK AGAIN", role: .destructive) {
+                        appState.answerSeasonalPrompt(.never, for: offer)
+                    }
+                }
+            }
+            // nil when there is nothing to jump to: attaching an inert closure swallows
+            // Menu and traps the viewer in the app. See GuideExitAction.
+            .onExitCommand(perform: exitCommandAction)
 
             // Bundle jump sidebar
             if showBundleSidebar {
@@ -227,6 +270,12 @@ struct ChannelGuideView: View {
                         withAnimation(.easeIn(duration: 0.15)) {
                             showBundleSidebar = false
                         }
+                    },
+                    onOpenSettings: {
+                        withAnimation(.easeIn(duration: 0.15)) {
+                            showBundleSidebar = false
+                        }
+                        onOpenSettings?()
                     },
                     onDismiss: {
                         withAnimation(.easeIn(duration: 0.15)) {
@@ -484,42 +533,109 @@ private struct EPGRow: View {
 private struct BundleJumpSidebar: View {
     let targets: [(bundleID: String, bundleName: String, firstChannelID: Int, channelColor: Color)]
     let onSelect: (Int) -> Void
+    let onOpenSettings: () -> Void
     let onDismiss: () -> Void
+    /// -1 is the pinned Settings row. Package rows use their list index.
     @FocusState private var focusedIndex: Int?
+    private let settingsFocus = -1
+    /// Matches the guide's own row height and focus treatment so the sidebar reads as
+    /// part of the same grid rather than a separate widget.
+    private static let width: CGFloat = 380
+    private static let rowHeight: CGFloat = 72
 
     var body: some View {
         HStack(spacing: 0) {
             VStack(spacing: 0) {
                 Text("PACKAGES")
-                    .font(.custom("DMMono-Medium", size: 18))
+                    .font(.custom("DMMono-Medium", size: 22))
                     .foregroundStyle(.white.opacity(0.6))
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 14)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 18)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 ScrollViewReader { proxy in
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 2) {
+                            // Inside the list, not above it: tvOS won't move focus out
+                            // of a ScrollView, so Settings has to be a row. It sits
+                            // first; the sidebar still opens on the first package,
+                            // and Up from there lands here.
+                            let settingsFocused = focusedIndex == settingsFocus
+                            let settingsAccent = Color(hex: "#FFE500")
+                            Button(action: onOpenSettings) {
+                                HStack(spacing: 14) {
+                                    Rectangle()
+                                        .fill(settingsFocused ? settingsAccent : settingsAccent.opacity(0.4))
+                                        .frame(width: settingsFocused ? 8 : 4)
+
+                                    Image(systemName: "gearshape.fill")
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundStyle(settingsFocused ? .white : .white.opacity(0.75))
+                                        .frame(width: 26)
+
+                                    Text("SETTINGS")
+                                        .font(.custom("DMMono-Medium", size: 24))
+                                        .foregroundStyle(settingsFocused ? .white : .white.opacity(0.75))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
+
+                                    Spacer()
+                                }
+                                .padding(.trailing, 16)
+                                .frame(height: Self.rowHeight)
+                                .background(settingsFocused ? settingsAccent.opacity(0.32) : .clear)
+                                .overlay {
+                                    if settingsFocused {
+                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                            .strokeBorder(settingsAccent, lineWidth: 3)
+                                            .padding(2)
+                                            .shadow(color: settingsAccent.opacity(0.7), radius: 14)
+                                    }
+                                }
+                                .zIndex(settingsFocused ? 1 : 0)
+                            }
+                            .buttonStyle(NoHighlightButtonStyle())
+                            .focused($focusedIndex, equals: settingsFocus)
+                            .accessibilityIdentifier("tunerSidebarSettings")
+                            .id(settingsFocus)
+
+                            Rectangle()
+                                .fill(Color.white.opacity(0.1))
+                                .frame(height: 1)
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 6)
+
                             ForEach(Array(targets.enumerated()), id: \.element.bundleID) { index, target in
                                 let isFocused = focusedIndex == index
 
                                 Button {
                                     onSelect(target.firstChannelID)
                                 } label: {
-                                    HStack(spacing: 12) {
+                                    HStack(spacing: 14) {
                                         Rectangle()
-                                            .fill(target.channelColor)
-                                            .frame(width: 4)
+                                            .fill(isFocused ? target.channelColor : target.channelColor.opacity(0.4))
+                                            .frame(width: isFocused ? 8 : 4)
 
                                         Text(target.bundleName)
-                                            .font(.custom("DMMono-Medium", size: 18))
+                                            .font(.custom("DMMono-Medium", size: 24))
                                             .foregroundStyle(isFocused ? .white : .white.opacity(0.75))
                                             .lineLimit(1)
+                                            .minimumScaleFactor(0.8)
 
                                         Spacer()
                                     }
-                                    .padding(.vertical, 14)
-                                    .background(isFocused ? target.channelColor.opacity(0.15) : .clear)
+                                    .padding(.trailing, 16)
+                                    .frame(height: Self.rowHeight)
+                                    .background(isFocused ? target.channelColor.opacity(0.32) : .clear)
+                                    .overlay {
+                                        if isFocused {
+                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                .strokeBorder(target.channelColor, lineWidth: 3)
+                                                .padding(2)
+                                                .shadow(color: target.channelColor.opacity(0.7), radius: 14)
+                                        }
+                                    }
+                                    .zIndex(isFocused ? 1 : 0)
                                 }
                                 .buttonStyle(NoHighlightButtonStyle())
                                 .focused($focusedIndex, equals: index)
@@ -528,7 +644,7 @@ private struct BundleJumpSidebar: View {
                         }
                     }
                     .onChange(of: focusedIndex) { _, newIndex in
-                        if let idx = newIndex {
+                        if let idx = newIndex, idx >= 0 {
                             withAnimation(.easeInOut(duration: 0.15)) {
                                 proxy.scrollTo(idx, anchor: .center)
                             }
@@ -536,7 +652,7 @@ private struct BundleJumpSidebar: View {
                     }
                 }
             }
-            .frame(width: 260)
+            .frame(width: Self.width)
             .background(Color(red: 0.03, green: 0.03, blue: 0.08).opacity(0.95))
 
             // Divider
@@ -552,5 +668,94 @@ private struct BundleJumpSidebar: View {
         .onExitCommand {
             onDismiss()
         }
+    }
+}
+
+
+private extension ChannelGuideView {
+    /// Menu jumps back to the channel that's playing, so a long scroll down the grid
+    /// doesn't mean scrolling all the way back up. Once focus is already there the guide
+    /// declines the press entirely, so tvOS can background the app.
+    var exitCommandAction: (() -> Void)? {
+        switch GuideExitAction.decide(
+            liveChannelID: appState.currentChannel?.id,
+            focusedChannelID: focusedChannelID
+        ) {
+        case .letSystemHandle:
+            return nil
+        case .jumpToLiveChannel(let id):
+            return { focusedChannelID = id }
+        }
+    }
+
+    var seasonalDialogTitle: String {
+        guard let offer = appState.seasonalBundleOnOffer else { return "" }
+        return "Add \(offer.name) to your lineup for the rest of the month?"
+    }
+}
+
+/// The invite that sits above channel one while a seasonal package is in season and
+/// switched off. Nothing is added to anyone's lineup until they answer the dialog.
+struct SeasonalInviteRow: View {
+    let bundle: ChannelBundle
+    let isFocused: Bool
+    let rowHeight: CGFloat
+
+    private var headline: String {
+        switch bundle.id {
+        case "seasonal":        return "IT'S OCTOBER. ARE YOU READY TO SCREAM?"
+        case "tis-the-season":  return "IT'S DECEMBER. DECK THE CHANNELS."
+        default:                return "\(bundle.name) IS IN SEASON."
+        }
+    }
+
+    /// Each season gets its own colour so the invite reads as part of that season rather
+    /// than as a generic notice.
+    private var accent: Color {
+        switch bundle.id {
+        case "seasonal":        return Color(hex: "#FF6B00")   // pumpkin
+        case "tis-the-season":  return Color(hex: "#E74C3C")   // holiday red
+        default:                return Color(hex: "#FFE500")
+        }
+    }
+
+    /// Loud enough to notice, not loud enough to shout. It sits at exactly one channel
+    /// row's height so the grid still reads as a grid — the outline, the fill and the pill
+    /// do the separating, not size. The first cut was 35% taller with 30pt type and
+    /// dominated the screen.
+    var body: some View {
+        HStack(spacing: 14) {
+            Text(headline)
+                .font(.custom("DMMono-Medium", size: 22))
+                .foregroundStyle(isFocused ? .black : accent)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            // One call to action, not two. "ADD THE SCREAM PACKAGE" next to "PRESS SELECT"
+            // said the same thing twice.
+            Text("PRESS TO ADD THE \(bundle.name) PACKAGE")
+                .font(.custom("DMMono-Medium", size: 14))
+                .foregroundStyle(isFocused ? .black.opacity(0.65) : .black)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule().fill(isFocused ? Color.black.opacity(0.18) : accent)
+                )
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, minHeight: rowHeight, maxHeight: rowHeight, alignment: .leading)
+        .background(isFocused ? accent : accent.opacity(0.22))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(accent, lineWidth: isFocused ? 4 : 2)
+                .padding(2)
+                .shadow(color: accent.opacity(isFocused ? 0.7 : 0.3), radius: isFocused ? 14 : 7)
+        }
+        .overlay(alignment: .leading) {
+            Rectangle().fill(accent).frame(width: isFocused ? 8 : 4)
+        }
+        .zIndex(1)
     }
 }

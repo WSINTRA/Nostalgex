@@ -43,7 +43,7 @@ Features:
 - Your collections become their own channels
 - Multi-part movies play straight through
 - Kids and family channels with mature content filtered out
-- Optional Plex activity sync, off by default, so Continue Watching and play counts stay accurate if you want them to
+- Optional playback reporting, off by default, so Continue Watching and play counts stay accurate on Plex, Jellyfin, or Emby if you want them to
 - Your sign-in survives restarts, updates, and restores
 
 Requires your own Plex, Jellyfin, or Emby server. Nostalgex is a client. It does not provide any media of its own.
@@ -57,18 +57,14 @@ plex,jellyfin,emby,live tv,channels,retro,cable,epg,guide,nostalgia,media server
 
 _(90 characters.)_
 
-## What's New in This Version (1.0.11)
-Big libraries load a lot faster, and the loading screen finally tells you the truth the whole way through instead of parking on one step.
+## What's New in This Version (1.0.23)
+REWATCHABLES now works on Jellyfin and Emby, not only Plex. Movies and episodes you have played 3 or more times show up on those channels.
 
-Slow and flaky connections no longer take the app down with them. Loading and playback both recover instead of hanging.
+Playback reporting is available for Jellyfin and Emby too. It stays off until you turn it on, and it only writes to your own server.
 
-New Now Playing panel while you watch. Closed captions, subtitle and audio language, stream quality, retro mode, and a sleep timer, without leaving the program.
+Audio goes to the AirPlay speakers you already selected on the Apple TV.
 
-Open in Plex sends whatever is on straight into the Plex app.
-
-Your sign-in sticks. No more getting bounced to the connect screen after an Apple TV restart.
-
-Channel guide fixes: rows line up properly, the bottom channel is selectable, and a program that ends quietly moves on instead of stalling.
+In the guide, Play takes what's already on to full screen from any row. Menu jumps back to that channel. Settings is in the package list.
 
 ---
 

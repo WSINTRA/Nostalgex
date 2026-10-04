@@ -90,6 +90,7 @@ extension AppState {
     /// Launch-time hydration with a short retry for transient keychain refusals, and a
     /// diagnosis when the sign-in is genuinely gone.
     func hydrateCredentialsWithRetry() async {
+        defer { didAttemptCredentialHydration = true }
         for attempt in 0 ..< 3 {
             hydrateCredentialsIfNeeded()
             if hasCredentials {
@@ -555,7 +556,7 @@ extension AppState {
         if let urlError = error as? URLError {
             switch urlError.code {
             case .appTransportSecurityRequiresSecureConnection:
-                return "tvOS blocked the plain http:// address. Use https://, or update Nostalgex (fixed in 1.0.22)."
+                return "tvOS blocked the plain http:// address (ATS error -1022). Update Nostalgex, or use https:// if you are on an older build."
             case .cannotFindHost, .dnsLookupFailed:
                 return "Could not find that host. Check the address."
             case .cannotConnectToHost:
