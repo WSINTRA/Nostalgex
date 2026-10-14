@@ -45,15 +45,22 @@ extension AppState {
         print("[Plex90] SELECT CH \(channel.number) \(channel.name) (pool: \(pool.count) items)")
         currentPartIndex = 0
         currentChannel = channel
-        // Prefer the pre-computed schedule from the guide so the title
-        // the user clicked always matches what actually plays.
-        let schedule = precomputedSchedule ?? ChannelScheduleBuilder.buildSchedule(
+        // Prefer the pre-computed schedule from the guide so the title the user clicked
+        // always matches what actually plays — but only while it still describes what is
+        // on. Schedules are rebuilt off the main thread now, so the guide's copy can lag,
+        // and an out-of-date one sends the player to the wrong offset or to the programme
+        // queued next. Rebuilding one channel inline costs a few milliseconds.
+        let now = Date()
+        let usable = precomputedSchedule.flatMap { $0.isCurrent(at: now) ? $0 : nil }
+        let schedule = usable ?? ChannelScheduleBuilder.buildSchedule(
             for: channel,
             credentialFingerprint: scheduleCredentialFingerprint
         )
         if let schedule {
             currentItem = schedule.nowPlaying?.item
-            seekOffset = schedule.elapsedSeconds
+            // Taken from the clock rather than the baked value, so any lag between the
+            // schedule being built and the channel being tuned cannot offset playback.
+            seekOffset = schedule.livePlayback(at: now)?.elapsedSeconds ?? schedule.elapsedSeconds
             print("[Plex90] Schedule: now=\"\(schedule.nowPlaying?.item.title ?? "nil")\" elapsed=\(schedule.elapsedSeconds)s next=\"\(schedule.upNext?.item.title ?? "nil")\" precomputed=\(precomputedSchedule != nil)")
         } else {
             currentItem = pool.randomElement()

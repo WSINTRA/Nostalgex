@@ -10,9 +10,17 @@ struct OMDBResult {
     let awards: String?
 }
 
-/// OMDb API wrapper. Mirrors TMDBService shape.
+/// OMDb API wrapper. Mirrors TMDBService: direct OMDb when a key is present (dev
+/// builds), otherwise the site relay (`api/tmdb.js`, `path=omdb/{imdbID}`), which holds
+/// the key server-side and caches answers at the edge for a week.
 struct OMDBService {
     let apiKey: String
+    let proxyURL: String
+
+    init(apiKey: String, proxyURL: String = TMDBConfig.tmdbProxyURL) {
+        self.apiKey = apiKey
+        self.proxyURL = proxyURL
+    }
 
     private static let session: URLSession = {
         let config = URLSessionConfiguration.default
@@ -23,32 +31,72 @@ struct OMDBService {
 
     private static let baseURL = "https://www.omdbapi.com/"
 
+    var usesProxy: Bool { apiKey.isEmpty && !proxyURL.isEmpty }
+    var isConfigured: Bool { !apiKey.isEmpty || !proxyURL.isEmpty }
+
+    /// The relay accepts `tt` plus 7 to 9 digits and nothing else; the direct path uses
+    /// the same check so an odd guid never becomes a wasted request.
+    static func isValidIMDbID(_ id: String) -> Bool {
+        id.range(of: #"^tt\d{7,9}$"#, options: .regularExpression) != nil
+    }
+
     // MARK: - Public API
 
     func fetch(imdbID: String) async throws -> OMDBResult {
-        guard !apiKey.isEmpty else { throw OMDBError.notConfigured }
+        guard isConfigured else { throw OMDBError.notConfigured }
+        guard let request = request(imdbID: imdbID) else { throw OMDBError.invalidURL }
 
-        let url = "\(Self.baseURL)?i=\(imdbID)&apikey=\(apiKey)&tomatoes=true"
-        guard let requestURL = URL(string: url) else {
-            throw OMDBError.invalidURL
-        }
-
-        let (data, response) = try await Self.session.data(for: URLRequest(url: requestURL))
+        let (data, response) = try await Self.session.data(for: request)
 
         guard let http = response as? HTTPURLResponse else {
             throw OMDBError.invalidResponse
         }
 
+        // The relay maps OMDb's "Request limit reached!" (a 401) to 429. Direct OMDb
+        // still sends the 401, which parseResponse recognises by its message.
+        if http.statusCode == 429 {
+            throw OMDBError.rateLimited
+        }
+
         guard http.statusCode == 200 else {
+            if Self.isLimitMessage(data) { throw OMDBError.rateLimited }
             throw OMDBError.httpError(http.statusCode)
         }
 
         return try parseResponse(data: data, imdbID: imdbID)
     }
 
+    // MARK: - Request building
+
+    /// Proxy: `{proxyURL}?path=omdb/{imdbID}` with the client header and no key in the
+    /// URL. Direct: OMDb's own URL with the key.
+    func request(imdbID: String) -> URLRequest? {
+        guard Self.isValidIMDbID(imdbID) else { return nil }
+        let urlString: String
+        if usesProxy {
+            urlString = "\(proxyURL)?path=omdb/\(imdbID)"
+        } else {
+            urlString = "\(Self.baseURL)?i=\(imdbID)&apikey=\(apiKey)&tomatoes=true"
+        }
+        guard let url = URL(string: urlString) else { return nil }
+
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if usesProxy {
+            request.setValue(TMDBService.clientHeaderValue, forHTTPHeaderField: TMDBService.clientHeaderField)
+        }
+        return request
+    }
+
+    private static func isLimitMessage(_ data: Data) -> Bool {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let err = json["Error"] as? String else { return false }
+        return err.lowercased().contains("limit reached")
+    }
+
     // MARK: - Response parsing
 
-    private func parseResponse(data: Data, imdbID: String) throws -> OMDBResult {
+    func parseResponse(data: Data, imdbID: String) throws -> OMDBResult {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw OMDBError.invalidResponse
         }

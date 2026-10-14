@@ -25,6 +25,17 @@ struct ChannelSchedule {
     let progress: Double        // 0.0-1.0 through current item
     let elapsedSeconds: Int     // seconds into current item
 
+    /// Whether this schedule still describes what is on right now.
+    ///
+    /// `nowPlaying` and `elapsedSeconds` are baked in when the schedule is built, so a
+    /// schedule the guide built moments ago can already be describing the previous
+    /// programme. Tuning from a stale one seeks to the wrong offset, or past a boundary
+    /// and onto the programme queued next.
+    func isCurrent(at now: Date = Date()) -> Bool {
+        guard let np = nowPlaying else { return false }
+        return np.startTime <= now && now < np.endTime
+    }
+
     /// Wall-clock position within the current program (for live UI; use with `TimelineView`).
     func livePlayback(at now: Date = Date()) -> (elapsedSeconds: Int, progress: Double, totalSeconds: Int)? {
         guard let np = nowPlaying else { return nil }

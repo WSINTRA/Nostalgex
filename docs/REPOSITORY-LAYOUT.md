@@ -29,7 +29,9 @@ To confirm the build picked up the current config, filter the Xcode console for 
 [Plex90] CONFIG: bundled - v24, 121 ch, CH132=NETFLIX, CH65 title rules=31
 ```
 
-A stale build shows an older version number or a different channel name. Regenerate the expected values from the config rather than trusting this doc: the diagnostic is built in `AppState+Channels.swift` (`configDiagnostic`), and its two channel labels are **mislabeled** for historical reasons. `CH132=` actually prints the name of channel **id 122**, and `CH65 title rules=` counts `titleContains` on channel **id 65**. Channel `id` and channel `number` are **not the same value** for 29 of the 121 channels, so read these as ids: id 122 is CH122 NETFLIX, and id 65 is CH78 SUPERHERO MOVIES. `channels-memberships.json` also keys off `id`, never `number`.
+(example from an older config; the channel count in a current build is 131, see below)
+
+A stale build shows an older version number or a different channel name. Regenerate the expected values from the config rather than trusting this doc: the diagnostic is built in `AppState+Channels.swift` (`configDiagnostic`), and its two channel labels are **mislabeled** for historical reasons. `CH132=` actually prints the name of channel **id 122**, and `CH65 title rules=` counts `titleContains` on channel **id 65**. Channel `id` and channel `number` are **not the same value** for 81 of the 131 channels, so read these as ids: id 122 is CH121 NETFLIX, and id 65 is CH77 SUPERHERO MOVIES. `channels-memberships.json` also keys off `id`, never `number`.
 | `CHANNELS.md` | Human-readable channel reference (keep near `channels.json`) |
 | `api/` | Vercel serverless (e.g. newsletter `subscribe`) |
 | `vercel.json` | Headers / routing; **web only** |
@@ -40,7 +42,25 @@ The nested folder `Nostalgex/Nostalgex/` (app target inside the project) is norm
 ## Shared logic
 
 - **Filtering / schedules:** Keep `plex-tuner.html` (JS) aligned with `Nostalgex/.../AppState.swift` (Swift). Shared data lives in `channels.json`; duplicated rule semantics should be updated together.
-- **Secrets:** TMDB / Supabase / OMDb keys stay in ignored files (see repo `.gitignore`) and Vercel env vars — never commit real credentials.
+- **Secrets:** TMDB / Supabase / OMDb keys stay in ignored files (see repo `.gitignore`) and Vercel env vars. Never commit real credentials. Details below.
+
+## Secrets
+
+The tvOS app never carries the TMDB key. It asks the site's proxy, `api/tmdb.js`, which adds the key from the Vercel env var `TMDB_API_KEY`, forwards one of four allowlisted TMDB routes, and lets Vercel's edge cache absorb repeats. A build with `TMDB_API_KEY` set as an environment variable in the Xcode scheme talks to TMDB directly instead (dev only).
+
+Supabase is the shared enrichment cache and the app does need its address and anon key. They come in through an xcconfig:
+
+1. Copy `Nostalgex/Secrets.example.xcconfig` to `Nostalgex/Secrets.xcconfig` (gitignored).
+2. Fill in the two lines. The URL needs `$()` between the slashes because xcconfig treats `//` as a comment:
+
+   ```
+   SUPABASE_URL = https:/$()/abcdefgh.supabase.co
+   SUPABASE_ANON_KEY = eyJ...
+   ```
+
+`Nostalgex/Config.xcconfig` (committed) is the app target's base configuration for Debug and Release. It defaults both values to empty and then does `#include? "Secrets.xcconfig"`, so a checkout without the file still builds; `Info.plist` maps them to `SupabaseURL` and `SupabaseAnonKey`, read by `Services/TMDBConfig.swift`. Without them the app logs `[Enrichment] Skipping: missing supabase url, anon key` and the enrichment channels stay empty. The anon key is public by design; row level security on `media_enrichments` is the protection (`Nostalgex/docs/rls-tighten-media-enrichments.sql`).
+
+Site side, `TMDB_API_KEY` lives only in the Vercel project's environment variables, like `RESEND_API_KEY` for the newsletter function.
 
 ## Deployment
 

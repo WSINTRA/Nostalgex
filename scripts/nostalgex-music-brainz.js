@@ -16,21 +16,199 @@
     return String(title || '').replace(/\s+\(\d{4}\)$/, '').trim();
   }
 
+  // Mirrors MusicTitleParser.clean in the tvOS app: ripped filenames down to
+  // searchable text (underscores, [MMV]/{smg} tags, "(Shindig 1964)" notes, scene
+  // suffixes, a stray "video!"). Measured 2026-10-07: recovered 10 of 13 misses.
+  function cleanTitle(raw) {
+    let t = String(raw || '').replace(/_/g, ' ');
+    t = t.replace(/\[[^\]]*\]|\{[^}]*\}/g, '');
+    t = t.replace(/\s*\((?:19|20)\d\d\)\s*$/, '');
+    t = t.replace(/\([^)]*(?:19|20)\d\d[^)]*\)/g, '');
+    t = t.replace(/\b(official|video|hd|hq|lyrics?|remaster(?:ed)?|mv|xvid|dvdrip|vgb|prv)\b!?/gi, '');
+    t = t.replace(/\s+/g, ' ');
+    return t.replace(/^[\s\-!.]+|[\s\-!.]+$/g, '');
+  }
+
+  // The "(1988)" a filename carries: the one year source besides MusicBrainz that the
+  // decade channels can trust (Plex: 1970 or date added; Deezer: album/remaster year).
+  function yearInTitle(raw) {
+    const m = String(raw || '').match(/\(((?:19|20)\d\d)\)/);
+    return m ? parseInt(m[1], 10) : null;
+  }
+
+  function resolveMusicYear(titleYear, musicBrainzYear, plexYear) {
+    if (titleYear) return titleYear;
+    if (musicBrainzYear) return musicBrainzYear;
+    const y = parseInt(String(plexYear || ''), 10);
+    if (!y) return null;
+    const thisYear = new Date().getFullYear();
+    return y > 1970 && y < thisYear ? y : null;
+  }
+
+  function stripFeaturing(s, artistSide) {
+    const re = artistSide
+      ? /\s+(?:ft\.?|feat\.?|featuring|with|and the)\s+.*$/i
+      : /\s+(?:ft\.?|feat\.?|featuring)\s+.*$/i;
+    return String(s || '').replace(re, '').replace(/^[\s,]+|[\s,]+$/g, '');
+  }
+
   function parseTitle(raw) {
-    const cleaned = stripYearSuffix(raw);
+    const cleaned = cleanTitle(raw);
     const dash = cleaned.indexOf(' - ');
     if (dash > 0) {
-      const artist = cleaned.slice(0, dash).trim();
-      const song = cleaned.slice(dash + 3).trim();
+      const artist = stripFeaturing(cleaned.slice(0, dash), true);
+      let song = cleaned.slice(dash + 3).trim();
+      const next = song.indexOf(' - ');
+      if (next > 0) song = song.slice(0, next);
+      song = stripFeaturing(song, false);
       if (artist && song) return { artist, song };
     }
     const byIdx = cleaned.toLowerCase().lastIndexOf(' by ');
     if (byIdx > 0) {
-      const song = cleaned.slice(0, byIdx).trim();
-      const artist = cleaned.slice(byIdx + 4).trim();
+      const song = stripFeaturing(cleaned.slice(0, byIdx), false);
+      const artist = stripFeaturing(cleaned.slice(byIdx + 4), true);
       if (artist && song) return { artist, song };
     }
-    return { artist: null, song: cleaned };
+    const lone = cleaned.match(/^(.{2,}?)-(.+)$/);
+    if (lone && !lone[1].includes(' - ')) {
+      const artist = stripFeaturing(lone[1], true);
+      const song = stripFeaturing(lone[2], false);
+      if (artist.length >= 2 && song.length >= 2) return { artist, song };
+    }
+    return { artist: null, song: stripFeaturing(cleaned, false) };
+  }
+
+  // ── Deezer (genres MusicBrainz leaves blank) ─────────────────────────
+  // api.deezer.com has no CORS headers, so the browser goes through JSONP.
+  // Album genres are what Deezer tags; tracks and artists carry none.
+  const DEEZER_BASE = 'https://api.deezer.com';
+  const DEEZER_MIN_INTERVAL_MS = 250;
+  let deezerLastRequestAt = 0;
+  let deezerCallbackSeq = 0;
+
+  function deezerJSONP(path, params) {
+    return new Promise((resolve, reject) => {
+      const elapsed = Date.now() - deezerLastRequestAt;
+      const wait = elapsed < DEEZER_MIN_INTERVAL_MS ? DEEZER_MIN_INTERVAL_MS - elapsed : 0;
+      setTimeout(() => {
+        deezerLastRequestAt = Date.now();
+        const cb = `__nostalgexDeezer${++deezerCallbackSeq}`;
+        const q = new URLSearchParams({ ...(params || {}), output: 'jsonp', callback: cb });
+        const script = document.createElement('script');
+        const timer = setTimeout(() => { cleanup(); reject(new Error('Deezer timeout')); }, 15000);
+        function cleanup() { clearTimeout(timer); delete global[cb]; script.remove(); }
+        global[cb] = (data) => { cleanup(); resolve(data); };
+        script.onerror = () => { cleanup(); reject(new Error('Deezer script error')); };
+        script.src = `${DEEZER_BASE}${path}?${q.toString()}`;
+        document.head.appendChild(script);
+      }, wait);
+    });
+  }
+
+  // Mirrors DeezerService.mapGenres in the tvOS app.
+  function mapDeezerGenres(raw) {
+    const out = [];
+    const add = (...names) => { for (const g of names) if (!out.some((x) => x.toLowerCase() === g.toLowerCase())) out.push(g); };
+    for (const name of raw || []) {
+      const g = String(name).toLowerCase();
+      switch (g) {
+        case 'pop': case 'international pop': case 'indie pop': case 'k-pop': case 'j-pop': case 'latin pop':
+          add('Pop'); if (g === 'indie pop') add('Alternative'); if (g === 'latin pop') add('Latin'); break;
+        case 'rock': add('Rock'); break;
+        case 'hard rock': add('Hard Rock', 'Rock'); break;
+        case 'classic rock': add('Classic Rock', 'Rock'); break;
+        case 'indie rock': case 'indie rock/rock pop': add('Indie Rock', 'Alternative', 'Rock'); break;
+        case 'alternative': add('Alternative'); break;
+        case 'punk': add('Punk', 'Rock', 'Alternative'); break;
+        case 'metal': add('Metal', 'Hard Rock', 'Rock'); break;
+        case 'rap/hip hop': add('Hip-Hop', 'Hip Hop', 'Rap'); break;
+        case 'r&b': add('R&B'); break;
+        case 'soul & funk': add('Soul', 'Funk'); break;
+        case 'disco': add('Disco', 'Funk'); break;
+        case 'dance': case 'dancefloor': add('Dance', 'Electronic'); break;
+        case 'electro': case 'dubstep': case 'chill out/trip-hop/lounge': case 'electro pop/electro rock':
+          add('Electronic', 'Dance'); if (g === 'electro pop/electro rock') add('Pop'); break;
+        case 'techno/house': add('House', 'Techno', 'Electronic', 'Dance'); break;
+        case 'country': add('Country'); break;
+        case 'latin music': case 'brazilian music': add('Latin'); break;
+        case 'reggaeton': add('Reggaeton', 'Latin'); break;
+        case 'reggae': add('Reggae'); break;
+        case 'folk': add('Acoustic', 'Folk'); break;
+        case 'jazz': add('Jazz'); break;
+        case 'blues': add('Blues'); break;
+        default: break;
+      }
+    }
+    return out;
+  }
+
+  function deezerBestHit(hits, artistHint) {
+    if (!hits || !hits.length) return null;
+    const hint = (artistHint || '').toLowerCase();
+    if (!hint) return hits[0];
+    const words = new Set(hint.split(/[^a-z0-9]+/).filter((w) => w.length > 2));
+    if (!words.size) return hits[0];
+    return hits.find((h) => String(h.artist && h.artist.name || '').toLowerCase().split(/[^a-z0-9]+/).some((w) => words.has(w))) || hits[0];
+  }
+
+  // Artist+song first, bare song second; one album fetch for genres and year.
+  async function deezerResolve(song, artist) {
+    const s = String(song || '').trim();
+    if (!s) return null;
+    const queries = artist ? [`${artist} ${s}`, s] : [s];
+    for (const q of queries) {
+      const res = await deezerJSONP('/search', { q, limit: '5' });
+      const pick = deezerBestHit((res && res.data) || [], artist);
+      if (!pick || !pick.album) continue;
+      const album = await deezerJSONP(`/album/${pick.album.id}`, {});
+      const rawGenres = ((album && album.genres && album.genres.data) || []).map((g) => g.name).filter(Boolean);
+      const releaseYear = album && album.release_date ? parseInt(String(album.release_date).slice(0, 4), 10) || null : null;
+      return {
+        trackID: pick.id,
+        title: pick.title,
+        artist: pick.artist ? pick.artist.name : null,
+        rawGenres,
+        genres: mapDeezerGenres(rawGenres),
+        releaseYear,
+      };
+    }
+    return null;
+  }
+
+  async function withDeezerGenres(enr, item) {
+    const parsed = parseTitle(item.title);
+    const song = enr.recordingTitle || parsed.song;
+    const artist = enr.artist || parsed.artist || null;
+    const out = { ...enr, deezerCheckedAt: Date.now() };
+    try {
+      const match = await deezerResolve(song, artist);
+      if (match) {
+        out.genres = mergeGenres(enr.genres, match.genres);
+        out.deezerID = match.trackID;
+        if (!out.artist) out.artist = match.artist;
+      }
+    } catch (e) {
+      console.warn('[Deezer] resolve failed', item.title, e);
+    }
+    out.hasUsefulGenres = usefulGenres(out.genres);
+    return out;
+  }
+
+  function usefulGenres(genres) {
+    return (genres || []).some((g) => {
+      const l = String(g).toLowerCase();
+      return !l.includes('music video') && l !== 'music' && l !== 'musical';
+    });
+  }
+
+  function isSettled(enr) {
+    if (!enr) return false;
+    if (Date.now() - (enr.fetchedAt || 0) > 90 * 86400 * 1000) return false;
+    return !!enr.hasUsefulGenres || !!enr.deezerCheckedAt;
+  }
+
+  function needsOnlyGenres(enr) {
+    return !!enr && !enr.hasUsefulGenres && !enr.deezerCheckedAt && !!(enr.artist || enr.musicBrainzID);
   }
 
   function mapTagsToChannelGenres(tags) {
@@ -278,7 +456,7 @@
     const title = (enr.recordingTitle || item.title || '').trim() || item.title;
     const artist = enr.artist || item.artist || null;
     const genres = mergeGenres(item.genres, enr.genres);
-    const year = item.year || enr.releaseYear || '';
+    const year = resolveMusicYear(yearInTitle(item.title), enr.releaseYear, item.year) || '';
     const updated = {
       ...item,
       title,
@@ -293,7 +471,10 @@
   function itemsWithDisplayMetadata(items) {
     return items.map((item) => {
       const enr = cache[item.ratingKey];
-      return enr ? applyEnrichmentToItem(item, enr) : item;
+      if (enr) return applyEnrichmentToItem(item, enr);
+      if (!isMusicVideoItem(item)) return item;
+      const year = resolveMusicYear(yearInTitle(item.title), null, item.year) || '';
+      return year === (item.year || '') ? item : { ...item, year };
     });
   }
 
@@ -320,7 +501,11 @@
       if (onProgress) onProgress(done, mv.length, item.title);
 
       const existing = cache[item.ratingKey];
-      if (existing && (existing.musicBrainzID || existing.hasUsefulGenres)) {
+      if (isSettled(existing)) continue;
+      if (needsOnlyGenres(existing)) {
+        // Named by MusicBrainz, never got a genre: Deezer only, no second 1/sec crawl.
+        cache[item.ratingKey] = await withDeezerGenres(existing, item);
+        updated += 1;
         continue;
       }
       if (existing && !plexGenresAreThin(item.genres) && existing.artist) {
@@ -344,15 +529,12 @@
           releaseYear: match ? match.releaseYear : null,
           fetchedAt: Date.now(),
         };
-        enr.hasUsefulGenres = enr.genres.some((g) => {
-          const l = g.toLowerCase();
-          return !l.includes('music video') && l !== 'music' && l !== 'musical';
-        });
-        cache[item.ratingKey] = enr;
+        enr.hasUsefulGenres = usefulGenres(enr.genres);
+        cache[item.ratingKey] = enr.hasUsefulGenres ? enr : await withDeezerGenres(enr, item);
         updated += 1;
       } catch (e) {
         console.warn('[MusicBrainz] resolve failed', item.title, e);
-        cache[item.ratingKey] = {
+        const fallback = {
           ratingKey: item.ratingKey,
           recordingTitle: songTitle,
           artist: artistHint || null,
@@ -360,8 +542,10 @@
           genres: item.genres || [],
           releaseYear: null,
           fetchedAt: Date.now(),
-          hasUsefulGenres: false,
+          hasUsefulGenres: usefulGenres(item.genres),
         };
+        cache[item.ratingKey] = fallback.hasUsefulGenres ? fallback : await withDeezerGenres(fallback, item);
+        updated += 1;
       }
     }
     if (updated) saveDiskCache();
@@ -376,7 +560,12 @@
 
   global.NostalgexMusicBrainz = {
     parseTitle,
+    cleanTitle,
+    yearInTitle,
+    resolveMusicYear,
     stripYearSuffix,
+    deezerResolve,
+    mapDeezerGenres,
     parseMusicVideoFromPlex,
     isMusicVideoItem,
     itemDisplayLine,

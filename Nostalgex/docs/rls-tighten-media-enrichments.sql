@@ -1,4 +1,7 @@
 -- Tighten RLS on media_enrichments (2026-09-10)
+-- Keyword cap raised from 50 to 100 on 2026-10-13: six real TMDB titles carry 52 to 71
+-- keywords, and at 50 their rows could not be updated at all (no ratings, no franchise
+-- data). Applied in the Supabase SQL editor the same day.
 -- Run in Supabase SQL editor.
 --
 -- Context: rls-migration.sql enabled RLS but left INSERT/UPDATE as
@@ -22,7 +25,7 @@ as $$
     rec.tmdb_id ~ '^[0-9]{1,10}$'
     and rec.media_type in ('movie', 'tv')
     and (rec.imdb_id is null or rec.imdb_id ~ '^tt[0-9]{1,10}$')
-    and coalesce(array_length(rec.keywords, 1), 0) <= 50
+    and coalesce(array_length(rec.keywords, 1), 0) <= 100
     and coalesce(array_length(rec.networks, 1), 0) <= 50
     and coalesce(array_length(rec.production_companies, 1), 0) <= 50
     and coalesce(array_length(rec.tmdb_genres, 1), 0) <= 50

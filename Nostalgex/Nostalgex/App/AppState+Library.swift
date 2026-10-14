@@ -106,6 +106,23 @@ extension AppState {
 
         let isBackground = background && !channels.isEmpty
 
+        // The sign-in this load is for. Taken after server recovery, which may itself
+        // replace the server list. Checked after every await that precedes a commit: a
+        // Disconnect or a new sign-in while a scan is out means its results are for a
+        // library the user has left, and they must not touch the one they moved to.
+        let session = librarySessionGeneration
+        func superseded() -> Bool {
+            guard librarySessionGeneration != session else { return false }
+            print("[Plex90] LOAD: sign-in changed while the scan was running, discarding its results")
+            isLoadStalling = false
+            if isBackground {
+                isBackgroundRefreshing = false
+            } else if !hasCredentials {
+                isLoading = false
+            }
+            return true
+        }
+
         if isUITestStubLibrarySuccess {
             isLoading = true
             loadingMessage = "LOADING CHANNELS..."
@@ -206,7 +223,12 @@ extension AppState {
                             case .slow, .stalled: self.isLoadStalling = true
                             }
                         },
-                        abortRequested: { [weak self] in self?.consumeLoadCancelRequest() ?? false },
+                        // A sign-in change also ends the scan early rather than letting
+                        // minutes of requests run against a server the user left.
+                        abortRequested: { [weak self] in
+                            guard let self else { return true }
+                            return self.consumeLoadCancelRequest() || self.librarySessionGeneration != session
+                        },
                         operation: {
                             try await scanAPI.loadLibrary { [weak self] event in
                                 Task { @MainActor [weak self] in
@@ -260,6 +282,10 @@ extension AppState {
                 }
             }
             isLoadStalling = false
+            LibraryLoadProbe.mark("fetch")
+
+            // Nothing below this line may run for a sign-in that has ended.
+            if superseded() { return }
 
             // Surface a connection error only when every server failed.
             if successCount == 0 {
@@ -290,11 +316,19 @@ extension AppState {
             }
 
             merged = Self.dedupingItems(merged, servers: selectedServers)
+            // Belt and braces under the generation check: an item stamped with a server
+            // that is not signed in can never be played, so it never enters a pool.
+            let foreign = merged.filter { !itemBelongsToConnectedServers($0) }.count
+            if foreign > 0 {
+                print("[Plex90] LOAD: dropped \(foreign) item(s) from servers that are not signed in")
+                merged = merged.filter { itemBelongsToConnectedServers($0) }
+            }
             allItems = merged
             scanItemsFound = merged.count
             let withTMDB = merged.filter { $0.tmdbID != nil }.count
             let withIMDB = merged.filter { $0.imdbID != nil }.count
             print("[Plex90] Library: \(merged.count) items from \(successCount) server(s), \(withTMDB) with TMDB IDs, \(withIMDB) with IMDb IDs")
+            LibraryLoadProbe.mark("merge+dedupe")
 
             if hasAnyCollectionBundle {
                 await pulseLibraryPhase(.discoveringCollections)
@@ -302,13 +336,22 @@ extension AppState {
             } else {
                 print("[Plex90] COLLECTIONS: No collection bundles enabled, skipping scan")
             }
+            LibraryLoadProbe.mark("collections")
 
             let enrichableCount = allItems.filter { $0.tmdbID != nil || $0.imdbID != nil }.count
             await pulseLibraryPhase(.enrichingMetadata, detail: "\(enrichableCount) titles")
-            await enrichmentService.enrichItems(allItems)
+            await enrichmentService.enrichItems(
+                allItems,
+                omdbGates: OMDBGate.gates(from: config.channels.compactMap(\.rules))
+            )
             await briefUILBeat()
+            LibraryLoadProbe.mark("enrichment")
+
+            // Collections and enrichment both waited on the network.
+            if superseded() { return }
 
             applyMusicCacheToLibrary()
+            LibraryLoadProbe.mark("musicCache")
             if isMusicBundleEnabled {
                 let musicVideoCount = allItems.filter { ($0.librarySource ?? .movie) == .musicVideo }.count
                 if musicVideoCount > 0 {
@@ -327,14 +370,25 @@ extension AppState {
                 onlyChannelIDs: poolChannelIDs
             )
 
+            // The pool build ran off the main actor.
+            if superseded() { return }
+
             let dynamicChannels = allChannels.filter { $0.rules == nil }
             allChannels = (staticBuilt + dynamicChannels).sorted { $0.number < $1.number }
+            LibraryLoadProbe.mark("channelsMerged")
+
+            // Enrichment has landed and the classics are built: decide which franchises
+            // the library holds, fold any server collection that is one of them, and
+            // rebuild the runtime channels from both lists.
+            rebuildFoundFranchises()
+            materializeDynamicChannels()
 
             setLibraryPhase(.finishing)
             print("[Plex90] BUNDLES: \(bundles.map { "\($0.name)(\($0.channelIDs.count)ch, \($0.enabled ? "ON" : "OFF"))" }.joined(separator: ", "))")
             print("[Plex90] allChannels: \(allChannels.count), enabledBundleIDs: \(enabledBundleIDs)")
 
             printChannelAudit()
+            LibraryLoadProbe.mark("channelAudit")
             applyBundleFilter()
             // New user whose enabled bundle didn't match their library: pull in any other
             // bundle that does have content so they land in a real guide, not the dead end.
@@ -350,6 +404,7 @@ extension AppState {
             isLoading = false
             isBackgroundRefreshing = false
             isLibraryStale = scanWasAbandoned
+            LibraryLoadProbe.mark("guideVisible")
 
             // Library refresh: only purge yesterday's (and older) manifests. Today's
             // schedule is already self-invalidating via pool fingerprint inside
@@ -367,6 +422,7 @@ extension AppState {
                 selectChannel(first)
             }
 
+            LibraryLoadProbe.mark("selectChannel")
             startDeferredMusicEnrichmentIfNeeded()
 
 
@@ -378,10 +434,15 @@ extension AppState {
             // The alternative, a new snapshot field, would invalidate every snapshot on
             // every device.
             let completedAt = Int(Date().timeIntervalSince1970)
+            let signature = scanWasAbandoned ? nil : await currentLibrarySignature()
+            // The signature request is one more await before the snapshot is written.
+            if superseded() { return }
+            LibraryLoadProbe.mark("signature")
             lastLoadAtUnix = scanWasAbandoned ? completedAt - 86_400 : completedAt
-            librarySignature = scanWasAbandoned ? nil : await currentLibrarySignature()
+            librarySignature = signature
             lastLibraryCheckAtUnix = completedAt
             saveLibrarySnapshotIfNeeded()
+            LibraryLoadProbe.mark("snapshotSaved")
 
             let durationMs = Int(Date().timeIntervalSince(loadStartedAt) * 1000)
             Analytics.track(.libraryLoadCompleted(
@@ -415,7 +476,7 @@ extension AppState {
                 Analytics.track(.libraryRefreshBackgroundFailed(reason: reason))
             } else {
                 Analytics.track(.libraryLoadFailed(reason: reason, background: false))
-                errorMessage = Self.userFacingPlexAPIServiceError(api, justAuthenticated: justAuthenticated)
+                errorMessage = Self.userFacingPlexAPIServiceError(api, justAuthenticated: justAuthenticated, backend: backendKind)
                 lastFailureDiagnostic = diagnosticString(for: api)
                 if case .unauthorized = api, !justAuthenticated {
                     await resolveUnauthorizedLoadFailure()
@@ -436,7 +497,7 @@ extension AppState {
                 Analytics.track(.libraryRefreshBackgroundFailed(reason: reason))
             } else {
                 Analytics.track(.libraryLoadFailed(reason: reason, background: false))
-                errorMessage = Self.userFacingLoadLibraryError(error)
+                errorMessage = Self.userFacingLoadLibraryError(error, backend: backendKind)
                 let host = URL(string: serverURL)?.host ?? "?"
                 if let stalled = error as? LibraryLoadStalled {
                     lastFailureDiagnostic = "\(host) · stalled \(Int(stalled.secondsWithoutProgress))s"
@@ -493,13 +554,24 @@ extension AppState {
         }
         var hostByServerID: [String: String] = [:]
         for s in servers { hostByServerID[s.machineIdentifier] = host(s.baseURL) }
-        var seen = Set<String>()
-        var out: [PlexMediaItem] = []
-        out.reserveCapacity(items.count)
-        for item in items {
+        func key(_ item: PlexMediaItem) -> String {
             let sid = item.serverID ?? ""
-            let key = (hostByServerID[sid] ?? (sid.lowercased().hasPrefix("http") ? host(sid) : sid)) + "|" + item.ratingKey
-            if seen.insert(key).inserted { out.append(item) }
+            return (hostByServerID[sid] ?? (sid.lowercased().hasPrefix("http") ? host(sid) : sid)) + "|" + item.ratingKey
+        }
+        // Find the duplicates first. Usually there are none, and then the input goes back
+        // as is instead of a second full copy of the library being built next to it.
+        var seen = Set<String>()
+        seen.reserveCapacity(items.count)
+        var duplicates = IndexSet()
+        for (i, item) in items.enumerated() where !seen.insert(key(item)).inserted {
+            duplicates.insert(i)
+        }
+        seen = []
+        guard !duplicates.isEmpty else { return items }
+        var out: [PlexMediaItem] = []
+        out.reserveCapacity(items.count - duplicates.count)
+        for (i, item) in items.enumerated() where !duplicates.contains(i) {
+            out.append(item)
         }
         if out.count != items.count {
             print("[Plex90] LOAD: removed \(items.count - out.count) duplicate items (same server, two identities)")
@@ -513,30 +585,64 @@ extension AppState {
             return false
         }
         guard !isUITestStubLibrarySuccess else { return false }
-        let loaded: (snapshot: LibrarySnapshotV1, isStale: Bool)?
+        // Reading and decoding the files is the slow part (seconds at 400k items); keep it
+        // off the main actor so the launch screen stays responsive.
+        let seed = snapshotIdentitySeed
+        var loaded: LibrarySnapshotStore.Loaded?
         do {
-            loaded = try LibrarySnapshotStore.loadSnapshot(identity: snapshotIdentitySeed)
+            loaded = try await Task.detached(priority: .userInitiated) {
+                try LibrarySnapshotStore.loadSnapshot(identity: seed)
+            }.value
         } catch {
             InstallDiagnostics.fail("snapshot: restore threw \(String(describing: error)), falling back to full scan")
             return false
         }
-        guard let loaded else { return false }
-        applyLibrarySnapshot(loaded.snapshot)
-        isLibraryStale = loaded.isStale
-        InstallDiagnostics.note("snapshot: restored, stale=\(loaded.isStale)")
+        // `found` is the only owner of the decoded items from here on, so applying it can
+        // drop them as soon as the deduplicated copy exists.
+        guard var found = loaded else { return false }
+        loaded = nil
+        // A snapshot whose items were scanned from a server that is no longer signed in
+        // (written by a scan that outlived a Disconnect, before that was stopped) would
+        // restore a guide where nothing plays. Rescan instead.
+        let foreign = found.snapshot.allItems.reduce(0) { $0 + (itemBelongsToConnectedServers($1) ? 0 : 1) }
+        if foreign > 0 {
+            InstallDiagnostics.note("snapshot: \(foreign) of \(found.snapshot.allItems.count) items belong to a server that is not signed in, rescanning")
+            LibrarySnapshotStore.clear()
+            DailyManifestStore.clearAll(credentialFingerprint: scheduleCredentialFingerprint)
+            return false
+        }
+        let isStale = found.isStale
+        let fromLegacyFile = found.fromLegacyFile
+        applyLibrarySnapshot(&found.snapshot)
+        isLibraryStale = isStale
+        InstallDiagnostics.note("snapshot: restored, stale=\(isStale)")
+        if fromLegacyFile {
+            // One-time migration: write it back in the chunked format, which removes the
+            // legacy file on commit, so the next launch never decodes the big file again.
+            saveLibrarySnapshotIfNeeded()
+        }
         return true
     }
 
-    private func applyLibrarySnapshot(_ snap: LibrarySnapshotV1) {
-        allItems = Self.dedupingItems(snap.allItems, servers: selectedServers)
+    /// Takes the snapshot inout so its item array can be released as soon as the
+    /// deduplicated copy exists, instead of both living until the restore returns.
+    private func applyLibrarySnapshot(_ snap: inout LibrarySnapshotV1) {
+        var restored = Self.dedupingItems(snap.allItems, servers: selectedServers)
+        snap.allItems = []
         musicEnrichmentService.loadDiskCache()
-        allItems = musicEnrichmentService.itemsWithDisplayMetadata(allItems)
+        restored = musicEnrichmentService.itemsWithDisplayMetadata(restored)
+        allItems = restored
+        restored = []
 
-        var itemById: [String: PlexMediaItem] = [:]
-        itemById.reserveCapacity(allItems.count)
-        for item in allItems {
-            itemById[item.id] = item
+        // id -> index into allItems, first occurrence wins (as refreshChannelPools resolved
+        // it). An index is 8 bytes; a dictionary of whole items cost ~500 bytes an entry.
+        var indexById: [String: Int] = [:]
+        indexById.reserveCapacity(allItems.count)
+        for (i, item) in allItems.enumerated() where indexById[item.id] == nil {
+            indexById[item.id] = i
         }
+        let items = allItems
+        let lookup: (String) -> PlexMediaItem? = { id in indexById[id].map { items[$0] } }
 
         serverName = snap.serverName
         isConnected = true
@@ -544,34 +650,61 @@ extension AppState {
         lastLoadAtUnix = snap.lastLoadAtUnix
         librarySignature = snap.librarySignature
 
+        // The bundle list in UserDefaults is the latest choice, and may be newer than the
+        // snapshot (a toggle that never re-saved it, or a lineup that arrived from another
+        // Apple TV through iCloud while this one was off). Read it before the snapshot
+        // overwrites it.
+        let storedBundleIDs = UserDefaults.standard.stringArray(forKey: PreferenceSync.enabledBundlesKey)
         enabledBundleIDs = Set(snap.enabledBundleIDList)
         bundles = snap.bundleDefinitions.map { def in
             def.toChannelBundle(enabled: enabledBundleIDs.contains(def.id))
         }
         exclusiveRules = snap.exclusiveRuleJSON.map { $0.toExclusiveRule() }
         channelConfigChannels = snap.channelConfigRows.map {
-            Channel.fromSnapshotRow($0, itemLookup: itemById, includePool: false)
+            Channel.fromSnapshotRow($0, itemLookup: lookup, includePool: false)
         }
+        // Pools resolve against allItems, which already carries the music display metadata,
+        // so the old refreshChannelPools pass here (a second full id -> item dictionary)
+        // produced the same pools.
         allChannels = snap.allChannelRows.map {
-            Channel.fromSnapshotRow($0, itemLookup: itemById, includePool: true)
+            Channel.fromSnapshotRow($0, itemLookup: lookup, includePool: true)
         }
-        allChannels = musicEnrichmentService.refreshChannelPools(allChannels, from: allItems)
-        discoveredCollections = snap.discoveredCollectionRows.map { $0.resolve(itemLookup: itemById) }
+        discoveredCollections = snap.discoveredCollectionRows.map { $0.resolve(itemLookup: lookup) }
+        // The enrichment cache is empty until the next scan, so the found list cannot be
+        // rebuilt here; it is restored as saved, with the viewer's current switches applied.
+        foundFranchises = (snap.foundFranchiseRows ?? []).map {
+            $0.resolve(itemLookup: lookup, enabledIDs: enabledFranchiseIDs, disabledIDs: disabledFranchiseIDs)
+        }
 
         scanSectionIndex = 0
         scanTotalSections = 0
-        scanItemsFound = snap.allItems.count
+        scanItemsFound = allItems.count
 
         // Collection lineup no longer exposes per-category toggles; keep bundles enabled when discoveries exist.
         syncCollectionCategoryBundlesWithDiscoveries(persistPreferences: false)
-        saveBundlePreferences()
+        let preferredBundleIDs = Self.preferredBundleIDsAfterSnapshot(
+            stored: storedBundleIDs, snapshotWithDiscoveries: enabledBundleIDs,
+            discoveredCategoryBundleIDs: Set(discoveredCollections.map(\.category.bundleID)))
+        if preferredBundleIDs == enabledBundleIDs { saveBundlePreferences() }
         for i in bundles.indices {
             bundles[i].enabled = enabledBundleIDs.contains(bundles[i].id)
         }
 
+        // Runtime channels come back from the restored lists rather than the stored rows,
+        // so the found-franchise channel ids are known to applyBundleFilter. Same content,
+        // same numbering: the lists are what the rows were built from.
+        materializeDynamicChannels()
         applyBundleFilter()
         if currentChannel == nil, let first = channels.first {
             selectChannel(first)
+        }
+        if preferredBundleIDs != enabledBundleIDs {
+            print("[Sync] snapshot lineup differs from the saved one, rebuilding to the saved lineup")
+            applyEnabledBundleIDs(preferredBundleIDs)
+        }
+        if discoveredCollections.contains(where: { $0.enabled != enabledCollectionKeys.contains($0.id) }) {
+            print("[Sync] snapshot collections differ from the saved ones, rebuilding")
+            applyEnabledCollectionKeys(enabledCollectionKeys)
         }
         print("[Plex90] Snapshot: restored from disk (no Plex crawl)")
     }
@@ -589,24 +722,25 @@ extension AppState {
         return "\(ns.domain)_\(ns.code)"
     }
 
+    /// Captures the library on the main actor (copy-on-write, no copying) and writes it on
+    /// a background queue in chunks. Returns immediately.
     func saveLibrarySnapshotIfNeeded() {
         guard !isUITestStubLibrarySuccess else { return }
-        do {
-            try LibrarySnapshotStore.save(
-                identity: snapshotIdentitySeed,
-                serverName: serverName,
-                librarySignature: librarySignature,
-                lastLoadAtUnix: lastLoadAtUnix,
-                allItems: allItems,
-                channelConfigChannels: channelConfigChannels,
-                allChannels: allChannels,
-                bundles: bundles,
-                enabledBundleIDs: enabledBundleIDs,
-                exclusiveRules: exclusiveRules,
-                discoveredCollections: discoveredCollections
-            )
-        } catch {
-            print("[Plex90] Snapshot save failed: \(error)")
-        }
+        let payload = LibrarySnapshotStore.makePayload(
+            identity: snapshotIdentitySeed,
+            serverName: serverName,
+            librarySignature: librarySignature,
+            lastLoadAtUnix: lastLoadAtUnix,
+            allItems: allItems,
+            channelConfigChannels: channelConfigChannels,
+            allChannels: allChannels,
+            bundles: bundles,
+            enabledBundleIDs: enabledBundleIDs,
+            exclusiveRules: exclusiveRules,
+            discoveredCollections: discoveredCollections,
+            foundFranchises: foundFranchises
+        )
+        LibraryLoadProbe.mark("snapshot.capture")
+        LibrarySnapshotStore.saveInBackground(payload)
     }
 }

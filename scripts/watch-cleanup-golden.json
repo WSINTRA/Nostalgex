@@ -1,0 +1,117 @@
+{
+  "about": "What Report Playback does to an item when a session ends, so a program Nostalgex tuned past is never left in Continue Watching, Resume or On Deck. Read by Nostalgex/NostalgexTests/WatchStateGuardTests.swift (WatchCleanupPlan) and scripts/nostalgex-watch-state-smoke.mjs (scripts/nostalgex-watch-state.js). Both must produce these steps. Plex reports carry no position, so a surf needs no step whatever the item held; only a counted episode whose show was not in Continue Watching before tune-in needs its next-up entry removed. resumePosition is in the server's unit: Plex milliseconds, Jellyfin/Emby 100ns ticks. counted = the 15% entry / 75% watched gate passed this session.",
+  "cases": [
+    {
+      "name": "Plex: surf past a film never watched",
+      "backend": "plex",
+      "counted": false,
+      "prior": { "resumePosition": 0, "playCount": 0, "played": false, "lastPlayedDate": null, "showKey": null, "showInContinueWatching": false },
+      "steps": []
+    },
+    {
+      "name": "Plex: surf past a film the user had paused at 10 minutes",
+      "backend": "plex",
+      "counted": false,
+      "prior": { "resumePosition": 600000, "playCount": 0, "played": false, "lastPlayedDate": null, "showKey": null, "showInContinueWatching": false },
+      "steps": []
+    },
+    {
+      "name": "Plex: surf past a film already watched twice",
+      "backend": "plex",
+      "counted": false,
+      "prior": { "resumePosition": 0, "playCount": 2, "played": true, "lastPlayedDate": null, "showKey": null, "showInContinueWatching": false },
+      "steps": []
+    },
+    {
+      "name": "Plex: watched and part way through a rewatch",
+      "backend": "plex",
+      "counted": false,
+      "prior": { "resumePosition": 1200000, "playCount": 1, "played": true, "lastPlayedDate": null, "showKey": null, "showInContinueWatching": false },
+      "steps": []
+    },
+    {
+      "name": "Plex: surf past an episode never watched",
+      "backend": "plex",
+      "counted": false,
+      "prior": { "resumePosition": 0, "playCount": 0, "played": false, "lastPlayedDate": null, "showKey": "48279", "showInContinueWatching": false },
+      "steps": []
+    },
+    {
+      "name": "Plex: could not read the item before the first report",
+      "backend": "plex",
+      "counted": false,
+      "prior": null,
+      "steps": []
+    },
+    {
+      "name": "Plex: film watched through the gate",
+      "backend": "plex",
+      "counted": true,
+      "prior": { "resumePosition": 0, "playCount": 0, "played": false, "lastPlayedDate": null, "showKey": null, "showInContinueWatching": false },
+      "steps": []
+    },
+    {
+      "name": "Plex: episode watched through the gate, show was not in Continue Watching",
+      "backend": "plex",
+      "counted": true,
+      "prior": { "resumePosition": 0, "playCount": 0, "played": false, "lastPlayedDate": null, "showKey": "48279", "showInContinueWatching": false },
+      "steps": ["removeShowFromContinueWatching 48279"]
+    },
+    {
+      "name": "Plex: episode watched through the gate, show was already in Continue Watching",
+      "backend": "plex",
+      "counted": true,
+      "prior": { "resumePosition": 0, "playCount": 0, "played": false, "lastPlayedDate": null, "showKey": "48279", "showInContinueWatching": true },
+      "steps": []
+    },
+    {
+      "name": "Plex: counted watch, item unreadable before",
+      "backend": "plex",
+      "counted": true,
+      "prior": null,
+      "steps": []
+    },
+    {
+      "name": "Jellyfin/Emby: surf past an item never played",
+      "backend": "mediaServer",
+      "counted": false,
+      "prior": { "resumePosition": 0, "playCount": 0, "played": false, "lastPlayedDate": null, "showKey": null, "showInContinueWatching": false },
+      "steps": ["markUnplayed"]
+    },
+    {
+      "name": "Jellyfin/Emby: surf past an item paused at 10 minutes",
+      "backend": "mediaServer",
+      "counted": false,
+      "prior": { "resumePosition": 6000000000, "playCount": 0, "played": false, "lastPlayedDate": null, "showKey": null, "showInContinueWatching": false },
+      "steps": ["userData position=6000000000 playCount=0 played=false"]
+    },
+    {
+      "name": "Jellyfin/Emby: surf past an item played twice",
+      "backend": "mediaServer",
+      "counted": false,
+      "prior": { "resumePosition": 0, "playCount": 2, "played": true, "lastPlayedDate": "2026-10-11T18:03:04.0000000Z", "showKey": null, "showInContinueWatching": false },
+      "steps": ["userData position=0 playCount=2 played=true lastPlayedDate=2026-10-11T18:03:04.0000000Z"]
+    },
+    {
+      "name": "Jellyfin/Emby: could not read the item before the first report",
+      "backend": "mediaServer",
+      "counted": false,
+      "prior": null,
+      "steps": ["userData position=0"]
+    },
+    {
+      "name": "Jellyfin/Emby: watched through the gate",
+      "backend": "mediaServer",
+      "counted": true,
+      "prior": { "resumePosition": 0, "playCount": 1, "played": true, "lastPlayedDate": "2026-10-11T18:03:04.0000000Z", "showKey": null, "showInContinueWatching": false },
+      "steps": ["userData position=0 playCount=2 played=true"]
+    },
+    {
+      "name": "Jellyfin/Emby: counted watch, item unreadable before",
+      "backend": "mediaServer",
+      "counted": true,
+      "prior": null,
+      "steps": ["userData position=0"]
+    }
+  ]
+}

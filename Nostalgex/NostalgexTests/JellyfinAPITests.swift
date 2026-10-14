@@ -103,6 +103,79 @@ final class JellyfinAPITests: XCTestCase {
         XCTAssertTrue(s.contains("api_key=TKN"))
     }
 
+    /// An MP4 saved as `.mkv` probes as `mov`, passes the direct-play gate, and was served by
+    /// `/stream` as `video/x-matroska`, which AVPlayer refuses (-11828). Asking for
+    /// `stream.mp4` gets the same bytes labelled `video/mp4`. Every direct-play builder,
+    /// Jellyfin, Emby and the PlaybackInfo branch, has to ask the same way.
+    func testDirectPlayAsksForTheFileAsMp4OnEveryBuilder() throws {
+        let item = try decodeItem("""
+        { "Id": "m1", "Name": "A", "RunTimeTicks": 6000000000,
+          "MediaSources": [ { "Id": "src1", "Container": "mov",
+            "Path": "/media/Chappelle's Show - S01E02.mkv",
+            "MediaStreams": [ { "Type": "Video", "Codec": "h264" }, { "Type": "Audio", "Codec": "aac" } ] } ] }
+        """)
+        let jf = makeService()
+        let emby = EmbyAPIService(serverURL: "http://jf.local:8096", accessToken: "TKN", userId: "u1")
+        let mapped = try XCTUnwrap(jf.parseMovieItem(item, isMusicSection: false))
+        let info = try JSONDecoder().decode(JellyfinPlaybackResolver.PlaybackInfoResponse.self, from: Data("""
+        { "MediaSources": [ { "Id": "src1", "SupportsDirectPlay": true } ], "PlaySessionId": "p" }
+        """.utf8))
+        let resolved = try XCTUnwrap(JellyfinPlaybackResolver.resolve(
+            info, serverURL: "http://jf.local:8096", apiKey: "TKN", itemId: "m1", mediaSourceId: "src1"))
+        XCTAssertTrue(resolved.isDirectPlay)
+
+        for url in [try XCTUnwrap(jf.buildDirectPlayURL(for: mapped)),
+                    try XCTUnwrap(emby.buildDirectPlayURL(for: mapped)),
+                    resolved.url] {
+            let c = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+            XCTAssertEqual(c.path, "/Videos/m1/stream.mp4", url.absoluteString)
+            let q = Dictionary(uniqueKeysWithValues: (c.queryItems ?? []).map { ($0.name, $0.value) })
+            XCTAssertEqual(q["Static"], "true", "the file itself, never a remux")
+            XCTAssertEqual(q["MediaSourceId"], "src1")
+            XCTAssertEqual(q["api_key"], "TKN")
+        }
+    }
+
+    /// Jellyfin 12.2 with legacy authorization off (the fresh-install default) answers 401 to
+    /// `api_key`, so the hand-built HLS URLs must also carry `ApiKey`. Emby keeps `api_key`.
+    func testHandBuiltJellyfinStreamsCarryApiKey() throws {
+        let item = try decodeItem("""
+        { "Id": "m1", "Name": "A", "RunTimeTicks": 6000000000,
+          "MediaSources": [ { "Id": "src1", "Container": "mkv",
+            "MediaStreams": [ { "Type": "Video", "Codec": "h264" }, { "Type": "Audio", "Codec": "aac" } ] } ] }
+        """)
+        let jf = makeService()
+        let mapped = try XCTUnwrap(jf.parseMovieItem(item, isMusicSection: false))
+        for url in [try XCTUnwrap(jf.buildTranscodeURL(for: mapped)),
+                    try XCTUnwrap(jf.cappedTranscodeURL(for: mapped, offsetSeconds: 0, sessionID: "s"))] {
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            XCTAssertEqual(items.filter { $0.name == "ApiKey" }.map(\.value), ["TKN"], url.absoluteString)
+            XCTAssertEqual(items.filter { $0.name == "api_key" }.map(\.value), ["TKN"], "older servers")
+        }
+        let once = JellyfinAPIService.addingApiKey(URL(string: "http://h/x?ApiKey=A&api_key=A")!, token: "A")
+        XCTAssertEqual(once.absoluteString.components(separatedBy: "ApiKey=").count - 1, 1, "never added twice")
+    }
+
+    func testDirectPlayLeavesBlackPictureFilesToTheServer() throws {
+        func mapped(_ streams: String) throws -> PlexMediaItem {
+            let item = try decodeItem("""
+            { "Id": "m3", "Name": "C", "RunTimeTicks": 6000000000,
+              "MediaSources": [ { "Id": "s", "Container": "mp4", "MediaStreams": [ \(streams), { "Type": "Audio", "Codec": "aac" } ] } ] }
+            """)
+            return try XCTUnwrap(makeService().parseMovieItem(item, isMusicSection: false))
+        }
+        let tenBitH264 = try mapped(#"{ "Type": "Video", "Codec": "h264", "BitDepth": 10 }"#)
+        XCTAssertEqual(tenBitH264.videoBitDepth, 10, "bit depth is read from the video stream")
+        let hevcMp4 = try mapped(#"{ "Type": "Video", "Codec": "hevc", "BitDepth": 10 }"#)
+        let eightBitH264 = try mapped(#"{ "Type": "Video", "Codec": "h264", "BitDepth": 8 }"#)
+        let emby = EmbyAPIService(serverURL: "http://emby.local:8096", accessToken: "TKN", userId: "u")
+        for backend in [makeService() as any MediaBackend, emby] {
+            XCTAssertNil(backend.buildDirectPlayURL(for: tenBitH264), "10-bit H.264 plays as sound over black")
+            XCTAssertNil(backend.buildDirectPlayURL(for: hevcMp4), "only the server knows whether it is tagged hvc1")
+            XCTAssertNotNil(backend.buildDirectPlayURL(for: eightBitH264))
+        }
+    }
+
     func testDirectPlayRejectedForMkvContainer() throws {
         let item = try decodeItem("""
         { "Id": "m2", "Name": "B", "RunTimeTicks": 6000000000,

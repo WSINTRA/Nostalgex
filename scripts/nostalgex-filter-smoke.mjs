@@ -4,7 +4,8 @@
  *
  * Guards the rule-parity contract with Nostalgex tvOS
  * (Nostalgex/Nostalgex/App/AppState+Channels.swift → `filterItems`). Synthetic
- * items only — no Plex server, no network. Run: `npm run test:filter`.
+ * items, plus one check against the shipped channels.json + manifest. No Plex
+ * server, no network. Run: `npm run test:filter`.
  */
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -140,6 +141,23 @@ check("manifest claim: allowed item still passes on the same channel",
   passes(item({ tmdbID: 813, title: "Blade Runner", genres: ["Science Fiction"] }), sciCh, { manifest: sciManifest }), true);
 check("manifest claim: exclude is case-insensitive",
   passes(item({ tmdbID: 812, title: "Aladdin", genres: ["ANIMATION"] }), sciCh, { manifest: sciManifest }), false);
+
+// Shipped data, not synthetic: MARVEL's tmdbCollections once listed 295 (the
+// Pirates of the Caribbean Collection), so all five Pirates films played on
+// MARVEL via a manifest claim. Read the real files so a regenerated manifest
+// cannot bring them back unnoticed.
+{
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const root = path.join(path.dirname(require("node:url").fileURLToPath(import.meta.url)), "..");
+  const realManifest = JSON.parse(fs.readFileSync(path.join(root, "channels-memberships.json"), "utf8"));
+  const marvel = JSON.parse(fs.readFileSync(path.join(root, "channels.json"), "utf8")).channels.find((c) => c.id === 101);
+  const disney = { genres: ["Adventure", "Fantasy", "Action"], studio: "Walt Disney Pictures" };
+  for (const id of [22, 58, 285, 1865, 166426]) {
+    check(`shipped manifest: Pirates movie:${id} not on MARVEL`, passes(item({ tmdbID: id, ...disney }), marvel, { manifest: realManifest }), false);
+  }
+  check("shipped manifest: Iron Man still on MARVEL", passes(item({ tmdbID: 1726, title: "Iron Man", genres: ["Action", "Science Fiction"], studio: "Paramount" }), marvel, { manifest: realManifest }), true);
+}
 
 const exclusiveRules = [{ channelIDs: [130], genres: ["Holiday"], titleContains: ["Christmas"], editorialTitles: ["Elf"] }];
 check("exclusiveRules: holiday title blocked from other channels", passes(item({ title: "A Christmas Story" }), plainCh, { exclusiveRules }), false);

@@ -21,15 +21,6 @@
       "name": "Rashomon",
       "mediaType": "movie"
     },
-    "movie:11645": {
-      "channels": [
-        42,
-        61
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Ran",
-      "mediaType": "movie"
-    },
     "movie:11878": {
       "channels": [
         212,
@@ -53,14 +44,6 @@
       ],
       "source": "corrected:hand-curated:criterion",
       "name": "Two Lovers",
-      "mediaType": "movie"
-    },
-    "movie:843": {
-      "channels": [
-        61
-      ],
-      "source": "similar:5 exemplars",
-      "name": "In the Mood for Love",
       "mediaType": "movie"
     },
     "movie:9642": {
@@ -1017,8 +1000,7 @@
     },
     "tv:3482": {
       "channels": [
-        30,
-        44
+        30
       ],
       "source": "similar:3 exemplars",
       "name": "Beautiful People",
@@ -1043,8 +1025,7 @@
     },
     "tv:233349": {
       "channels": [
-        30,
-        44
+        30
       ],
       "source": "similar:3 exemplars",
       "name": "Cinderella at 2AM",
@@ -1052,8 +1033,7 @@
     },
     "tv:56484": {
       "channels": [
-        30,
-        44
+        30
       ],
       "source": "similar:3 exemplars",
       "name": "Death Comes to Pemberley",
@@ -1079,7 +1059,6 @@
     "tv:108181": {
       "channels": [
         30,
-        40,
         44
       ],
       "source": "recommendation:3 exemplars",
@@ -1096,8 +1075,7 @@
     },
     "tv:219": {
       "channels": [
-        30,
-        44
+        30
       ],
       "source": "similar:3 exemplars",
       "name": "Kyle XY",
@@ -1360,19 +1338,10 @@
     },
     "tv:119881": {
       "channels": [
-        30,
-        44
+        30
       ],
       "source": "similar:2 exemplars",
       "name": "Gloria",
-      "mediaType": "tv"
-    },
-    "tv:157004": {
-      "channels": [
-        30
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Goosebumps",
       "mediaType": "tv"
     },
     "tv:94617": {
@@ -1542,7 +1511,6 @@
     "tv:61459": {
       "channels": [
         30,
-        44,
         60
       ],
       "source": "similar:2 exemplars",
@@ -1575,8 +1543,7 @@
     },
     "tv:297224": {
       "channels": [
-        30,
-        44
+        30
       ],
       "source": "similar:2 exemplars",
       "name": "Reach for the Stars",
@@ -1656,8 +1623,7 @@
     },
     "tv:89659": {
       "channels": [
-        30,
-        44
+        30
       ],
       "source": "similar:2 exemplars",
       "name": "The House on the Slope",
@@ -1666,7 +1632,6 @@
     "tv:119988": {
       "channels": [
         30,
-        40,
         44
       ],
       "source": "similar:2 exemplars",
@@ -1675,8 +1640,7 @@
     },
     "tv:89672": {
       "channels": [
-        30,
-        44
+        30
       ],
       "source": "similar:2 exemplars",
       "name": "Theory of Love",
@@ -1726,19 +1690,10 @@
     },
     "tv:261833": {
       "channels": [
-        30,
-        44
+        30
       ],
       "source": "similar:2 exemplars",
       "name": "Xiangbei Regret",
-      "mediaType": "tv"
-    },
-    "tv:33217": {
-      "channels": [
-        30
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Young Justice",
       "mediaType": "tv"
     },
     "tv:295798": {
@@ -2313,14 +2268,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Instant Mom",
-      "mediaType": "tv"
-    },
-    "tv:89753": {
-      "channels": [
-        33
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Let me go my Baby",
       "mediaType": "tv"
     },
     "tv:67156": {
@@ -3376,14 +3323,6 @@
       "name": "Eastbound & Down",
       "mediaType": "tv"
     },
-    "tv:259453": {
-      "channels": [
-        59
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Suits LA",
-      "mediaType": "tv"
-    },
     "tv:456": {
       "channels": [
         63
@@ -3695,8 +3634,7 @@
     "movie:27397": {
       "channels": [
         9,
-        52,
-        61
+        52
       ],
       "source": "recommendation:5 exemplars",
       "name": "Crossing Delancey",
@@ -3705,10 +3643,9 @@
     "movie:812": {
       "channels": [
         9,
+        11,
         52,
-        73,
-        61,
-        11
+        61
       ],
       "source": "similar:3 exemplars",
       "name": "Aladdin",
@@ -3717,8 +3654,7 @@
     "movie:918": {
       "channels": [
         9,
-        52,
-        61
+        52
       ],
       "source": "both:3 exemplars",
       "name": "Blind Date",
@@ -3736,8 +3672,7 @@
     "movie:9024": {
       "channels": [
         9,
-        52,
-        61
+        52
       ],
       "source": "similar:3 exemplars",
       "name": "For Love or Money",
@@ -3756,10 +3691,7 @@
     },
     "movie:802": {
       "channels": [
-        9,
-        41,
-        42,
-        61
+        9
       ],
       "source": "similar:3 exemplars",
       "name": "Lolita",
@@ -3769,7 +3701,6 @@
       "channels": [
         9,
         68,
-        61,
         64,
         201
       ],
@@ -3780,8 +3711,7 @@
     "movie:11584": {
       "channels": [
         9,
-        52,
-        61
+        52
       ],
       "source": "similar:3 exemplars",
       "name": "Roxanne",
@@ -3792,8 +3722,6 @@
         9,
         41,
         42,
-        43,
-        61,
         13
       ],
       "source": "similar:3 exemplars",
@@ -3803,7 +3731,6 @@
     "movie:688": {
       "channels": [
         9,
-        61,
         64
       ],
       "source": "similar:3 exemplars",
@@ -3823,8 +3750,7 @@
       "channels": [
         9,
         52,
-        10,
-        61
+        10
       ],
       "source": "similar:2 exemplars",
       "name": "Airplane!",
@@ -3832,8 +3758,7 @@
     },
     "movie:838": {
       "channels": [
-        9,
-        61
+        9
       ],
       "source": "similar:2 exemplars",
       "name": "American Graffiti",
@@ -3841,9 +3766,7 @@
     },
     "movie:815": {
       "channels": [
-        9,
-        41,
-        43
+        9
       ],
       "source": "similar:2 exemplars",
       "name": "Animal Farm",
@@ -3861,9 +3784,7 @@
     "movie:11005": {
       "channels": [
         9,
-        68,
-        41,
-        61
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Awakenings",
@@ -3880,8 +3801,7 @@
     "movie:12919": {
       "channels": [
         9,
-        10,
-        61
+        10
       ],
       "source": "recommendation:2 exemplars",
       "name": "Can't Buy Me Love",
@@ -3899,8 +3819,7 @@
     "movie:8839": {
       "channels": [
         9,
-        131,
-        11
+        131
       ],
       "source": "similar:2 exemplars",
       "name": "Casper",
@@ -3909,8 +3828,7 @@
     "movie:789": {
       "channels": [
         9,
-        68,
-        43
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Closely Watched Trains",
@@ -3929,12 +3847,7 @@
       "channels": [
         9,
         52,
-        10,
-        41,
-        42,
-        43,
-        73,
-        61
+        10
       ],
       "source": "similar:2 exemplars",
       "name": "Cruel Intentions",
@@ -3942,8 +3855,7 @@
     },
     "movie:11673": {
       "channels": [
-        9,
-        61
+        9
       ],
       "source": "similar:2 exemplars",
       "name": "Cyrano de Bergerac",
@@ -3975,8 +3887,6 @@
     "movie:9062": {
       "channels": [
         9,
-        74,
-        61,
         64
       ],
       "source": "both:2 exemplars",
@@ -3996,9 +3906,7 @@
       "channels": [
         9,
         52,
-        68,
-        41,
-        61
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Picnic at Hanging Rock",
@@ -4015,8 +3923,7 @@
     },
     "movie:695": {
       "channels": [
-        9,
-        61
+        9
       ],
       "source": "similar:2 exemplars",
       "name": "Short Cuts",
@@ -4070,8 +3977,7 @@
     "movie:8970": {
       "channels": [
         9,
-        52,
-        61
+        52
       ],
       "source": "similar:2 exemplars",
       "name": "The Out-of-Towners",
@@ -4234,7 +4140,6 @@
     "movie:1321439": {
       "channels": [
         52,
-        61,
         64
       ],
       "source": "recommendation:10 exemplars",
@@ -4252,8 +4157,7 @@
     },
     "movie:818": {
       "channels": [
-        52,
-        73
+        52
       ],
       "source": "similar:5 exemplars",
       "name": "Austin Powers in Goldmember",
@@ -4269,9 +4173,7 @@
     },
     "movie:8976": {
       "channels": [
-        52,
-        41,
-        61
+        52
       ],
       "source": "both:4 exemplars",
       "name": "A Lot Like Love",
@@ -4321,10 +4223,7 @@
       "channels": [
         52,
         68,
-        42,
-        43,
-        73,
-        61
+        73
       ],
       "source": "similar:3 exemplars",
       "name": "2046",
@@ -4366,8 +4265,7 @@
     },
     "movie:814": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "similar:3 exemplars",
       "name": "An American Werewolf in London",
@@ -4383,8 +4281,7 @@
     },
     "movie:816": {
       "channels": [
-        52,
-        73
+        52
       ],
       "source": "similar:3 exemplars",
       "name": "Austin Powers: International Man of Mystery",
@@ -4392,8 +4289,7 @@
     },
     "movie:817": {
       "channels": [
-        52,
-        73
+        52
       ],
       "source": "similar:3 exemplars",
       "name": "Austin Powers: The Spy Who Shagged Me",
@@ -4417,8 +4313,7 @@
     },
     "movie:920": {
       "channels": [
-        52,
-        75
+        52
       ],
       "source": "similar:3 exemplars",
       "name": "Cars",
@@ -4451,8 +4346,7 @@
     },
     "movie:980996": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "similar:3 exemplars",
       "name": "I Like Movies",
@@ -4477,8 +4371,7 @@
     "movie:909": {
       "channels": [
         52,
-        61,
-        11
+        61
       ],
       "source": "similar:3 exemplars",
       "name": "Meet Me in St. Louis",
@@ -4527,8 +4420,7 @@
     },
     "movie:810": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "similar:3 exemplars",
       "name": "Shrek the Third",
@@ -4628,8 +4520,7 @@
     },
     "movie:11674": {
       "channels": [
-        52,
-        11
+        52
       ],
       "source": "similar:2 exemplars",
       "name": "101 Dalmatians",
@@ -4671,8 +4562,7 @@
     },
     "movie:8849": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "similar:2 exemplars",
       "name": "Alfie",
@@ -4755,8 +4645,7 @@
     },
     "movie:8906": {
       "channels": [
-        52,
-        74
+        52
       ],
       "source": "similar:2 exemplars",
       "name": "Cloud 9",
@@ -4764,8 +4653,7 @@
     },
     "movie:883": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "similar:2 exemplars",
       "name": "Coffee and Cigarettes",
@@ -4774,8 +4662,7 @@
     "movie:859": {
       "channels": [
         52,
-        10,
-        43
+        10
       ],
       "source": "similar:2 exemplars",
       "name": "Dangerous Liaisons",
@@ -4791,8 +4678,7 @@
     },
     "movie:262506": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "similar:2 exemplars",
       "name": "Fast and Loose",
@@ -4817,7 +4703,6 @@
     "movie:926": {
       "channels": [
         52,
-        43,
         73
       ],
       "source": "similar:2 exemplars",
@@ -4826,8 +4711,7 @@
     },
     "movie:801": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "similar:2 exemplars",
       "name": "Good Morning, Vietnam",
@@ -4869,8 +4753,7 @@
     "movie:11661": {
       "channels": [
         52,
-        130,
-        61
+        130
       ],
       "source": "similar:2 exemplars",
       "name": "Joyeux Noel",
@@ -4943,8 +4826,7 @@
     },
     "movie:11260": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "similar:2 exemplars",
       "name": "Meet Dave",
@@ -5037,8 +4919,7 @@
     "movie:808": {
       "channels": [
         52,
-        74,
-        61
+        74
       ],
       "source": "similar:2 exemplars",
       "name": "Shrek",
@@ -5197,7 +5078,6 @@
       "channels": [
         52,
         68,
-        42,
         74
       ],
       "source": "similar:2 exemplars",
@@ -5222,8 +5102,7 @@
     },
     "movie:442674": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "similar:2 exemplars",
       "name": "Weird Is Who's Not Weird",
@@ -5411,7 +5290,6 @@
       "channels": [
         52,
         68,
-        42,
         74
       ],
       "source": "collection-via:Twilight (The Twilight Collection)",
@@ -5422,7 +5300,6 @@
       "channels": [
         52,
         68,
-        42,
         74
       ],
       "source": "collection-via:Twilight (The Twilight Collection)",
@@ -5433,7 +5310,6 @@
       "channels": [
         52,
         68,
-        42,
         74
       ],
       "source": "collection-via:Twilight (The Twilight Collection)",
@@ -5444,7 +5320,6 @@
       "channels": [
         52,
         68,
-        42,
         74
       ],
       "source": "collection-via:Twilight (The Twilight Collection)",
@@ -5471,8 +5346,7 @@
     "movie:10192": {
       "channels": [
         52,
-        74,
-        61
+        74
       ],
       "source": "collection-via:Shrek (Shrek Collection)",
       "name": "Shrek Forever After",
@@ -5481,8 +5355,7 @@
     "movie:421892": {
       "channels": [
         52,
-        74,
-        61
+        74
       ],
       "source": "collection-via:Shrek (Shrek Collection)",
       "name": "Shrek 5",
@@ -5490,8 +5363,7 @@
     },
     "movie:9406": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "collection-via:An American Werewolf in London (An American Werewolf Collection)",
       "name": "An American Werewolf in Paris",
@@ -5517,10 +5389,9 @@
     },
     "movie:15969": {
       "channels": [
+        11,
         52,
-        73,
-        61,
-        11
+        61
       ],
       "source": "collection-via:Aladdin (Aladdin Collection)",
       "name": "The Return of Jafar",
@@ -5529,7 +5400,6 @@
     "movie:11238": {
       "channels": [
         52,
-        73,
         61
       ],
       "source": "collection-via:Aladdin (Aladdin Collection)",
@@ -5579,12 +5449,7 @@
     },
     "movie:5458": {
       "channels": [
-        52,
-        41,
-        42,
-        43,
-        73,
-        61
+        52
       ],
       "source": "collection-via:Cruel Intentions (Cruel Intentions Collection)",
       "name": "Cruel Intentions 2",
@@ -5592,12 +5457,7 @@
     },
     "movie:5460": {
       "channels": [
-        52,
-        41,
-        42,
-        43,
-        73,
-        61
+        52
       ],
       "source": "collection-via:Cruel Intentions (Cruel Intentions Collection)",
       "name": "Cruel Intentions 3",
@@ -5645,8 +5505,7 @@
     },
     "movie:49013": {
       "channels": [
-        52,
-        75
+        52
       ],
       "source": "collection-via:Cars (Cars Collection)",
       "name": "Cars 2",
@@ -5654,8 +5513,7 @@
     },
     "movie:260514": {
       "channels": [
-        52,
-        75
+        52
       ],
       "source": "collection-via:Cars (Cars Collection)",
       "name": "Cars 3",
@@ -5663,8 +5521,7 @@
     },
     "movie:2665": {
       "channels": [
-        52,
-        61
+        52
       ],
       "source": "collection-via:Airplane! (Airplane Collection)",
       "name": "Airplane II: The Sequel",
@@ -6911,8 +6768,7 @@
         68,
         41,
         42,
-        43,
-        61
+        43
       ],
       "source": "similar:5 exemplars",
       "name": "Narc",
@@ -6939,7 +6795,6 @@
     "movie:614911": {
       "channels": [
         68,
-        42,
         73
       ],
       "source": "similar:4 exemplars",
@@ -6967,8 +6822,7 @@
     "movie:11257": {
       "channels": [
         68,
-        10,
-        41
+        10
       ],
       "source": "similar:3 exemplars",
       "name": "A Room with a View",
@@ -6988,8 +6842,6 @@
       "channels": [
         68,
         41,
-        42,
-        75,
         13,
         14
       ],
@@ -7011,9 +6863,7 @@
     "movie:524": {
       "channels": [
         68,
-        41,
-        42,
-        43
+        41
       ],
       "source": "recommendation:3 exemplars",
       "name": "Casino",
@@ -7021,9 +6871,7 @@
     },
     "movie:11156": {
       "channels": [
-        68,
-        41,
-        61
+        68
       ],
       "source": "similar:3 exemplars",
       "name": "Coco Before Chanel",
@@ -7032,8 +6880,7 @@
     "movie:8984": {
       "channels": [
         68,
-        42,
-        43
+        42
       ],
       "source": "similar:3 exemplars",
       "name": "Disclosure",
@@ -7049,8 +6896,7 @@
     },
     "movie:11660": {
       "channels": [
-        68,
-        43
+        68
       ],
       "source": "similar:3 exemplars",
       "name": "Following",
@@ -7059,7 +6905,6 @@
     "movie:783": {
       "channels": [
         68,
-        61,
         201
       ],
       "source": "similar:3 exemplars",
@@ -7070,8 +6915,7 @@
       "channels": [
         68,
         41,
-        42,
-        43
+        42
       ],
       "source": "recommendation:3 exemplars",
       "name": "Hannibal",
@@ -7079,9 +6923,7 @@
     },
     "movie:438553": {
       "channels": [
-        68,
-        42,
-        74
+        68
       ],
       "source": "similar:3 exemplars",
       "name": "Haruta & Chika",
@@ -7100,9 +6942,7 @@
       "channels": [
         68,
         41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "similar:3 exemplars",
       "name": "New Police Story",
@@ -7110,8 +6950,7 @@
     },
     "movie:265510": {
       "channels": [
-        68,
-        41
+        68
       ],
       "source": "similar:3 exemplars",
       "name": "Riding the Metro",
@@ -7119,8 +6958,7 @@
     },
     "movie:797042": {
       "channels": [
-        68,
-        42
+        68
       ],
       "source": "similar:3 exemplars",
       "name": "Scent of Love",
@@ -7139,9 +6977,7 @@
     },
     "movie:11590": {
       "channels": [
-        68,
-        41,
-        75
+        68
       ],
       "source": "similar:3 exemplars",
       "name": "Slap Shot",
@@ -7160,8 +6996,6 @@
     "movie:826": {
       "channels": [
         68,
-        42,
-        43,
         76
       ],
       "source": "similar:3 exemplars",
@@ -7197,8 +7031,7 @@
     },
     "movie:11588": {
       "channels": [
-        68,
-        41
+        68
       ],
       "source": "similar:3 exemplars",
       "name": "The I Inside",
@@ -7216,8 +7049,7 @@
     "movie:8967": {
       "channels": [
         68,
-        74,
-        61
+        74
       ],
       "source": "similar:3 exemplars",
       "name": "The Tree of Life",
@@ -7225,8 +7057,7 @@
     },
     "movie:614734": {
       "channels": [
-        68,
-        42
+        68
       ],
       "source": "similar:3 exemplars",
       "name": "The Year of the Death of Ricardo Reis",
@@ -7235,8 +7066,7 @@
     "movie:1429": {
       "channels": [
         68,
-        41,
-        42
+        41
       ],
       "source": "recommendation:2 exemplars",
       "name": "25th Hour",
@@ -7246,8 +7076,7 @@
       "channels": [
         68,
         41,
-        42,
-        43
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "48 Hours to Acapulco",
@@ -7274,8 +7103,7 @@
       "channels": [
         68,
         41,
-        42,
-        73
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "Assault on Precinct 13",
@@ -7327,8 +7155,7 @@
     },
     "movie:613": {
       "channels": [
-        68,
-        61
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Downfall",
@@ -7337,8 +7164,7 @@
     "movie:438674": {
       "channels": [
         68,
-        42,
-        43
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "Dragged Across Concrete",
@@ -7371,8 +7197,7 @@
     },
     "movie:11665": {
       "channels": [
-        68,
-        43
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Get Smart",
@@ -7380,9 +7205,7 @@
     },
     "movie:1533047": {
       "channels": [
-        68,
-        41,
-        61
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Heels",
@@ -7427,8 +7250,7 @@
       "channels": [
         68,
         42,
-        43,
-        73
+        43
       ],
       "source": "similar:2 exemplars",
       "name": "Just Cause",
@@ -7444,8 +7266,7 @@
     },
     "movie:12102": {
       "channels": [
-        68,
-        41
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Kramer vs. Kramer",
@@ -7489,7 +7310,6 @@
       "channels": [
         68,
         42,
-        43,
         13
       ],
       "source": "similar:2 exemplars",
@@ -7498,8 +7318,7 @@
     },
     "movie:980816": {
       "channels": [
-        68,
-        61
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Miranda's Victim",
@@ -7534,9 +7353,6 @@
     "movie:792": {
       "channels": [
         68,
-        42,
-        73,
-        75,
         13,
         76
       ],
@@ -7556,8 +7372,7 @@
     },
     "movie:804": {
       "channels": [
-        68,
-        61
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Roman Holiday",
@@ -7607,8 +7422,7 @@
     },
     "movie:1172649": {
       "channels": [
-        68,
-        41
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Soultribe: A Dance of Life",
@@ -7634,9 +7448,7 @@
     "movie:845": {
       "channels": [
         68,
-        42,
-        43,
-        73
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "Strangers on a Train",
@@ -7645,8 +7457,7 @@
     "movie:11045": {
       "channels": [
         68,
-        41,
-        43
+        41
       ],
       "source": "similar:2 exemplars",
       "name": "Taxi",
@@ -7654,8 +7465,7 @@
     },
     "movie:797186": {
       "channels": [
-        68,
-        42
+        68
       ],
       "source": "similar:2 exemplars",
       "name": "Thankam",
@@ -7707,8 +7517,7 @@
     },
     "movie:497": {
       "channels": [
-        68,
-        42
+        68
       ],
       "source": "recommendation:2 exemplars",
       "name": "The Green Mile",
@@ -7754,8 +7563,7 @@
     "movie:8850": {
       "channels": [
         68,
-        41,
-        42
+        41
       ],
       "source": "similar:2 exemplars",
       "name": "The Shadow",
@@ -7789,7 +7597,6 @@
     "movie:847": {
       "channels": [
         68,
-        73,
         74
       ],
       "source": "similar:2 exemplars",
@@ -7830,8 +7637,7 @@
       "channels": [
         68,
         41,
-        42,
-        43
+        42
       ],
       "source": "collection-via:The Silence of the Lambs (The Hannibal Lecter Collection)",
       "name": "Red Dragon",
@@ -7840,9 +7646,7 @@
     "movie:486131": {
       "channels": [
         68,
-        41,
-        42,
-        74
+        41
       ],
       "source": "collection-via:Shaft (Shaft (Reboot) Collection)",
       "name": "Shaft",
@@ -7852,9 +7656,7 @@
       "channels": [
         68,
         41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:New Police Story (Police Story Collection)",
       "name": "Police Story 2",
@@ -7863,10 +7665,7 @@
     "movie:219572": {
       "channels": [
         68,
-        41,
-        42,
-        43,
-        73
+        41
       ],
       "source": "collection-via:New Police Story (Police Story Collection)",
       "name": "Police Story: Lockdown",
@@ -7876,9 +7675,7 @@
       "channels": [
         68,
         41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:New Police Story (Police Story Collection)",
       "name": "Police Story 4: First Strike",
@@ -7888,9 +7685,7 @@
       "channels": [
         68,
         41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:New Police Story (Police Story Collection)",
       "name": "Police Story 3: Super Cop",
@@ -7927,8 +7722,6 @@
       "channels": [
         68,
         41,
-        42,
-        75,
         13,
         14
       ],
@@ -7938,9 +7731,7 @@
     },
     "movie:23964": {
       "channels": [
-        68,
-        41,
-        75
+        68
       ],
       "source": "collection-via:Slap Shot (Slap Shot Collection)",
       "name": "Slap Shot 2: Breaking the Ice",
@@ -7948,9 +7739,7 @@
     },
     "movie:14053": {
       "channels": [
-        68,
-        41,
-        75
+        68
       ],
       "source": "collection-via:Slap Shot (Slap Shot Collection)",
       "name": "Slap Shot 3: The Junior League",
@@ -8034,9 +7823,7 @@
     },
     "movie:105073": {
       "channels": [
-        68,
-        41,
-        42
+        68
       ],
       "source": "collection-via:The Shadow (The Shadow Collection)",
       "name": "The Shadow Strikes",
@@ -8045,8 +7832,7 @@
     "movie:199603": {
       "channels": [
         68,
-        41,
-        42
+        41
       ],
       "source": "collection-via:The Shadow (The Shadow Collection)",
       "name": "International Crime",
@@ -8054,9 +7840,7 @@
     },
     "movie:162015": {
       "channels": [
-        68,
-        41,
-        42
+        68
       ],
       "source": "collection-via:The Shadow (The Shadow Collection)",
       "name": "The Shadow Returns",
@@ -8064,9 +7848,7 @@
     },
     "movie:162004": {
       "channels": [
-        68,
-        41,
-        42
+        68
       ],
       "source": "collection-via:The Shadow (The Shadow Collection)",
       "name": "Behind the Mask",
@@ -8075,8 +7857,7 @@
     "movie:162009": {
       "channels": [
         68,
-        41,
-        42
+        41
       ],
       "source": "collection-via:The Shadow (The Shadow Collection)",
       "name": "The Missing Lady",
@@ -8085,7 +7866,6 @@
     "movie:74315": {
       "channels": [
         68,
-        41,
         42
       ],
       "source": "collection-via:The Shadow (The Shadow Collection)",
@@ -8095,8 +7875,7 @@
     "movie:161987": {
       "channels": [
         68,
-        41,
-        42
+        41
       ],
       "source": "collection-via:The Shadow (The Shadow Collection)",
       "name": "The Shadow",
@@ -9440,9 +9219,7 @@
     },
     "movie:442249": {
       "channels": [
-        132,
-        41,
-        43
+        132
       ],
       "source": "both:8 exemplars",
       "name": "The First Purge",
@@ -9663,7 +9440,6 @@
       "channels": [
         132,
         42,
-        43,
         13
       ],
       "source": "recommendation:2 exemplars",
@@ -9818,7 +9594,6 @@
     "movie:10014": {
       "channels": [
         132,
-        42,
         214
       ],
       "source": "collection-via:A Nightmare on Elm Street (A Nightmare on Elm Street Collection)",
@@ -9983,7 +9758,6 @@
       "channels": [
         132,
         42,
-        43,
         73
       ],
       "source": "collection-via:Hellraiser (Hellraiser Collection)",
@@ -9994,8 +9768,6 @@
       "channels": [
         132,
         42,
-        43,
-        73,
         72
       ],
       "source": "collection-via:Hellraiser (Hellraiser Collection)",
@@ -10005,9 +9777,7 @@
     "movie:11569": {
       "channels": [
         132,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:Hellraiser (Hellraiser Collection)",
       "name": "Hellraiser III: Hell on Earth",
@@ -10016,9 +9786,7 @@
     "movie:12597": {
       "channels": [
         132,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:Hellraiser (Hellraiser Collection)",
       "name": "Hellraiser: Inferno",
@@ -10027,9 +9795,7 @@
     "movie:12699": {
       "channels": [
         132,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:Hellraiser (Hellraiser Collection)",
       "name": "Hellraiser: Hellworld",
@@ -10038,9 +9804,7 @@
     "movie:17455": {
       "channels": [
         132,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:Hellraiser (Hellraiser Collection)",
       "name": "Hellraiser: Deader",
@@ -10049,9 +9813,7 @@
     "movie:70584": {
       "channels": [
         132,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:Hellraiser (Hellraiser Collection)",
       "name": "Hellraiser: Revelations",
@@ -10060,9 +9822,7 @@
     "movie:444149": {
       "channels": [
         132,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:Hellraiser (Hellraiser Collection)",
       "name": "Hellraiser: Judgment",
@@ -10126,9 +9886,7 @@
     },
     "movie:238636": {
       "channels": [
-        132,
-        41,
-        43
+        132
       ],
       "source": "collection-via:The Purge (The Purge Collection)",
       "name": "The Purge: Anarchy",
@@ -10263,14 +10021,6 @@
       "name": "Insidious: Out of the Further",
       "mediaType": "movie"
     },
-    "movie:1134306": {
-      "channels": [
-        132
-      ],
-      "source": "collection-via:Insidious: Chapter 2 (Insidious Collection)",
-      "name": "Thread: An Insidious Tale",
-      "mediaType": "movie"
-    },
     "movie:10906": {
       "channels": [
         132
@@ -10375,46 +10125,41 @@
     },
     "movie:22": {
       "channels": [
-        101,
         74
       ],
-      "source": "collection:Pirates of the Caribbean Collection",
+      "source": "collection-via:Pirates of the Caribbean: Dead Man's Chest (Pirates of the Caribbean Collection)",
       "name": "Pirates of the Caribbean: The Curse of the Black Pearl",
       "mediaType": "movie"
     },
     "movie:58": {
       "channels": [
-        101,
         74
       ],
-      "source": "collection:Pirates of the Caribbean Collection",
+      "source": "recommendation:5 exemplars",
       "name": "Pirates of the Caribbean: Dead Man's Chest",
       "mediaType": "movie"
     },
     "movie:285": {
       "channels": [
-        101,
         74
       ],
-      "source": "collection:Pirates of the Caribbean Collection",
+      "source": "similar:2 exemplars",
       "name": "Pirates of the Caribbean: At World's End",
       "mediaType": "movie"
     },
     "movie:1865": {
       "channels": [
-        101,
         74
       ],
-      "source": "collection:Pirates of the Caribbean Collection",
+      "source": "collection-via:Pirates of the Caribbean: Dead Man's Chest (Pirates of the Caribbean Collection)",
       "name": "Pirates of the Caribbean: On Stranger Tides",
       "mediaType": "movie"
     },
     "movie:166426": {
       "channels": [
-        101,
         74
       ],
-      "source": "collection:Pirates of the Caribbean Collection",
+      "source": "collection-via:Pirates of the Caribbean: Dead Man's Chest (Pirates of the Caribbean Collection)",
       "name": "Pirates of the Caribbean: Dead Men Tell No Tales",
       "mediaType": "movie"
     },
@@ -10460,8 +10205,7 @@
     },
     "movie:671": {
       "channels": [
-        102,
-        73
+        102
       ],
       "source": "collection:Harry Potter Collection",
       "name": "Harry Potter and the Philosopher's Stone",
@@ -10470,7 +10214,6 @@
     "movie:672": {
       "channels": [
         102,
-        73,
         74
       ],
       "source": "collection:Harry Potter Collection",
@@ -10480,7 +10223,6 @@
     "movie:674": {
       "channels": [
         102,
-        73,
         74
       ],
       "source": "collection:Harry Potter Collection",
@@ -10489,8 +10231,7 @@
     },
     "movie:767": {
       "channels": [
-        102,
-        73
+        102
       ],
       "source": "collection:Harry Potter Collection",
       "name": "Harry Potter and the Half-Blood Prince",
@@ -10499,7 +10240,6 @@
     "movie:673": {
       "channels": [
         102,
-        73,
         74
       ],
       "source": "collection:Harry Potter Collection",
@@ -10509,7 +10249,6 @@
     "movie:675": {
       "channels": [
         102,
-        73,
         74
       ],
       "source": "collection:Harry Potter Collection",
@@ -10519,7 +10258,6 @@
     "movie:12444": {
       "channels": [
         102,
-        73,
         74
       ],
       "source": "collection:Harry Potter Collection",
@@ -10529,7 +10267,6 @@
     "movie:12445": {
       "channels": [
         102,
-        73,
         74
       ],
       "source": "collection:Harry Potter Collection",
@@ -10699,8 +10436,7 @@
     },
     "movie:177677": {
       "channels": [
-        105,
-        42
+        105
       ],
       "source": "collection:Mission: Impossible Collection",
       "name": "Mission: Impossible - Rogue Nation",
@@ -10947,8 +10683,7 @@
     },
     "movie:784": {
       "channels": [
-        10,
-        61
+        10
       ],
       "source": "similar:2 exemplars",
       "name": "Kolya",
@@ -11415,17 +11150,8 @@
       "name": "Sean Combs: The Reckoning",
       "mediaType": "tv"
     },
-    "tv:297454": {
-      "channels": [
-        40
-      ],
-      "source": "similar:5 exemplars",
-      "name": "Someone Has to Know",
-      "mediaType": "tv"
-    },
     "tv:119882": {
       "channels": [
-        40,
         44
       ],
       "source": "similar:5 exemplars",
@@ -11442,19 +11168,10 @@
     },
     "tv:231811": {
       "channels": [
-        40,
         44
       ],
       "source": "similar:5 exemplars",
       "name": "The Long Shadow",
-      "mediaType": "tv"
-    },
-    "tv:270596": {
-      "channels": [
-        40
-      ],
-      "source": "similar:5 exemplars",
-      "name": "Unspeakable: The Murder of JonBenét Ramsey",
       "mediaType": "tv"
     },
     "tv:120041": {
@@ -11485,7 +11202,6 @@
     },
     "tv:61299": {
       "channels": [
-        40,
         44
       ],
       "source": "similar:4 exemplars",
@@ -11494,7 +11210,6 @@
     },
     "tv:256317": {
       "channels": [
-        40,
         44
       ],
       "source": "recommendation:4 exemplars",
@@ -11517,14 +11232,6 @@
       "name": "Does Murder Sleep",
       "mediaType": "tv"
     },
-    "tv:61380": {
-      "channels": [
-        40
-      ],
-      "source": "similar:4 exemplars",
-      "name": "Glue",
-      "mediaType": "tv"
-    },
     "tv:285084": {
       "channels": [
         40
@@ -11543,7 +11250,6 @@
     },
     "tv:3476": {
       "channels": [
-        40,
         44
       ],
       "source": "similar:4 exemplars",
@@ -11606,30 +11312,6 @@
       "name": "The Killing Season",
       "mediaType": "tv"
     },
-    "tv:96608": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:4 exemplars",
-      "name": "The Stranger",
-      "mediaType": "tv"
-    },
-    "tv:62284": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:4 exemplars",
-      "name": "Those Who Kill",
-      "mediaType": "tv"
-    },
-    "tv:113966": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:4 exemplars",
-      "name": "Whitstable Pearl",
-      "mediaType": "tv"
-    },
     "tv:233237": {
       "channels": [
         40
@@ -11646,22 +11328,6 @@
       "name": "Balkongfallet",
       "mediaType": "tv"
     },
-    "tv:296071": {
-      "channels": [
-        40
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Britain's Hotel Murders",
-      "mediaType": "tv"
-    },
-    "tv:58757": {
-      "channels": [
-        40
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Criminal Mindscape",
-      "mediaType": "tv"
-    },
     "tv:203532": {
       "channels": [
         40
@@ -11672,7 +11338,6 @@
     },
     "tv:122194": {
       "channels": [
-        40,
         44
       ],
       "source": "similar:3 exemplars",
@@ -11681,27 +11346,10 @@
     },
     "tv:61335": {
       "channels": [
-        40,
         44
       ],
       "source": "similar:3 exemplars",
       "name": "Fortitude",
-      "mediaType": "tv"
-    },
-    "tv:124800": {
-      "channels": [
-        40
-      ],
-      "source": "both:3 exemplars",
-      "name": "Love & Death",
-      "mediaType": "tv"
-    },
-    "tv:63174": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:3 exemplars",
-      "name": "Lucifer",
       "mediaType": "tv"
     },
     "tv:61500": {
@@ -11730,7 +11378,6 @@
     },
     "tv:122015": {
       "channels": [
-        40,
         44
       ],
       "source": "similar:3 exemplars",
@@ -11743,22 +11390,6 @@
       ],
       "source": "similar:3 exemplars",
       "name": "Payback",
-      "mediaType": "tv"
-    },
-    "tv:155243": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:3 exemplars",
-      "name": "Sherwood",
-      "mediaType": "tv"
-    },
-    "tv:1698": {
-      "channels": [
-        40
-      ],
-      "source": "similar:3 exemplars",
-      "name": "The Commissioner",
       "mediaType": "tv"
     },
     "tv:286840": {
@@ -11777,14 +11408,6 @@
       "name": "The Family",
       "mediaType": "tv"
     },
-    "tv:235577": {
-      "channels": [
-        40
-      ],
-      "source": "similar:3 exemplars",
-      "name": "The Judge from Hell",
-      "mediaType": "tv"
-    },
     "tv:58723": {
       "channels": [
         40
@@ -11795,7 +11418,6 @@
     },
     "tv:261834": {
       "channels": [
-        40,
         44
       ],
       "source": "similar:3 exemplars",
@@ -11812,7 +11434,6 @@
     },
     "tv:126167": {
       "channels": [
-        40,
         44
       ],
       "source": "recommendation:3 exemplars",
@@ -11833,22 +11454,6 @@
       ],
       "source": "similar:2 exemplars",
       "name": "48 Hours",
-      "mediaType": "tv"
-    },
-    "tv:61574": {
-      "channels": [
-        40
-      ],
-      "source": "similar:2 exemplars",
-      "name": "A Mother's Son",
-      "mediaType": "tv"
-    },
-    "tv:235571": {
-      "channels": [
-        40
-      ],
-      "source": "similar:2 exemplars",
-      "name": "A Nearly Normal Family",
       "mediaType": "tv"
     },
     "tv:244616": {
@@ -11923,14 +11528,6 @@
       "name": "Cold Case Files",
       "mediaType": "tv"
     },
-    "tv:235388": {
-      "channels": [
-        40
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Deaf Voice: A Sign-Language Interpreter in Court",
-      "mediaType": "tv"
-    },
     "tv:76307": {
       "channels": [
         40
@@ -11957,24 +11554,14 @@
     },
     "tv:61457": {
       "channels": [
-        40,
         44
       ],
       "source": "similar:2 exemplars",
       "name": "Grantchester",
       "mediaType": "tv"
     },
-    "tv:86588": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Hightown",
-      "mediaType": "tv"
-    },
     "tv:259731": {
       "channels": [
-        40,
         44
       ],
       "source": "recommendation:2 exemplars",
@@ -11997,44 +11584,12 @@
       "name": "Inside the World's Toughest Prisons",
       "mediaType": "tv"
     },
-    "tv:13266": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Inspector George Gently",
-      "mediaType": "tv"
-    },
-    "tv:72597": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Manhunt",
-      "mediaType": "tv"
-    },
-    "tv:270734": {
-      "channels": [
-        40
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Murdaugh: Death in the Family",
-      "mediaType": "tv"
-    },
     "tv:270750": {
       "channels": [
         40
       ],
       "source": "similar:2 exemplars",
       "name": "Murder by Medic",
-      "mediaType": "tv"
-    },
-    "tv:61219": {
-      "channels": [
-        40
-      ],
-      "source": "similar:2 exemplars",
-      "name": "My Secret Hotel",
       "mediaType": "tv"
     },
     "tv:262193": {
@@ -12061,22 +11616,6 @@
       "name": "People Magazine Investigates",
       "mediaType": "tv"
     },
-    "tv:61472": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Prey",
-      "mediaType": "tv"
-    },
-    "tv:58951": {
-      "channels": [
-        40
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Reckless",
-      "mediaType": "tv"
-    },
     "tv:111647": {
       "channels": [
         40
@@ -12101,28 +11640,12 @@
       "name": "Snapped",
       "mediaType": "tv"
     },
-    "tv:219378": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Steeltown Murders",
-      "mediaType": "tv"
-    },
     "tv:124911": {
       "channels": [
         40
       ],
       "source": "similar:2 exemplars",
       "name": "Stig Wennerström - Spion i kallt krig",
-      "mediaType": "tv"
-    },
-    "tv:100414": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Suspicion",
       "mediaType": "tv"
     },
     "tv:120508": {
@@ -12133,28 +11656,12 @@
       "name": "The Chameleon Killer",
       "mediaType": "tv"
     },
-    "tv:256201": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "The Creep Tapes",
-      "mediaType": "tv"
-    },
     "tv:87600": {
       "channels": [
         40
       ],
       "source": "recommendation:2 exemplars",
       "name": "The Disappearance of Madeleine McCann",
-      "mediaType": "tv"
-    },
-    "tv:61393": {
-      "channels": [
-        40
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Driver",
       "mediaType": "tv"
     },
     "tv:100379": {
@@ -12165,17 +11672,8 @@
       "name": "The Innocence Files",
       "mediaType": "tv"
     },
-    "tv:253368": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "The Iris Affair",
-      "mediaType": "tv"
-    },
     "tv:61367": {
       "channels": [
-        40,
         44
       ],
       "source": "similar:2 exemplars",
@@ -12188,38 +11686,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "The New York Times Presents",
-      "mediaType": "tv"
-    },
-    "tv:233256": {
-      "channels": [
-        40
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Stolen Girl",
-      "mediaType": "tv"
-    },
-    "tv:209922": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "The Woman in the Wall",
-      "mediaType": "tv"
-    },
-    "tv:96335": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Traces",
-      "mediaType": "tv"
-    },
-    "tv:262262": {
-      "channels": [
-        40
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Under Salt Marsh",
       "mediaType": "tv"
     },
     "tv:203543": {
@@ -12420,8 +11886,7 @@
     },
     "movie:30941": {
       "channels": [
-        41,
-        43
+        41
       ],
       "source": "recommendation:4 exemplars",
       "name": "The Anderson Tapes",
@@ -12509,14 +11974,6 @@
       "name": "Joe",
       "mediaType": "movie"
     },
-    "movie:787": {
-      "channels": [
-        41
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Mr. & Mrs. Smith",
-      "mediaType": "movie"
-    },
     "movie:10952": {
       "channels": [
         41
@@ -12550,14 +12007,6 @@
       "name": "Red Heat",
       "mediaType": "movie"
     },
-    "movie:11966": {
-      "channels": [
-        41
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Short Circuit 2",
-      "mediaType": "movie"
-    },
     "movie:8374": {
       "channels": [
         41
@@ -12581,16 +12030,6 @@
       ],
       "source": "recommendation:3 exemplars",
       "name": "The Gentlemen",
-      "mediaType": "movie"
-    },
-    "movie:11654": {
-      "channels": [
-        41,
-        61,
-        11
-      ],
-      "source": "similar:3 exemplars",
-      "name": "The Hunger",
       "mediaType": "movie"
     },
     "movie:629": {
@@ -12671,14 +12110,6 @@
       "name": "Bugsy",
       "mediaType": "movie"
     },
-    "movie:441669": {
-      "channels": [
-        41
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Butcher the Bakers",
-      "mediaType": "movie"
-    },
     "movie:27331": {
       "channels": [
         41
@@ -12693,15 +12124,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Coffy",
-      "mediaType": "movie"
-    },
-    "movie:864": {
-      "channels": [
-        41,
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Cool Runnings",
       "mediaType": "movie"
     },
     "movie:2142": {
@@ -12722,8 +12144,7 @@
     },
     "movie:1359939": {
       "channels": [
-        41,
-        43
+        41
       ],
       "source": "similar:2 exemplars",
       "name": "Die Like a Man",
@@ -12732,8 +12153,7 @@
     "movie:984": {
       "channels": [
         41,
-        42,
-        43
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "Dirty Harry",
@@ -12742,19 +12162,10 @@
     "movie:968": {
       "channels": [
         41,
-        42,
-        73
+        42
       ],
       "source": "both:2 exemplars",
       "name": "Dog Day Afternoon",
-      "mediaType": "movie"
-    },
-    "movie:800325": {
-      "channels": [
-        41
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Dude...We're Going to Rio",
       "mediaType": "movie"
     },
     "movie:10877": {
@@ -12841,7 +12252,6 @@
     },
     "movie:11943": {
       "channels": [
-        41,
         75
       ],
       "source": "similar:2 exemplars",
@@ -12882,8 +12292,7 @@
     },
     "movie:11657": {
       "channels": [
-        41,
-        43
+        41
       ],
       "source": "similar:2 exemplars",
       "name": "Le Cercle Rouge",
@@ -12909,7 +12318,6 @@
       "channels": [
         41,
         42,
-        43,
         211
       ],
       "source": "similar:2 exemplars",
@@ -12922,15 +12330,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Marathon Man",
-      "mediaType": "movie"
-    },
-    "movie:11948": {
-      "channels": [
-        41,
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Merry Christmas, Mr. Lawrence",
       "mediaType": "movie"
     },
     "movie:592128": {
@@ -12952,7 +12351,6 @@
     "movie:692": {
       "channels": [
         41,
-        61,
         214,
         213
       ],
@@ -13010,14 +12408,6 @@
       "name": "SuperFly",
       "mediaType": "movie"
     },
-    "movie:11599": {
-      "channels": [
-        41
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Suzhou River",
-      "mediaType": "movie"
-    },
     "movie:16958": {
       "channels": [
         41
@@ -13029,25 +12419,15 @@
     "movie:842": {
       "channels": [
         41,
-        42,
-        43
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "The Assassination of Richard Nixon",
       "mediaType": "movie"
     },
-    "movie:11663": {
-      "channels": [
-        41
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Commitments",
-      "mediaType": "movie"
-    },
     "movie:10651": {
       "channels": [
-        41,
-        43
+        41
       ],
       "source": "recommendation:2 exemplars",
       "name": "The Dead Pool",
@@ -13071,19 +12451,10 @@
     },
     "movie:5916": {
       "channels": [
-        41,
-        43
+        41
       ],
       "source": "recommendation:2 exemplars",
       "name": "The Getaway",
-      "mediaType": "movie"
-    },
-    "movie:11439": {
-      "channels": [
-        41
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Ghost Writer",
       "mediaType": "movie"
     },
     "movie:487680": {
@@ -13105,8 +12476,6 @@
     "movie:8867": {
       "channels": [
         41,
-        43,
-        73,
         13
       ],
       "source": "similar:2 exemplars",
@@ -13115,11 +12484,7 @@
     },
     "movie:691": {
       "channels": [
-        41,
-        42,
-        43,
-        73,
-        11
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "The Spy Who Loved Me",
@@ -13167,7 +12532,6 @@
     },
     "movie:11455": {
       "channels": [
-        41,
         214
       ],
       "source": "similar:2 exemplars",
@@ -13206,18 +12570,9 @@
       "name": "Who'll Stop the Rain",
       "mediaType": "movie"
     },
-    "movie:11004": {
-      "channels": [
-        41
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Wonder Boys",
-      "mediaType": "movie"
-    },
     "movie:1047807": {
       "channels": [
-        41,
-        43
+        41
       ],
       "source": "collection-via:Heat (Heat Collection)",
       "name": "Heat 2",
@@ -13242,50 +12597,23 @@
     "movie:9056": {
       "channels": [
         41,
-        43,
-        73,
         13
       ],
       "source": "collection-via:New Police Story (Police Story Collection)",
       "name": "Police Story",
       "mediaType": "movie"
     },
-    "movie:253": {
-      "channels": [
-        41,
-        43,
-        73
-      ],
-      "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
-      "name": "Live and Let Die",
-      "mediaType": "movie"
-    },
     "movie:646": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Dr. No",
       "mediaType": "movie"
     },
-    "movie:657": {
-      "channels": [
-        41,
-        73
-      ],
-      "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
-      "name": "From Russia with Love",
-      "mediaType": "movie"
-    },
     "movie:658": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Goldfinger",
@@ -13293,31 +12621,15 @@
     },
     "movie:660": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Thunderball",
       "mediaType": "movie"
     },
-    "movie:667": {
-      "channels": [
-        41,
-        43,
-        73
-      ],
-      "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
-      "name": "You Only Live Twice",
-      "mediaType": "movie"
-    },
     "movie:668": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "On Her Majesty's Secret Service",
@@ -13325,9 +12637,7 @@
     },
     "movie:698": {
       "channels": [
-        41,
         42,
-        43,
         73
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
@@ -13336,10 +12646,7 @@
     },
     "movie:699": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "For Your Eyes Only",
@@ -13347,10 +12654,7 @@
     },
     "movie:700": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Octopussy",
@@ -13358,10 +12662,7 @@
     },
     "movie:707": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "A View to a Kill",
@@ -13369,10 +12670,7 @@
     },
     "movie:709": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Licence to Kill",
@@ -13380,10 +12678,7 @@
     },
     "movie:710": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "GoldenEye",
@@ -13391,10 +12686,7 @@
     },
     "movie:714": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Tomorrow Never Dies",
@@ -13402,10 +12694,7 @@
     },
     "movie:10764": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Quantum of Solace",
@@ -13413,10 +12702,7 @@
     },
     "movie:36557": {
       "channels": [
-        41,
         42,
-        43,
-        73,
         72
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
@@ -13425,10 +12711,7 @@
     },
     "movie:36643": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "The World Is Not Enough",
@@ -13436,10 +12719,7 @@
     },
     "movie:36669": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Die Another Day",
@@ -13447,10 +12727,7 @@
     },
     "movie:37724": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Skyfall",
@@ -13458,9 +12735,6 @@
     },
     "movie:206647": {
       "channels": [
-        41,
-        43,
-        73,
         72
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
@@ -13469,10 +12743,7 @@
     },
     "movie:708": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "The Living Daylights",
@@ -13480,10 +12751,7 @@
     },
     "movie:370172": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "No Time to Die",
@@ -13491,10 +12759,7 @@
     },
     "movie:36670": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Never Say Never Again",
@@ -13502,10 +12767,7 @@
     },
     "movie:1184696": {
       "channels": [
-        41,
-        42,
-        43,
-        73
+        42
       ],
       "source": "collection-via:The Spy Who Loved Me (James Bond Collection)",
       "name": "Untitled James Bond Film",
@@ -13513,9 +12775,7 @@
     },
     "movie:10648": {
       "channels": [
-        41,
-        42,
-        43
+        41
       ],
       "source": "collection-via:The Dead Pool (Dirty Harry Collection)",
       "name": "Magnum Force",
@@ -13524,8 +12784,7 @@
     "movie:10649": {
       "channels": [
         41,
-        42,
-        43
+        42
       ],
       "source": "collection-via:The Dead Pool (Dirty Harry Collection)",
       "name": "The Enforcer",
@@ -13534,8 +12793,7 @@
     "movie:10650": {
       "channels": [
         41,
-        42,
-        43
+        42
       ],
       "source": "collection-via:The Dead Pool (Dirty Harry Collection)",
       "name": "Sudden Impact",
@@ -13543,41 +12801,22 @@
     },
     "movie:12695": {
       "channels": [
-        41,
         214
       ],
       "source": "collection-via:Up in Smoke (Cheech & Chong Collection)",
       "name": "Still Smokin",
       "mediaType": "movie"
     },
-    "movie:13612": {
-      "channels": [
-        41
-      ],
-      "source": "collection-via:Up in Smoke (Cheech & Chong Collection)",
-      "name": "Cheech & Chong's Next Movie",
-      "mediaType": "movie"
-    },
     "movie:14774": {
       "channels": [
-        41,
         214
       ],
       "source": "collection-via:Up in Smoke (Cheech & Chong Collection)",
       "name": "Cheech & Chong's The Corsican Brothers",
       "mediaType": "movie"
     },
-    "movie:20075": {
-      "channels": [
-        41
-      ],
-      "source": "collection-via:Up in Smoke (Cheech & Chong Collection)",
-      "name": "Nice Dreams",
-      "mediaType": "movie"
-    },
     "movie:20197": {
       "channels": [
-        41,
         214
       ],
       "source": "collection-via:Up in Smoke (Cheech & Chong Collection)",
@@ -13586,45 +12825,10 @@
     },
     "movie:31609": {
       "channels": [
-        41,
         214
       ],
       "source": "collection-via:Up in Smoke (Cheech & Chong Collection)",
       "name": "Get Out of My Room",
-      "mediaType": "movie"
-    },
-    "movie:316727": {
-      "channels": [
-        41,
-        43
-      ],
-      "source": "collection-via:The First Purge (The Purge Collection)",
-      "name": "The Purge: Election Year",
-      "mediaType": "movie"
-    },
-    "movie:602223": {
-      "channels": [
-        41,
-        43
-      ],
-      "source": "collection-via:The First Purge (The Purge Collection)",
-      "name": "The Forever Purge",
-      "mediaType": "movie"
-    },
-    "movie:12664": {
-      "channels": [
-        41
-      ],
-      "source": "collection-via:The Commitments (The Barrytown Trilogy)",
-      "name": "The Snapper",
-      "mediaType": "movie"
-    },
-    "movie:11844": {
-      "channels": [
-        41
-      ],
-      "source": "collection-via:The Commitments (The Barrytown Trilogy)",
-      "name": "The Van",
       "mediaType": "movie"
     },
     "movie:449443": {
@@ -13667,24 +12871,6 @@
       "name": "The Boondock Saints III",
       "mediaType": "movie"
     },
-    "movie:2605": {
-      "channels": [
-        41
-      ],
-      "source": "collection-via:Short Circuit 2 (Short Circuit Collection)",
-      "name": "Short Circuit",
-      "mediaType": "movie"
-    },
-    "movie:501170": {
-      "channels": [
-        41,
-        42,
-        43
-      ],
-      "source": "collection-via:The Shining (The Shining Collection)",
-      "name": "Doctor Sleep",
-      "mediaType": "movie"
-    },
     "movie:1124006": {
       "channels": [
         41
@@ -13699,14 +12885,6 @@
       ],
       "source": "collection-via:From Dusk Till Dawn 2: Texas Blood Money (From Dusk Till Dawn Collection)",
       "name": "From Dusk Till Dawn",
-      "mediaType": "movie"
-    },
-    "movie:10213": {
-      "channels": [
-        41
-      ],
-      "source": "collection-via:From Dusk Till Dawn 2: Texas Blood Money (From Dusk Till Dawn Collection)",
-      "name": "From Dusk Till Dawn 3: The Hangman's Daughter",
       "mediaType": "movie"
     },
     "movie:1949": {
@@ -13866,8 +13044,6 @@
     },
     "movie:8961": {
       "channels": [
-        42,
-        73,
         14
       ],
       "source": "similar:4 exemplars",
@@ -13876,8 +13052,7 @@
     },
     "movie:1598": {
       "channels": [
-        42,
-        43
+        42
       ],
       "source": "recommendation:4 exemplars",
       "name": "Cape Fear",
@@ -13893,9 +13068,7 @@
     },
     "movie:681": {
       "channels": [
-        42,
-        43,
-        73
+        42
       ],
       "source": "similar:4 exemplars",
       "name": "Diamonds Are Forever",
@@ -13919,8 +13092,7 @@
     },
     "movie:466": {
       "channels": [
-        42,
-        43
+        42
       ],
       "source": "both:4 exemplars",
       "name": "Klute",
@@ -13938,7 +13110,6 @@
     "movie:805": {
       "channels": [
         42,
-        43,
         211
       ],
       "source": "similar:4 exemplars",
@@ -14022,7 +13193,6 @@
     },
     "movie:453": {
       "channels": [
-        42,
         201
       ],
       "source": "similar:2 exemplars",
@@ -14044,14 +13214,6 @@
       ],
       "source": "similar:2 exemplars",
       "name": "All the Boys Love Mandy Lane",
-      "mediaType": "movie"
-    },
-    "movie:279": {
-      "channels": [
-        42
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Amadeus",
       "mediaType": "movie"
     },
     "movie:76812": {
@@ -14079,15 +13241,6 @@
       "name": "Body of Lies",
       "mediaType": "movie"
     },
-    "movie:791177": {
-      "channels": [
-        42,
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Bones and All",
-      "mediaType": "movie"
-    },
     "movie:881164": {
       "channels": [
         42
@@ -14098,7 +13251,6 @@
     },
     "movie:269": {
       "channels": [
-        42,
         211
       ],
       "source": "similar:2 exemplars",
@@ -14107,8 +13259,7 @@
     },
     "movie:916": {
       "channels": [
-        42,
-        43
+        42
       ],
       "source": "both:2 exemplars",
       "name": "Bullitt",
@@ -14148,8 +13299,7 @@
     },
     "movie:1163871": {
       "channels": [
-        42,
-        43
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "Cruel Encounters",
@@ -14182,8 +13332,7 @@
     },
     "movie:521": {
       "channels": [
-        42,
-        43
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "Dial M for Murder",
@@ -14196,14 +13345,6 @@
       ],
       "source": "similar:2 exemplars",
       "name": "Disposable",
-      "mediaType": "movie"
-    },
-    "movie:446": {
-      "channels": [
-        42
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Distant Lights",
       "mediaType": "movie"
     },
     "movie:262127": {
@@ -14224,9 +13365,6 @@
     },
     "movie:11284": {
       "channels": [
-        42,
-        13,
-        14,
         214
       ],
       "source": "similar:2 exemplars",
@@ -14235,8 +13373,6 @@
     },
     "movie:782": {
       "channels": [
-        42,
-        43,
         73
       ],
       "source": "similar:2 exemplars",
@@ -14249,14 +13385,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Girl in the Basement",
-      "mediaType": "movie"
-    },
-    "movie:3558": {
-      "channels": [
-        42
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Girl, Interrupted",
       "mediaType": "movie"
     },
     "movie:13975": {
@@ -14273,14 +13401,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "In the Shadow of the Moon",
-      "mediaType": "movie"
-    },
-    "movie:8893": {
-      "channels": [
-        42
-      ],
-      "source": "similar:2 exemplars",
-      "name": "It's Hard Being Loved by Jerks",
       "mediaType": "movie"
     },
     "movie:10909": {
@@ -14325,7 +13445,6 @@
     },
     "movie:6107": {
       "channels": [
-        42,
         43
       ],
       "source": "recommendation:2 exemplars",
@@ -14348,14 +13467,6 @@
       "name": "Night of the Hunted",
       "mediaType": "movie"
     },
-    "movie:510": {
-      "channels": [
-        42
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "One Flew Over the Cuckoo's Nest",
-      "mediaType": "movie"
-    },
     "movie:729165": {
       "channels": [
         42
@@ -14375,8 +13486,6 @@
     },
     "movie:797": {
       "channels": [
-        42,
-        61,
         211
       ],
       "source": "similar:2 exemplars",
@@ -14393,8 +13502,7 @@
     },
     "movie:11705": {
       "channels": [
-        42,
-        75
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "Red Road",
@@ -14417,19 +13525,9 @@
       "name": "Shimmer Lake",
       "mediaType": "movie"
     },
-    "movie:11668": {
-      "channels": [
-        42,
-        75
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Shot Pattern",
-      "mediaType": "movie"
-    },
     "movie:9010": {
       "channels": [
-        42,
-        43
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "Silentium",
@@ -14437,8 +13535,7 @@
     },
     "movie:867": {
       "channels": [
-        42,
-        43
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "Sliver",
@@ -14488,8 +13585,7 @@
     "movie:280": {
       "channels": [
         42,
-        73,
-        74
+        73
       ],
       "source": "similar:2 exemplars",
       "name": "Terminator 2: Judgment Day",
@@ -14502,14 +13598,6 @@
       ],
       "source": "similar:2 exemplars",
       "name": "The Big Sleep",
-      "mediaType": "movie"
-    },
-    "movie:1416": {
-      "channels": [
-        42
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Coast Guard",
       "mediaType": "movie"
     },
     "movie:522241": {
@@ -14526,15 +13614,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "The Devil You Know",
-      "mediaType": "movie"
-    },
-    "movie:276": {
-      "channels": [
-        42,
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Edukators",
       "mediaType": "movie"
     },
     "movie:43549": {
@@ -14561,20 +13640,9 @@
       "name": "The Last House on the Left",
       "mediaType": "movie"
     },
-    "movie:1847": {
-      "channels": [
-        42
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "The Long Goodbye",
-      "mediaType": "movie"
-    },
     "movie:682": {
       "channels": [
-        42,
-        43,
-        73,
-        11
+        42
       ],
       "source": "similar:2 exemplars",
       "name": "The Man with the Golden Gun",
@@ -14636,14 +13704,6 @@
       "name": "Wild at Heart",
       "mediaType": "movie"
     },
-    "movie:16056": {
-      "channels": [
-        42
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Winged Creatures",
-      "mediaType": "movie"
-    },
     "movie:1046509": {
       "channels": [
         42
@@ -14652,18 +13712,9 @@
       "name": "Wind River: Rising",
       "mediaType": "movie"
     },
-    "movie:1684860": {
-      "channels": [
-        42
-      ],
-      "source": "collection-via:Sicario (Sicario Collection)",
-      "name": "Sicario: Capos",
-      "mediaType": "movie"
-    },
     "movie:38700": {
       "channels": [
-        42,
-        73
+        42
       ],
       "source": "collection-via:Bad Boys II (Bad Boys Collection)",
       "name": "Bad Boys for Life",
@@ -14672,7 +13723,6 @@
     "movie:9737": {
       "channels": [
         42,
-        73,
         13,
         14
       ],
@@ -14680,37 +13730,17 @@
       "name": "Bad Boys",
       "mediaType": "movie"
     },
-    "movie:573435": {
-      "channels": [
-        42,
-        73
-      ],
-      "source": "collection-via:Bad Boys II (Bad Boys Collection)",
-      "name": "Bad Boys: Ride or Die",
-      "mediaType": "movie"
-    },
     "movie:21467": {
       "channels": [
-        42,
-        43
+        42
       ],
       "source": "collection-via:Silentium (Simon Brenner Collection)",
       "name": "The Bone Man",
       "mediaType": "movie"
     },
-    "movie:10469": {
-      "channels": [
-        42,
-        43
-      ],
-      "source": "collection-via:Silentium (Simon Brenner Collection)",
-      "name": "Come, Sweet Death",
-      "mediaType": "movie"
-    },
     "movie:277967": {
       "channels": [
-        42,
-        43
+        42
       ],
       "source": "collection-via:Silentium (Simon Brenner Collection)",
       "name": "Life Eternal",
@@ -14733,19 +13763,9 @@
       "name": "The Two Jakes",
       "mediaType": "movie"
     },
-    "movie:117258": {
-      "channels": [
-        42,
-        43
-      ],
-      "source": "collection-via:Rosemary's Baby (Rosemary's Baby Collection)",
-      "name": "Look What's Happened to Rosemary's Baby",
-      "mediaType": "movie"
-    },
     "movie:807339": {
       "channels": [
-        42,
-        43
+        42
       ],
       "source": "collection-via:Rosemary's Baby (Rosemary's Baby Collection)",
       "name": "Apartment 7A",
@@ -14754,8 +13774,7 @@
     "movie:218": {
       "channels": [
         42,
-        73,
-        74
+        73
       ],
       "source": "collection-via:Terminator 2: Judgment Day (The Terminator Collection)",
       "name": "The Terminator",
@@ -14763,8 +13782,7 @@
     },
     "movie:296": {
       "channels": [
-        42,
-        74
+        42
       ],
       "source": "collection-via:Terminator 2: Judgment Day (The Terminator Collection)",
       "name": "Terminator 3: Rise of the Machines",
@@ -14773,8 +13791,7 @@
     "movie:534": {
       "channels": [
         42,
-        73,
-        74
+        73
       ],
       "source": "collection-via:Terminator 2: Judgment Day (The Terminator Collection)",
       "name": "Terminator Salvation",
@@ -14783,8 +13800,7 @@
     "movie:87101": {
       "channels": [
         42,
-        73,
-        74
+        73
       ],
       "source": "collection-via:Terminator 2: Judgment Day (The Terminator Collection)",
       "name": "Terminator Genisys",
@@ -14825,17 +13841,8 @@
       "name": "Cube 2: Hypercube",
       "mediaType": "movie"
     },
-    "movie:4192": {
-      "channels": [
-        42
-      ],
-      "source": "collection-via:Murder in Three Acts (Hercule Poirot (Peter Ustinov) Collection)",
-      "name": "Death on the Nile",
-      "mediaType": "movie"
-    },
     "movie:6103": {
       "channels": [
-        42,
         43
       ],
       "source": "collection-via:Murder in Three Acts (Hercule Poirot (Peter Ustinov) Collection)",
@@ -15058,22 +14065,6 @@
       "name": "The Cheap Detective",
       "mediaType": "movie"
     },
-    "movie:38751": {
-      "channels": [
-        43
-      ],
-      "source": "recommendation:4 exemplars",
-      "name": "The Man Who Cheated Himself",
-      "mediaType": "movie"
-    },
-    "movie:913": {
-      "channels": [
-        43
-      ],
-      "source": "similar:4 exemplars",
-      "name": "The Thomas Crown Affair",
-      "mediaType": "movie"
-    },
     "movie:744653": {
       "channels": [
         43
@@ -15156,14 +14147,6 @@
       "name": "Felidae",
       "mediaType": "movie"
     },
-    "movie:1128547": {
-      "channels": [
-        43
-      ],
-      "source": "recommendation:3 exemplars",
-      "name": "Islands",
-      "mediaType": "movie"
-    },
     "movie:1242669": {
       "channels": [
         43
@@ -15186,22 +14169,6 @@
       ],
       "source": "recommendation:3 exemplars",
       "name": "Night Train to Lisbon",
-      "mediaType": "movie"
-    },
-    "movie:1592": {
-      "channels": [
-        43
-      ],
-      "source": "both:3 exemplars",
-      "name": "Primal Fear",
-      "mediaType": "movie"
-    },
-    "movie:582218": {
-      "channels": [
-        43
-      ],
-      "source": "recommendation:3 exemplars",
-      "name": "Psych 2: Lassie Come Home",
       "mediaType": "movie"
     },
     "movie:1586": {
@@ -15236,18 +14203,9 @@
       "name": "The Late Show",
       "mediaType": "movie"
     },
-    "movie:14979": {
-      "channels": [
-        43
-      ],
-      "source": "recommendation:3 exemplars",
-      "name": "Thick as Thieves",
-      "mediaType": "movie"
-    },
     "movie:779": {
       "channels": [
-        43,
-        61
+        43
       ],
       "source": "similar:3 exemplars",
       "name": "Vampyr",
@@ -15259,14 +14217,6 @@
       ],
       "source": "recommendation:3 exemplars",
       "name": "Who's Harry Crumb?",
-      "mediaType": "movie"
-    },
-    "movie:1163861": {
-      "channels": [
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "A Good Guy",
       "mediaType": "movie"
     },
     "movie:31200": {
@@ -15309,44 +14259,12 @@
       "name": "Cleaner",
       "mediaType": "movie"
     },
-    "movie:438650": {
-      "channels": [
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Cold Pursuit",
-      "mediaType": "movie"
-    },
-    "movie:796989": {
-      "channels": [
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Death Saved My Life",
-      "mediaType": "movie"
-    },
     "movie:619979": {
       "channels": [
         43
       ],
       "source": "both:2 exemplars",
       "name": "Deep Water",
-      "mediaType": "movie"
-    },
-    "movie:8999": {
-      "channels": [
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Derailed",
-      "mediaType": "movie"
-    },
-    "movie:870": {
-      "channels": [
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Dolls",
       "mediaType": "movie"
     },
     "movie:829280": {
@@ -15363,30 +14281,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Evil Under the Sun",
-      "mediaType": "movie"
-    },
-    "movie:44902": {
-      "channels": [
-        43
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Footsteps in the Fog",
-      "mediaType": "movie"
-    },
-    "movie:24109": {
-      "channels": [
-        43
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Fun with Dick and Jane",
-      "mediaType": "movie"
-    },
-    "movie:82682": {
-      "channels": [
-        43
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Gangster Squad",
       "mediaType": "movie"
     },
     "movie:207932": {
@@ -15421,28 +14315,12 @@
       "name": "Murder at the Embassy",
       "mediaType": "movie"
     },
-    "movie:2116": {
-      "channels": [
-        43
-      ],
-      "source": "both:2 exemplars",
-      "name": "Out of Time",
-      "mediaType": "movie"
-    },
     "movie:404733": {
       "channels": [
         43
       ],
       "source": "recommendation:2 exemplars",
       "name": "Overdrive",
-      "mediaType": "movie"
-    },
-    "movie:2112": {
-      "channels": [
-        43
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Payback",
       "mediaType": "movie"
     },
     "movie:829400": {
@@ -15461,17 +14339,8 @@
       "name": "Psych: The Movie",
       "mediaType": "movie"
     },
-    "movie:1580": {
-      "channels": [
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Rope",
-      "mediaType": "movie"
-    },
     "movie:11826": {
       "channels": [
-        43,
         72
       ],
       "source": "recommendation:2 exemplars",
@@ -15510,17 +14379,8 @@
       "name": "The Drowning Pool",
       "mediaType": "movie"
     },
-    "movie:9030": {
-      "channels": [
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Eye",
-      "mediaType": "movie"
-    },
     "movie:9028": {
       "channels": [
-        43,
         75
       ],
       "source": "similar:2 exemplars",
@@ -15529,7 +14389,6 @@
     },
     "movie:865": {
       "channels": [
-        43,
         73
       ],
       "source": "similar:2 exemplars",
@@ -15544,14 +14403,6 @@
       "name": "The Trouble with Harry",
       "mediaType": "movie"
     },
-    "movie:262254": {
-      "channels": [
-        43
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Vulture Is a Patient Bird",
-      "mediaType": "movie"
-    },
     "movie:846": {
       "channels": [
         43,
@@ -15560,14 +14411,6 @@
       ],
       "source": "similar:2 exemplars",
       "name": "The X-Files",
-      "mediaType": "movie"
-    },
-    "movie:938150": {
-      "channels": [
-        43
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Wardriver",
       "mediaType": "movie"
     },
     "movie:28663": {
@@ -15738,36 +14581,12 @@
       "name": "Enola Holmes 3",
       "mediaType": "movie"
     },
-    "movie:848379": {
-      "channels": [
-        43
-      ],
-      "source": "collection-via:Cold Pursuit (Cold Pursuit Collection)",
-      "name": "Cold Pursuit 2",
-      "mediaType": "movie"
-    },
-    "movie:655730": {
-      "channels": [
-        43
-      ],
-      "source": "collection-via:Agatha and the Truth of Murder (Agatha Christie Collection)",
-      "name": "Agatha and the Curse of Ishtar",
-      "mediaType": "movie"
-    },
     "movie:749395": {
       "channels": [
         43
       ],
       "source": "collection-via:Agatha and the Truth of Murder (Agatha Christie Collection)",
       "name": "Agatha and the Midnight Murders",
-      "mediaType": "movie"
-    },
-    "movie:936": {
-      "channels": [
-        43
-      ],
-      "source": "collection-via:A Shot in the Dark (The Pink Panther (Original) Collection)",
-      "name": "The Pink Panther",
       "mediaType": "movie"
     },
     "movie:9699": {
@@ -15778,36 +14597,12 @@
       "name": "Trail of the Pink Panther",
       "mediaType": "movie"
     },
-    "movie:11573": {
-      "channels": [
-        43
-      ],
-      "source": "collection-via:A Shot in the Dark (The Pink Panther (Original) Collection)",
-      "name": "Inspector Clouseau",
-      "mediaType": "movie"
-    },
     "movie:11843": {
       "channels": [
         43
       ],
       "source": "collection-via:A Shot in the Dark (The Pink Panther (Original) Collection)",
       "name": "The Return of the Pink Panther",
-      "mediaType": "movie"
-    },
-    "movie:12268": {
-      "channels": [
-        43
-      ],
-      "source": "collection-via:A Shot in the Dark (The Pink Panther (Original) Collection)",
-      "name": "The Pink Panther Strikes Again",
-      "mediaType": "movie"
-    },
-    "movie:46828": {
-      "channels": [
-        43
-      ],
-      "source": "collection-via:A Shot in the Dark (The Pink Panther (Original) Collection)",
-      "name": "Son of the Pink Panther",
       "mediaType": "movie"
     },
     "movie:36576": {
@@ -15824,22 +14619,6 @@
       ],
       "source": "collection-via:Murder at the Embassy (The Miranda Green Mysteries)",
       "name": "Invitation to a Murder",
-      "mediaType": "movie"
-    },
-    "movie:1584887": {
-      "channels": [
-        43
-      ],
-      "source": "collection-via:Murder at the Embassy (The Miranda Green Mysteries)",
-      "name": "The Mystery of the Golden Spear",
-      "mediaType": "movie"
-    },
-    "movie:1638899": {
-      "channels": [
-        43
-      ],
-      "source": "collection-via:The Black Book (The Black Book Collection)",
-      "name": "The Black Book 2: Old Scores",
       "mediaType": "movie"
     },
     "movie:8836": {
@@ -16141,14 +14920,6 @@
       "name": "Above Suspicion",
       "mediaType": "tv"
     },
-    "tv:1596": {
-      "channels": [
-        44
-      ],
-      "source": "similar:4 exemplars",
-      "name": "Bergerac",
-      "mediaType": "tv"
-    },
     "tv:85586": {
       "channels": [
         44
@@ -16263,14 +15034,6 @@
       "name": "The Sinner",
       "mediaType": "tv"
     },
-    "tv:1920": {
-      "channels": [
-        44
-      ],
-      "source": "both:4 exemplars",
-      "name": "Twin Peaks",
-      "mediaType": "tv"
-    },
     "tv:62505": {
       "channels": [
         44
@@ -16302,22 +15065,6 @@
       ],
       "source": "recommendation:3 exemplars",
       "name": "21 Jump Street",
-      "mediaType": "tv"
-    },
-    "tv:89538": {
-      "channels": [
-        44
-      ],
-      "source": "similar:3 exemplars",
-      "name": "60 JUSTICE PROJECT",
-      "mediaType": "tv"
-    },
-    "tv:261792": {
-      "channels": [
-        44
-      ],
-      "source": "similar:3 exemplars",
-      "name": "AARO -All-domain Anomaly Resolution Office-",
       "mediaType": "tv"
     },
     "tv:6127": {
@@ -16352,36 +15099,12 @@
       "name": "Annika",
       "mediaType": "tv"
     },
-    "tv:91520": {
-      "channels": [
-        44
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Beforeigners",
-      "mediaType": "tv"
-    },
-    "tv:509": {
-      "channels": [
-        44
-      ],
-      "source": "similar:3 exemplars",
-      "name": "CHiPs",
-      "mediaType": "tv"
-    },
     "tv:201050": {
       "channels": [
         44
       ],
       "source": "similar:3 exemplars",
       "name": "Dahaad",
-      "mediaType": "tv"
-    },
-    "tv:3386": {
-      "channels": [
-        44
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Durham County",
       "mediaType": "tv"
     },
     "tv:44264": {
@@ -16459,19 +15182,10 @@
     },
     "tv:474": {
       "channels": [
-        44,
         200
       ],
       "source": "similar:3 exemplars",
       "name": "Nash Bridges",
-      "mediaType": "tv"
-    },
-    "tv:1684": {
-      "channels": [
-        44
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Night Stalker",
       "mediaType": "tv"
     },
     "tv:39957": {
@@ -16480,14 +15194,6 @@
       ],
       "source": "recommendation:3 exemplars",
       "name": "Perception",
-      "mediaType": "tv"
-    },
-    "tv:3381": {
-      "channels": [
-        44
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Robbery Homicide Division",
       "mediaType": "tv"
     },
     "tv:400": {
@@ -16530,17 +15236,8 @@
       "name": "The Blacklist",
       "mediaType": "tv"
     },
-    "tv:233345": {
-      "channels": [
-        44
-      ],
-      "source": "similar:3 exemplars",
-      "name": "The Chamber of Secrets Escape",
-      "mediaType": "tv"
-    },
     "tv:396": {
       "channels": [
-        44,
         200
       ],
       "source": "similar:3 exemplars",
@@ -16579,14 +15276,6 @@
       "name": "Unforgettable",
       "mediaType": "tv"
     },
-    "tv:121814": {
-      "channels": [
-        44
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Who Killed the Lead",
-      "mediaType": "tv"
-    },
     "tv:6322": {
       "channels": [
         44
@@ -16619,14 +15308,6 @@
       "name": "Alert: Missing Persons Unit",
       "mediaType": "tv"
     },
-    "tv:61537": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Amber",
-      "mediaType": "tv"
-    },
     "tv:318": {
       "channels": [
         44,
@@ -16644,14 +15325,6 @@
       "name": "As Noivas de Copacabana",
       "mediaType": "tv"
     },
-    "tv:122009": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Bad Buddy",
-      "mediaType": "tv"
-    },
     "tv:1937": {
       "channels": [
         44
@@ -16660,36 +15333,12 @@
       "name": "Baywatch Nights",
       "mediaType": "tv"
     },
-    "tv:707": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Boomtown",
-      "mediaType": "tv"
-    },
-    "tv:383": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Cain's Hundred",
-      "mediaType": "tv"
-    },
     "tv:67743": {
       "channels": [
         44
       ],
       "source": "recommendation:2 exemplars",
       "name": "Cardinal",
-      "mediaType": "tv"
-    },
-    "tv:124481": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Chef Is a Great Detective",
       "mediaType": "tv"
     },
     "tv:64481": {
@@ -16748,14 +15397,6 @@
       "name": "Fearless",
       "mediaType": "tv"
     },
-    "tv:122017": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Fish Upon The Sky",
-      "mediaType": "tv"
-    },
     "tv:220801": {
       "channels": [
         44
@@ -16764,28 +15405,12 @@
       "name": "Fool Me Once",
       "mediaType": "tv"
     },
-    "tv:90293": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Ghost in the Shell: SAC_2045",
-      "mediaType": "tv"
-    },
     "tv:247518": {
       "channels": [
         44
       ],
       "source": "recommendation:2 exemplars",
       "name": "Grotesquerie",
-      "mediaType": "tv"
-    },
-    "tv:261819": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Happy of the End",
       "mediaType": "tv"
     },
     "tv:61056": {
@@ -16804,38 +15429,6 @@
       "name": "Jack Irish",
       "mediaType": "tv"
     },
-    "tv:3553": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Jake in Progress",
-      "mediaType": "tv"
-    },
-    "tv:122235": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Joe Pickett",
-      "mediaType": "tv"
-    },
-    "tv:3399": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "K-Ville",
-      "mediaType": "tv"
-    },
-    "tv:1721": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Keen Eddie",
-      "mediaType": "tv"
-    },
     "tv:119958": {
       "channels": [
         44
@@ -16850,14 +15443,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Law & Order Toronto: Criminal Intent",
-      "mediaType": "tv"
-    },
-    "tv:4601": {
-      "channels": [
-        44
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Law & Order: Criminal Intent",
       "mediaType": "tv"
     },
     "tv:32632": {
@@ -16892,14 +15477,6 @@
       "name": "Long Bright River",
       "mediaType": "tv"
     },
-    "tv:203020": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Love Is Leaving",
-      "mediaType": "tv"
-    },
     "tv:115004": {
       "channels": [
         44
@@ -16932,14 +15509,6 @@
       "name": "Murder in the First",
       "mediaType": "tv"
     },
-    "tv:61387": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "NCIS: New Orleans",
-      "mediaType": "tv"
-    },
     "tv:4040": {
       "channels": [
         44,
@@ -16947,14 +15516,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "New York Undercover",
-      "mediaType": "tv"
-    },
-    "tv:1669": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Oranges Are Not the Only Fruit",
       "mediaType": "tv"
     },
     "tv:74430": {
@@ -16971,22 +15532,6 @@
       ],
       "source": "similar:2 exemplars",
       "name": "Original Sin",
-      "mediaType": "tv"
-    },
-    "tv:61465": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Persona 4 The Golden Animation",
-      "mediaType": "tv"
-    },
-    "tv:121818": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Playground",
       "mediaType": "tv"
     },
     "tv:2583": {
@@ -17011,14 +15556,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Sharp Objects",
-      "mediaType": "tv"
-    },
-    "tv:246461": {
-      "channels": [
-        44
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Sherlock & Daughter",
       "mediaType": "tv"
     },
     "tv:2750": {
@@ -17061,22 +15598,6 @@
       "name": "Strike",
       "mediaType": "tv"
     },
-    "tv:1626": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Tequila and Bonetti",
-      "mediaType": "tv"
-    },
-    "tv:270627": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Beheading",
-      "mediaType": "tv"
-    },
     "tv:59312": {
       "channels": [
         44
@@ -17101,28 +15622,12 @@
       "name": "The Glades",
       "mediaType": "tv"
     },
-    "tv:32085": {
-      "channels": [
-        44
-      ],
-      "source": "both:2 exemplars",
-      "name": "The Good Guys",
-      "mediaType": "tv"
-    },
     "tv:1167": {
       "channels": [
         44
       ],
       "source": "recommendation:2 exemplars",
       "name": "The Inspector Lynley Mysteries",
-      "mediaType": "tv"
-    },
-    "tv:201289": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Last Thing He Told Me",
       "mediaType": "tv"
     },
     "tv:61431": {
@@ -17139,22 +15644,6 @@
       ],
       "source": "similar:2 exemplars",
       "name": "The Sentinel",
-      "mediaType": "tv"
-    },
-    "tv:1867": {
-      "channels": [
-        44
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Shining",
-      "mediaType": "tv"
-    },
-    "tv:46648": {
-      "channels": [
-        44
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "True Detective",
       "mediaType": "tv"
     },
     "tv:39185": {
@@ -19403,7 +17892,6 @@
     "movie:9355": {
       "channels": [
         73,
-        11,
         13
       ],
       "source": "similar:4 exemplars",
@@ -19516,9 +18004,7 @@
     },
     "movie:8840": {
       "channels": [
-        73,
-        74,
-        11
+        74
       ],
       "source": "similar:3 exemplars",
       "name": "DragonHeart",
@@ -19583,8 +18069,6 @@
     },
     "movie:8860": {
       "channels": [
-        73,
-        75,
         13
       ],
       "source": "similar:3 exemplars",
@@ -19597,14 +18081,6 @@
       ],
       "source": "recommendation:3 exemplars",
       "name": "Monsters of Man",
-      "mediaType": "movie"
-    },
-    "movie:8980": {
-      "channels": [
-        73
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Mortadelo & Filemon: The Big Adventure",
       "mediaType": "movie"
     },
     "movie:1241470": {
@@ -19714,7 +18190,6 @@
     },
     "movie:8845": {
       "channels": [
-        73,
         13
       ],
       "source": "similar:3 exemplars",
@@ -19760,22 +18235,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Afterburn",
-      "mediaType": "movie"
-    },
-    "movie:9360": {
-      "channels": [
-        73
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Anaconda",
-      "mediaType": "movie"
-    },
-    "movie:614959": {
-      "channels": [
-        73
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Aporia",
       "mediaType": "movie"
     },
     "movie:8965": {
@@ -19876,28 +18335,12 @@
       "name": "Demolition Man",
       "mediaType": "movie"
     },
-    "movie:438734": {
-      "channels": [
-        73
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Devil in the Dark",
-      "mediaType": "movie"
-    },
     "movie:238603": {
       "channels": [
         73
       ],
       "source": "recommendation:2 exemplars",
       "name": "Earth to Echo",
-      "mediaType": "movie"
-    },
-    "movie:8869": {
-      "channels": [
-        73
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Eight Legged Freaks",
       "mediaType": "movie"
     },
     "movie:13529": {
@@ -19936,7 +18379,6 @@
     },
     "movie:8960": {
       "channels": [
-        73,
         74
       ],
       "source": "similar:2 exemplars",
@@ -19945,7 +18387,6 @@
     },
     "movie:8844": {
       "channels": [
-        73,
         74
       ],
       "source": "similar:2 exemplars",
@@ -19964,7 +18405,6 @@
       "channels": [
         73,
         74,
-        11,
         13
       ],
       "source": "similar:2 exemplars",
@@ -20051,14 +18491,6 @@
       "name": "Project Hail Mary",
       "mediaType": "movie"
     },
-    "movie:432995": {
-      "channels": [
-        73
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Quality Time",
-      "mediaType": "movie"
-    },
     "movie:934632": {
       "channels": [
         73
@@ -20130,14 +18562,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Rollerball",
-      "mediaType": "movie"
-    },
-    "movie:187": {
-      "channels": [
-        73
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Sin City",
       "mediaType": "movie"
     },
     "movie:348350": {
@@ -20221,14 +18645,6 @@
       "name": "The City of Lost Children",
       "mediaType": "movie"
     },
-    "movie:873": {
-      "channels": [
-        73
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Color Purple",
-      "mediaType": "movie"
-    },
     "movie:614869": {
       "channels": [
         73
@@ -20309,14 +18725,6 @@
       "name": "Voyagers",
       "mediaType": "movie"
     },
-    "movie:8909": {
-      "channels": [
-        73
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Wanted",
-      "mediaType": "movie"
-    },
     "movie:1001835": {
       "channels": [
         73
@@ -20382,14 +18790,6 @@
       "name": "Class of 1999 II: The Substitute",
       "mediaType": "movie"
     },
-    "movie:11564": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Class of 1999 (Class of 1999 Collection)",
-      "name": "Class of 1984",
-      "mediaType": "movie"
-    },
     "movie:14154": {
       "channels": [
         73
@@ -20428,14 +18828,6 @@
       ],
       "source": "collection-via:Screamers (Screamers Collection)",
       "name": "Screamers: The Hunting",
-      "mediaType": "movie"
-    },
-    "movie:374771": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Pitch Black (The Chronicles of Riddick Collection)",
-      "name": "Riddick: Furya",
       "mediaType": "movie"
     },
     "movie:40983": {
@@ -20492,30 +18884,6 @@
       ],
       "source": "collection-via:Resident Evil: Degeneration (Resident Evil (Animated) Collection)",
       "name": "Resident Evil: Death Island",
-      "mediaType": "movie"
-    },
-    "movie:11237": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Anaconda (Anaconda Collection)",
-      "name": "Anacondas: The Hunt for the Blood Orchid",
-      "mediaType": "movie"
-    },
-    "movie:14863": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Anaconda (Anaconda Collection)",
-      "name": "Anaconda 3: Offspring",
-      "mediaType": "movie"
-    },
-    "movie:19543": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Anaconda (Anaconda Collection)",
-      "name": "Anacondas: Trail of Blood",
       "mediaType": "movie"
     },
     "movie:11069": {
@@ -20590,70 +18958,6 @@
       "name": "Death Race 2050",
       "mediaType": "movie"
     },
-    "movie:410988": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Stake Land (Stake Land Collection)",
-      "name": "The Stakelander",
-      "mediaType": "movie"
-    },
-    "movie:640935": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Stake Land (Stake Land Collection)",
-      "name": "Stake Land: Origins",
-      "mediaType": "movie"
-    },
-    "movie:645499": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Stake Land (Stake Land Collection)",
-      "name": "Stake Land: Jebediah",
-      "mediaType": "movie"
-    },
-    "movie:980942": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Stake Land (Stake Land Collection)",
-      "name": "Stake Land: Willie",
-      "mediaType": "movie"
-    },
-    "movie:645501": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Stake Land (Stake Land Collection)",
-      "name": "Stake Land: Mister",
-      "mediaType": "movie"
-    },
-    "movie:980945": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Stake Land (Stake Land Collection)",
-      "name": "Stake Land: Sister",
-      "mediaType": "movie"
-    },
-    "movie:980948": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Stake Land (Stake Land Collection)",
-      "name": "Stake Land: Martin",
-      "mediaType": "movie"
-    },
-    "movie:980941": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Stake Land (Stake Land Collection)",
-      "name": "Stake Land: The Day I Told My Boyfriend",
-      "mediaType": "movie"
-    },
     "movie:71679": {
       "channels": [
         73
@@ -20696,7 +19000,6 @@
     },
     "movie:10473": {
       "channels": [
-        73,
         74
       ],
       "source": "collection-via:DragonHeart (DragonHeart Collection)",
@@ -20705,24 +19008,14 @@
     },
     "movie:300803": {
       "channels": [
-        73,
         74
       ],
       "source": "collection-via:DragonHeart (DragonHeart Collection)",
       "name": "Dragonheart 3: The Sorcerer's Curse",
       "mediaType": "movie"
     },
-    "movie:451644": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:DragonHeart (DragonHeart Collection)",
-      "name": "Dragonheart: Battle for the Heartfire",
-      "mediaType": "movie"
-    },
     "movie:666750": {
       "channels": [
-        73,
         74
       ],
       "source": "collection-via:DragonHeart (DragonHeart Collection)",
@@ -20735,14 +19028,6 @@
       ],
       "source": "collection-via:Atlantis: Milo's Return (Atlantis Collection)",
       "name": "Atlantis: The Lost Empire",
-      "mediaType": "movie"
-    },
-    "movie:3512": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Under Siege (Under Siege Collection)",
-      "name": "Under Siege 2: Dark Territory",
       "mediaType": "movie"
     },
     "movie:389165": {
@@ -20777,22 +19062,6 @@
       "name": "The Empire Strikes Back",
       "mediaType": "movie"
     },
-    "movie:80446": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Mortadelo & Filemon: The Big Adventure (Mortadelo & Filemon - Collection)",
-      "name": "Mortadelo & Filemon: Mission: Save the Planet",
-      "mediaType": "movie"
-    },
-    "movie:227738": {
-      "channels": [
-        73
-      ],
-      "source": "collection-via:Mortadelo & Filemon: The Big Adventure (Mortadelo & Filemon - Collection)",
-      "name": "Mortadelo & Filemon: Mission Implausible",
-      "mediaType": "movie"
-    },
     "movie:200422": {
       "channels": [
         73
@@ -20819,7 +19088,6 @@
     },
     "movie:353486": {
       "channels": [
-        73,
         74
       ],
       "source": "collection-via:Jumanji (Jumanji Collection)",
@@ -20828,7 +19096,6 @@
     },
     "movie:512200": {
       "channels": [
-        73,
         74
       ],
       "source": "collection-via:Jumanji (Jumanji Collection)",
@@ -20837,7 +19104,6 @@
     },
     "movie:1260649": {
       "channels": [
-        73,
         74
       ],
       "source": "collection-via:Jumanji (Jumanji Collection)",
@@ -21161,14 +19427,6 @@
       "name": "A Knight's War",
       "mediaType": "movie"
     },
-    "movie:433128": {
-      "channels": [
-        74
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Ajin: Demi-Human",
-      "mediaType": "movie"
-    },
     "movie:11625": {
       "channels": [
         74,
@@ -21205,10 +19463,10 @@
     },
     "movie:11224": {
       "channels": [
-        74,
-        61,
         11,
-        64
+        61,
+        64,
+        74
       ],
       "source": "similar:2 exemplars",
       "name": "Cinderella",
@@ -21232,7 +19490,6 @@
     },
     "movie:1572": {
       "channels": [
-        74,
         13
       ],
       "source": "similar:2 exemplars",
@@ -21249,35 +19506,10 @@
     },
     "movie:848": {
       "channels": [
-        74,
-        11
+        74
       ],
       "source": "both:2 exemplars",
       "name": "Dragonslayer",
-      "mediaType": "movie"
-    },
-    "movie:9079": {
-      "channels": [
-        74
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Dying Young",
-      "mediaType": "movie"
-    },
-    "movie:11947": {
-      "channels": [
-        74
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Emil and the Piglet",
-      "mediaType": "movie"
-    },
-    "movie:11945": {
-      "channels": [
-        74
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Emil of Lonneberga",
       "mediaType": "movie"
     },
     "movie:465136": {
@@ -21338,7 +19570,6 @@
     },
     "movie:2140": {
       "channels": [
-        74,
         72
       ],
       "source": "similar:2 exemplars",
@@ -21496,14 +19727,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "The Forbidden Kingdom",
-      "mediaType": "movie"
-    },
-    "movie:9027": {
-      "channels": [
-        74
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Guru",
       "mediaType": "movie"
     },
     "movie:1362": {
@@ -21789,9 +20012,9 @@
     },
     "movie:16119": {
       "channels": [
-        74,
         61,
-        64
+        64,
+        74
       ],
       "source": "collection-via:Cinderella (Cinderella Collection)",
       "name": "Cinderella III: A Twist in Time",
@@ -21799,9 +20022,9 @@
     },
     "movie:14128": {
       "channels": [
-        74,
         61,
-        64
+        64,
+        74
       ],
       "source": "collection-via:Cinderella (Cinderella Collection)",
       "name": "Cinderella II: Dreams Come True",
@@ -21969,20 +20192,10 @@
     },
     "movie:163631": {
       "channels": [
-        74,
-        61,
         64
       ],
       "source": "collection-via:Love Story (Love Story Collection)",
       "name": "Oliver's Story",
-      "mediaType": "movie"
-    },
-    "movie:262500": {
-      "channels": [
-        74
-      ],
-      "source": "collection-via:Allegiant (Divergent Collection)",
-      "name": "Insurgent",
       "mediaType": "movie"
     },
     "movie:157350": {
@@ -22011,19 +20224,10 @@
     },
     "movie:562": {
       "channels": [
-        74,
         13
       ],
       "source": "collection-via:Die Hard: With a Vengeance (Die Hard Collection)",
       "name": "Die Hard",
-      "mediaType": "movie"
-    },
-    "movie:47964": {
-      "channels": [
-        74
-      ],
-      "source": "collection-via:Die Hard: With a Vengeance (Die Hard Collection)",
-      "name": "A Good Day to Die Hard",
       "mediaType": "movie"
     },
     "movie:15515": {
@@ -22048,14 +20252,6 @@
       ],
       "source": "collection-via:Tinker Bell and the Legend of the NeverBeast (Tinker Bell Collection)",
       "name": "Tinker Bell",
-      "mediaType": "movie"
-    },
-    "movie:175112": {
-      "channels": [
-        74
-      ],
-      "source": "collection-via:Tinker Bell and the Legend of the NeverBeast (Tinker Bell Collection)",
-      "name": "Tinker Bell and the Pirate Fairy",
       "mediaType": "movie"
     },
     "movie:75258": {
@@ -22272,14 +20468,6 @@
       ],
       "source": "recommendation:6 exemplars",
       "name": "Badland",
-      "mediaType": "movie"
-    },
-    "movie:102629": {
-      "channels": [
-        75
-      ],
-      "source": "recommendation:6 exemplars",
-      "name": "El Gringo",
       "mediaType": "movie"
     },
     "movie:354110": {
@@ -22544,14 +20732,6 @@
       ],
       "source": "both:3 exemplars",
       "name": "Ace High",
-      "mediaType": "movie"
-    },
-    "movie:11942": {
-      "channels": [
-        75
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Bring Me the Head of Alfredo Garcia",
       "mediaType": "movie"
     },
     "movie:938": {
@@ -22874,22 +21054,6 @@
       "name": "Duel at Diablo",
       "mediaType": "movie"
     },
-    "movie:20287": {
-      "channels": [
-        75
-      ],
-      "source": "both:2 exemplars",
-      "name": "Extreme Prejudice",
-      "mediaType": "movie"
-    },
-    "movie:8923": {
-      "channels": [
-        75
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Green Street Hooligans",
-      "mediaType": "movie"
-    },
     "movie:10935": {
       "channels": [
         75
@@ -22912,14 +21076,6 @@
       ],
       "source": "similar:2 exemplars",
       "name": "Jessi's Girls",
-      "mediaType": "movie"
-    },
-    "movie:9333": {
-      "channels": [
-        75
-      ],
-      "source": "both:2 exemplars",
-      "name": "Last Man Standing",
       "mediaType": "movie"
     },
     "movie:30718": {
@@ -22946,14 +21102,6 @@
       "name": "Little Big Man",
       "mediaType": "movie"
     },
-    "movie:11387": {
-      "channels": [
-        75
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Lord Jim",
-      "mediaType": "movie"
-    },
     "movie:16250": {
       "channels": [
         75
@@ -22968,14 +21116,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Mackenna's Gold",
-      "mediaType": "movie"
-    },
-    "movie:265178": {
-      "channels": [
-        75
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Mauri",
       "mediaType": "movie"
     },
     "movie:51997": {
@@ -22996,7 +21136,6 @@
     },
     "movie:11202": {
       "channels": [
-        75,
         201,
         76
       ],
@@ -23140,29 +21279,12 @@
       "name": "The Cherokee Flash",
       "mediaType": "movie"
     },
-    "movie:11583": {
-      "channels": [
-        75,
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The First Great Train Robbery",
-      "mediaType": "movie"
-    },
     "movie:61594": {
       "channels": [
         75
       ],
       "source": "recommendation:2 exemplars",
       "name": "The Grand Duel",
-      "mediaType": "movie"
-    },
-    "movie:11575": {
-      "channels": [
-        75
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Great Race",
       "mediaType": "movie"
     },
     "movie:492565": {
@@ -23317,257 +21439,8 @@
       "name": "Sartana's Here... Trade Your Pistol for a Coffin",
       "mediaType": "movie"
     },
-    "movie:9342": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:The Legend of Zorro (Zorro Collection)",
-      "name": "The Mask of Zorro",
-      "mediaType": "movie"
-    },
-    "movie:19307": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Camping",
-      "mediaType": "movie"
-    },
-    "movie:19252": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Abroad",
-      "mediaType": "movie"
-    },
-    "movie:5060": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Screaming!",
-      "mediaType": "movie"
-    },
-    "movie:26327": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Dick",
-      "mediaType": "movie"
-    },
-    "movie:5066": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Cleo",
-      "mediaType": "movie"
-    },
-    "movie:32113": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Teacher",
-      "mediaType": "movie"
-    },
-    "movie:19254": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Cabby",
-      "mediaType": "movie"
-    },
-    "movie:32110": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Sergeant",
-      "mediaType": "movie"
-    },
-    "movie:32109": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Spying",
-      "mediaType": "movie"
-    },
-    "movie:26329": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Girls",
-      "mediaType": "movie"
-    },
-    "movie:24570": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Loving",
-      "mediaType": "movie"
-    },
-    "movie:24571": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Matron",
-      "mediaType": "movie"
-    },
-    "movie:32107": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Nurse",
-      "mediaType": "movie"
-    },
-    "movie:21251": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On England",
-      "mediaType": "movie"
-    },
-    "movie:5064": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Doctor",
-      "mediaType": "movie"
-    },
-    "movie:21240": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Constable",
-      "mediaType": "movie"
-    },
-    "movie:34743": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Emmannuelle",
-      "mediaType": "movie"
-    },
-    "movie:22937": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Up the Khyber",
-      "mediaType": "movie"
-    },
-    "movie:36481": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "That's Carry On!",
-      "mediaType": "movie"
-    },
-    "movie:19725": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Columbus",
-      "mediaType": "movie"
-    },
-    "movie:32115": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Regardless",
-      "mediaType": "movie"
-    },
-    "movie:26190": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Cruising",
-      "mediaType": "movie"
-    },
-    "movie:32105": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Jack",
-      "mediaType": "movie"
-    },
-    "movie:5061": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Don't Lose Your Head",
-      "mediaType": "movie"
-    },
-    "movie:24568": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Follow That Camel",
-      "mediaType": "movie"
-    },
-    "movie:19293": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Again Doctor",
-      "mediaType": "movie"
-    },
-    "movie:17276": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Up the Jungle",
-      "mediaType": "movie"
-    },
-    "movie:24569": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Henry",
-      "mediaType": "movie"
-    },
-    "movie:19297": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On at Your Convenience",
-      "mediaType": "movie"
-    },
-    "movie:19300": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Carry On Cowboy (Carry On Collection)",
-      "name": "Carry On Behind",
-      "mediaType": "movie"
-    },
     "movie:139262": {
       "channels": [
-        75,
         201,
         76
       ],
@@ -23687,14 +21560,6 @@
       "name": "Love Finds A Home",
       "mediaType": "movie"
     },
-    "movie:81450": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Love Comes Softly (Love Comes Softly Collection)",
-      "name": "Love Begins",
-      "mediaType": "movie"
-    },
     "movie:87311": {
       "channels": [
         75
@@ -23719,14 +21584,6 @@
       "name": "The Man from Snowy River",
       "mediaType": "movie"
     },
-    "movie:10640": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Westworld (Westworld Collection)",
-      "name": "Futureworld",
-      "mediaType": "movie"
-    },
     "movie:43417": {
       "channels": [
         75
@@ -23749,30 +21606,6 @@
       ],
       "source": "collection-via:The Magnificent Seven (The Magnificent Seven Collection)",
       "name": "Guns of the Magnificent Seven",
-      "mediaType": "movie"
-    },
-    "movie:42792": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Nevada Smith (Nevada Smith Collection)",
-      "name": "The Carpetbaggers",
-      "mediaType": "movie"
-    },
-    "movie:15809": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Green Street Hooligans (Green Street Hooligans Collection)",
-      "name": "Green Street Hooligans 2",
-      "mediaType": "movie"
-    },
-    "movie:182873": {
-      "channels": [
-        75
-      ],
-      "source": "collection-via:Green Street Hooligans (Green Street Hooligans Collection)",
-      "name": "Green Street 3: Never Back Down",
       "mediaType": "movie"
     },
     "tv:30991": {
@@ -24972,68 +22805,12 @@
       "name": "Cabaret",
       "mediaType": "movie"
     },
-    "movie:256459": {
-      "channels": [
-        61
-      ],
-      "source": "similar:9 exemplars",
-      "name": "As Jy Sing",
-      "mediaType": "movie"
-    },
     "movie:256469": {
       "channels": [
         61
       ],
       "source": "similar:8 exemplars",
       "name": "How's About It",
-      "mediaType": "movie"
-    },
-    "movie:11816": {
-      "channels": [
-        61
-      ],
-      "source": "similar:7 exemplars",
-      "name": "On Golden Pond",
-      "mediaType": "movie"
-    },
-    "movie:906": {
-      "channels": [
-        61
-      ],
-      "source": "similar:6 exemplars",
-      "name": "The Three from the Filling Station",
-      "mediaType": "movie"
-    },
-    "movie:800750": {
-      "channels": [
-        61
-      ],
-      "source": "similar:6 exemplars",
-      "name": "The World of Sholom Aleichem",
-      "mediaType": "movie"
-    },
-    "movie:609271": {
-      "channels": [
-        61
-      ],
-      "source": "similar:5 exemplars",
-      "name": "Under the Boardwalk",
-      "mediaType": "movie"
-    },
-    "movie:795": {
-      "channels": [
-        61
-      ],
-      "source": "similar:4 exemplars",
-      "name": "City of Angels",
-      "mediaType": "movie"
-    },
-    "movie:1533042": {
-      "channels": [
-        61
-      ],
-      "source": "similar:4 exemplars",
-      "name": "Poultrygeist 2: Dawn of the Chicken Dead",
       "mediaType": "movie"
     },
     "movie:1533462": {
@@ -25046,7 +22823,6 @@
     },
     "movie:11247": {
       "channels": [
-        61,
         14,
         64
       ],
@@ -25071,14 +22847,6 @@
       "name": "Elvis",
       "mediaType": "movie"
     },
-    "movie:1163993": {
-      "channels": [
-        61
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Johnny Púčik and His Career",
-      "mediaType": "movie"
-    },
     "movie:1038263": {
       "channels": [
         61,
@@ -25088,60 +22856,12 @@
       "name": "Maria",
       "mediaType": "movie"
     },
-    "movie:917": {
-      "channels": [
-        61
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Mother India",
-      "mediaType": "movie"
-    },
-    "movie:606": {
-      "channels": [
-        61
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Out of Africa",
-      "mediaType": "movie"
-    },
-    "movie:905": {
-      "channels": [
-        61
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Pandora's Box",
-      "mediaType": "movie"
-    },
-    "movie:11653": {
-      "channels": [
-        61
-      ],
-      "source": "similar:3 exemplars",
-      "name": "The Myth",
-      "mediaType": "movie"
-    },
-    "movie:609127": {
-      "channels": [
-        61
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Zlatá Kateřina",
-      "mediaType": "movie"
-    },
     "movie:256762": {
       "channels": [
         61
       ],
       "source": "similar:2 exemplars",
       "name": "A Song for Miss Julie",
-      "mediaType": "movie"
-    },
-    "movie:1163774": {
-      "channels": [
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Ako ostrihať manžela",
       "mediaType": "movie"
     },
     "movie:26177": {
@@ -25176,68 +22896,12 @@
       "name": "Coda",
       "mediaType": "movie"
     },
-    "movie:454652": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Colette",
-      "mediaType": "movie"
-    },
-    "movie:1590": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Copying Beethoven",
-      "mediaType": "movie"
-    },
-    "movie:256591": {
-      "channels": [
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Focus",
-      "mediaType": "movie"
-    },
-    "movie:556574": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Hamilton",
-      "mediaType": "movie"
-    },
     "movie:540158": {
       "channels": [
         61
       ],
       "source": "recommendation:2 exemplars",
       "name": "High Strung Free Dance",
-      "mediaType": "movie"
-    },
-    "movie:11440": {
-      "channels": [
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Hilde",
-      "mediaType": "movie"
-    },
-    "movie:609352": {
-      "channels": [
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "L.A. Johns",
-      "mediaType": "movie"
-    },
-    "movie:354743": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Lady Chatterley's Lover",
       "mediaType": "movie"
     },
     "movie:523607": {
@@ -25254,47 +22918,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Make It Happen",
-      "mediaType": "movie"
-    },
-    "movie:788": {
-      "channels": [
-        61,
-        11
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Mrs. Doubtfire",
-      "mediaType": "movie"
-    },
-    "movie:426063": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Nosferatu",
-      "mediaType": "movie"
-    },
-    "movie:1342394": {
-      "channels": [
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Our House Is on Fire",
-      "mediaType": "movie"
-    },
-    "movie:893": {
-      "channels": [
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Policewoman",
-      "mediaType": "movie"
-    },
-    "movie:1169494": {
-      "channels": [
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Por una mujer casada",
       "mediaType": "movie"
     },
     "movie:58936": {
@@ -25322,22 +22945,6 @@
       "name": "Repo! The Genetic Opera",
       "mediaType": "movie"
     },
-    "movie:668482": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Roald Dahl's Matilda the Musical",
-      "mediaType": "movie"
-    },
-    "movie:609211": {
-      "channels": [
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Sasaki Kojiro, Part 2",
-      "mediaType": "movie"
-    },
     "movie:9816": {
       "channels": [
         61
@@ -25352,46 +22959,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "The Doors",
-      "mediaType": "movie"
-    },
-    "movie:427214": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "The Happy Prince",
-      "mediaType": "movie"
-    },
-    "movie:981": {
-      "channels": [
-        61
-      ],
-      "source": "similar:2 exemplars",
-      "name": "The Philadelphia Story",
-      "mediaType": "movie"
-    },
-    "movie:804406": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "The Piano Lesson",
-      "mediaType": "movie"
-    },
-    "movie:24961": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "The Wiz",
-      "mediaType": "movie"
-    },
-    "movie:739547": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Thelma the Unicorn",
       "mediaType": "movie"
     },
     "movie:32489": {
@@ -25418,17 +22985,8 @@
       "name": "Whitney Houston: I Wanna Dance with Somebody",
       "mediaType": "movie"
     },
-    "movie:402431": {
-      "channels": [
-        61
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Wicked",
-      "mediaType": "movie"
-    },
     "movie:614": {
       "channels": [
-        61,
         211
       ],
       "source": "similar:2 exemplars",
@@ -25444,17 +23002,8 @@
       "name": "Yellow Submarine",
       "mediaType": "movie"
     },
-    "movie:27997": {
-      "channels": [
-        61
-      ],
-      "source": "collection-via:The Rocky Horror Picture Show (The Rocky Horror Picture Show Collection)",
-      "name": "Shock Treatment",
-      "mediaType": "movie"
-    },
     "movie:74018": {
       "channels": [
-        61,
         64
       ],
       "source": "collection-via:Another Cinderella Story (Cinderella Story Collection)",
@@ -25479,22 +23028,6 @@
       "name": "A Cinderella Story: Starstruck",
       "mediaType": "movie"
     },
-    "movie:33258": {
-      "channels": [
-        61
-      ],
-      "source": "collection-via:American Graffiti (American Graffiti Collection)",
-      "name": "More American Graffiti",
-      "mediaType": "movie"
-    },
-    "movie:967941": {
-      "channels": [
-        61
-      ],
-      "source": "collection-via:Wicked (Wicked Collection)",
-      "name": "Wicked: For Good",
-      "mediaType": "movie"
-    },
     "movie:468201": {
       "channels": [
         61
@@ -25509,38 +23042,6 @@
       ],
       "source": "collection-via:Pure Country 2: The Gift (Pure Country Collection)",
       "name": "Pure Country",
-      "mediaType": "movie"
-    },
-    "movie:1116465": {
-      "channels": [
-        61
-      ],
-      "source": "collection-via:The Myth (The Myth Collection)",
-      "name": "A Legend",
-      "mediaType": "movie"
-    },
-    "movie:383785": {
-      "channels": [
-        61
-      ],
-      "source": "collection-via:The Myth (The Myth Collection)",
-      "name": "Kung Fu Yoga",
-      "mediaType": "movie"
-    },
-    "movie:9817": {
-      "channels": [
-        61
-      ],
-      "source": "collection-via:Save the Last Dance (Save the Last Dance Collection)",
-      "name": "Save the Last Dance 2",
-      "mediaType": "movie"
-    },
-    "movie:434644": {
-      "channels": [
-        61
-      ],
-      "source": "collection-via:Sasaki Kojiro, Part 2 (Sasaki Kojiro Collection)",
-      "name": "Sasaki Kojiro",
       "mediaType": "movie"
     },
     "movie:382399": {
@@ -25762,28 +23263,12 @@
       "name": "Happily Ever After",
       "mediaType": "movie"
     },
-    "movie:11335": {
-      "channels": [
-        11
-      ],
-      "source": "similar:3 exemplars",
-      "name": "Popeye",
-      "mediaType": "movie"
-    },
     "movie:9325": {
       "channels": [
         11
       ],
       "source": "recommendation:3 exemplars",
       "name": "The Jungle Book",
-      "mediaType": "movie"
-    },
-    "movie:854": {
-      "channels": [
-        11
-      ],
-      "source": "similar:3 exemplars",
-      "name": "The Mask",
       "mediaType": "movie"
     },
     "movie:11319": {
@@ -25804,7 +23289,6 @@
     },
     "movie:11212": {
       "channels": [
-        11,
         14
       ],
       "source": "both:2 exemplars",
@@ -25819,36 +23303,12 @@
       "name": "Birthday Night",
       "mediaType": "movie"
     },
-    "movie:927": {
-      "channels": [
-        11
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Gremlins",
-      "mediaType": "movie"
-    },
     "movie:42518": {
       "channels": [
         11
       ],
       "source": "recommendation:2 exemplars",
       "name": "Gulliver's Travels",
-      "mediaType": "movie"
-    },
-    "movie:25059": {
-      "channels": [
-        11
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Homeward Bound II: Lost in San Francisco",
-      "mediaType": "movie"
-    },
-    "movie:14499": {
-      "channels": [
-        11
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Mio in the Land of Faraway",
       "mediaType": "movie"
     },
     "movie:33539": {
@@ -25881,14 +23341,6 @@
       ],
       "source": "recommendation:2 exemplars",
       "name": "Sleeping Beauty",
-      "mediaType": "movie"
-    },
-    "movie:10137": {
-      "channels": [
-        11
-      ],
-      "source": "recommendation:2 exemplars",
-      "name": "Stuart Little",
       "mediaType": "movie"
     },
     "movie:10112": {
@@ -26195,14 +23647,6 @@
       ],
       "source": "similar:2 exemplars",
       "name": "Fresh",
-      "mediaType": "movie"
-    },
-    "movie:13697": {
-      "channels": [
-        13
-      ],
-      "source": "similar:2 exemplars",
-      "name": "Grand Canyon",
       "mediaType": "movie"
     },
     "movie:65497": {
@@ -43761,6 +41205,110 @@
       ],
       "source": "collection-via:Freeway (Freeway Collection)",
       "name": "Freeway II: Confessions of a Trickbaby",
+      "mediaType": "movie"
+    },
+    "movie:256459": {
+      "channels": [
+        61
+      ],
+      "source": "similar:9 exemplars",
+      "name": "As Jy Sing",
+      "mediaType": "movie"
+    },
+    "movie:906": {
+      "channels": [
+        61
+      ],
+      "source": "similar:6 exemplars",
+      "name": "The Three from the Filling Station",
+      "mediaType": "movie"
+    },
+    "movie:609271": {
+      "channels": [
+        61
+      ],
+      "source": "similar:5 exemplars",
+      "name": "Under the Boardwalk",
+      "mediaType": "movie"
+    },
+    "movie:1533042": {
+      "channels": [
+        61
+      ],
+      "source": "similar:4 exemplars",
+      "name": "Poultrygeist 2: Dawn of the Chicken Dead",
+      "mediaType": "movie"
+    },
+    "movie:917": {
+      "channels": [
+        61
+      ],
+      "source": "similar:3 exemplars",
+      "name": "Mother India",
+      "mediaType": "movie"
+    },
+    "movie:556574": {
+      "channels": [
+        61
+      ],
+      "source": "recommendation:2 exemplars",
+      "name": "Hamilton",
+      "mediaType": "movie"
+    },
+    "movie:668482": {
+      "channels": [
+        61
+      ],
+      "source": "recommendation:2 exemplars",
+      "name": "Roald Dahl's Matilda the Musical",
+      "mediaType": "movie"
+    },
+    "movie:24961": {
+      "channels": [
+        61
+      ],
+      "source": "recommendation:2 exemplars",
+      "name": "The Wiz",
+      "mediaType": "movie"
+    },
+    "movie:739547": {
+      "channels": [
+        61
+      ],
+      "source": "recommendation:2 exemplars",
+      "name": "Thelma the Unicorn",
+      "mediaType": "movie"
+    },
+    "movie:402431": {
+      "channels": [
+        61
+      ],
+      "source": "recommendation:2 exemplars",
+      "name": "Wicked",
+      "mediaType": "movie"
+    },
+    "movie:27997": {
+      "channels": [
+        61
+      ],
+      "source": "collection-via:The Rocky Horror Picture Show (The Rocky Horror Picture Show Collection)",
+      "name": "Shock Treatment",
+      "mediaType": "movie"
+    },
+    "movie:967941": {
+      "channels": [
+        61
+      ],
+      "source": "collection-via:Wicked (Wicked Collection)",
+      "name": "Wicked: For Good",
+      "mediaType": "movie"
+    },
+    "movie:9817": {
+      "channels": [
+        61
+      ],
+      "source": "collection-via:Save the Last Dance (Save the Last Dance Collection)",
+      "name": "Save the Last Dance 2",
       "mediaType": "movie"
     }
   }

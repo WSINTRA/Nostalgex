@@ -149,7 +149,7 @@ final class AnalyticsEventTests: XCTestCase {
 
     func testChannelTunedForCollectionOmitsChannelIDAndChannelName() {
         let event = AnalyticsEvent.channelTuned(
-            channelNumber: 221,
+            channelNumber: 300,
             backend: .plex,
             method: .guide,
             channel: collectionDescriptor

@@ -25,6 +25,12 @@ struct MediaEnrichment: Codable, Sendable {
     let metacriticScore: Int?           // 0 – 100, nil if no MC rating
     let awards: String?                 // raw OMDb "Awards" string
 
+    // Franchise fields (nullable — populated from TMDB belongs_to_collection on movies only.
+    // TV has no collection, so both stay nil for tv rows and for any row cached before the
+    // Phase 0 franchise migration was applied.)
+    let franchiseID: Int?               // TMDB belongs_to_collection.id
+    let franchiseName: String?          // TMDB belongs_to_collection.name
+
     let fetchedAt: Date
 
     enum CodingKeys: String, CodingKey {
@@ -40,6 +46,8 @@ struct MediaEnrichment: Codable, Sendable {
         case rottenTomatoesScore = "rt_score"
         case metacriticScore = "metacritic_score"
         case awards
+        case franchiseID = "franchise_id"
+        case franchiseName = "franchise_name"
         case fetchedAt = "fetched_at"
     }
 
@@ -59,6 +67,8 @@ struct MediaEnrichment: Codable, Sendable {
         rottenTomatoesScore = try c.decodeIfPresent(Int.self, forKey: .rottenTomatoesScore)
         metacriticScore = try c.decodeIfPresent(Int.self, forKey: .metacriticScore)
         awards = try c.decodeIfPresent(String.self, forKey: .awards)
+        franchiseID = try c.decodeIfPresent(Int.self, forKey: .franchiseID)
+        franchiseName = try c.decodeIfPresent(String.self, forKey: .franchiseName)
         fetchedAt = (try? c.decode(Date.self, forKey: .fetchedAt)) ?? Date()
     }
 
@@ -67,6 +77,7 @@ struct MediaEnrichment: Codable, Sendable {
     init(tmdbID: String, imdbID: String?, mediaType: String,
          keywords: [String], networks: [String], productionCompanies: [String], tmdbGenres: [String],
          imdbRating: Double?, imdbVotes: Int?, rottenTomatoesScore: Int?, metacriticScore: Int?, awards: String?,
+         franchiseID: Int? = nil, franchiseName: String? = nil,
          fetchedAt: Date) {
         self.tmdbID = tmdbID
         self.imdbID = imdbID
@@ -80,6 +91,8 @@ struct MediaEnrichment: Codable, Sendable {
         self.rottenTomatoesScore = rottenTomatoesScore
         self.metacriticScore = metacriticScore
         self.awards = awards
+        self.franchiseID = franchiseID
+        self.franchiseName = franchiseName
         self.fetchedAt = fetchedAt
     }
 
@@ -98,6 +111,8 @@ struct MediaEnrichment: Codable, Sendable {
             rottenTomatoesScore: omdb.rottenTomatoesScore,
             metacriticScore: omdb.metacriticScore,
             awards: omdb.awards,
+            franchiseID: franchiseID,
+            franchiseName: franchiseName,
             fetchedAt: Date()
         )
     }

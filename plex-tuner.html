@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nostalgex</title>
+<!-- Filled in by Vite from VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY (.env.local, or the
+     Vercel project env). Left as placeholders when unset, which turns enrichment off.
+     The anon key is public by design; row level security on media_enrichments is the
+     protection. See scripts/nostalgex-enrichment.js. -->
+<meta name="nostalgex-supabase-url" content="%VITE_SUPABASE_URL%">
+<meta name="nostalgex-supabase-anon-key" content="%VITE_SUPABASE_ANON_KEY%">
+<meta name="nostalgex-tmdb-relay" content="%VITE_TMDB_RELAY_URL%">
 <link rel="icon" type="image/png" href="./logo/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
@@ -13,6 +20,10 @@
 <script src="scripts/nostalgex-music-brainz.js"></script>
 <script src="scripts/nostalgex-daily-manifest.js"></script>
 <script src="scripts/nostalgex-library-load.js"></script>
+<script src="scripts/nostalgex-enrichment.js"></script>
+<script src="scripts/nostalgex-collections.js"></script>
+<script src="scripts/nostalgex-watch-state.js"></script>
+<script src="scripts/nostalgex-jellyfin-urls.js"></script>
 <style>
   :root {
     --bg: #080810;
@@ -312,6 +323,10 @@
     letter-spacing: 1px;
     white-space: nowrap;
   }
+  /* Transparent on a pointer screen: the children are the column's own items,
+     so nothing about the desktop or TV layout changes. The touch blocks below
+     switch it to flex and give it a border. */
+  .loading-library-panel { display: contents; }
   .loading-library-rail {
     display: flex;
     align-items: flex-start;
@@ -586,10 +601,15 @@
     padding: 20px 10px;
     width: 140px;
     flex-shrink: 0;
-    justify-content: center;
+    /* `safe` so a rail taller than its row scrolls from the top instead of
+       centring and clipping its first and last control. */
+    justify-content: safe center;
+    overflow-y: auto;
+    scrollbar-width: none;
     background: linear-gradient(135deg, #0a0a1a 0%, #0d0d20 100%);
     border-right: 1px solid rgba(255,255,255,0.07);
   }
+  .v-toolbar::-webkit-scrollbar { display: none; }
 
   .player-screen.layout-side.has-channel .v-toolbar {
     display: flex;
@@ -660,6 +680,202 @@
     color: var(--orange);
   }
 
+  /* Short, hint-free button label. Desktop keeps the keyboard hints; touch
+     layouts swap to this one, because [M] and [F] mean nothing on a phone. */
+  .v-btn-short {
+    display: none;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: rgba(0, 196, 255, 0.55);
+    letter-spacing: 1px;
+    line-height: 1.35;
+  }
+  .v-btn:hover .v-btn-short { color: #000; }
+
+  /* ══════════════════════════════════════
+     TOUCH TOP BAR (phones and tablets)
+  ══════════════════════════════════════ */
+  .m-topbar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    height: calc(48px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left));
+    background: linear-gradient(135deg, #0a0a1a 0%, #0d0d20 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    position: relative;
+    z-index: 60;
+  }
+  .m-topbar-logo {
+    width: 96px;
+    height: auto;
+    opacity: 0.85;
+    flex-shrink: 0;
+  }
+
+  /* ══════════════════════════════════════
+     TOUCH CONTROLS: MENU BUTTON AND DRAWER
+
+     On a phone or tablet the guide and the video are the product, so the
+     controls are not on screen at all. They live behind one button in the top
+     right and open as a sheet from the right edge. Desktop and TV never show
+     either: both are display:none until a touch media query turns them on.
+  ══════════════════════════════════════ */
+  .m-menu-btn {
+    display: none;
+    align-items: center;
+    gap: 7px;
+    height: 44px;
+    padding: 0 12px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--cyan);
+    border-radius: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .m-menu-btn-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  /* Three stacked bars, drawn as blocks so they keep the pixel edge the rest
+     of the interface has. */
+  .m-menu-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .m-menu-bars span {
+    display: block;
+    width: 15px;
+    height: 3px;
+    background: var(--cyan);
+  }
+  .m-menu-btn:active { background: rgba(0, 196, 255, 0.2); }
+
+  .m-drawer-scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.66);
+    z-index: 399;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  body.drawer-open .m-drawer-scrim { opacity: 1; pointer-events: auto; }
+
+  .m-drawer {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(300px, 84vw);
+    z-index: 400;
+    flex-direction: column;
+    gap: 8px;
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) 12px;
+    background: linear-gradient(135deg, #0a0a1a 0%, #0d0d20 100%);
+    border-left: 2px solid var(--cyan);
+    overflow-y: auto;
+    scrollbar-width: none;
+    transform: translateX(100%);
+    transition: transform 0.22s ease;
+  }
+  .m-drawer::-webkit-scrollbar { display: none; }
+  body.drawer-open .m-drawer { transform: translateX(0); }
+
+  .m-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+  }
+  .m-drawer-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .m-drawer-close {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--cyan);
+    border-radius: 0;
+    cursor: pointer;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    line-height: 1;
+  }
+  .m-drawer-close:active { background: rgba(0, 196, 255, 0.2); }
+
+  .m-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 52px;
+    flex-shrink: 0;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--cyan);
+    border-radius: 0;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: none;
+  }
+  .m-drawer-item:active { background: rgba(0, 196, 255, 0.2); }
+  .m-drawer-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    line-height: 1.5;
+    flex: 1 1 auto;
+  }
+  .m-drawer-value {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    line-height: 1.5;
+    flex-shrink: 0;
+  }
+  .m-drawer-value.off { color: var(--orange); }
+  .m-drawer-item svg { display: block; flex-shrink: 0; }
+
+  /* The coffee box is the only control asking for anything, so it is the only
+     warm one in here. */
+  .m-drawer-item--coffee {
+    background: var(--yellow);
+    border-color: var(--yellow);
+    margin-top: 4px;
+    animation: coffee-glow 2.4s ease-in-out infinite;
+  }
+  .m-drawer-item--coffee .m-drawer-label { color: #000; }
+  .m-drawer-item--coffee svg .steam { animation: coffee-steam 1.8s ease-in-out infinite; }
+  .m-drawer-item--coffee:active { background: #fff; border-color: #fff; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .m-drawer, .m-drawer-scrim { transition: none; }
+    .m-drawer-item--coffee { animation: none; }
+    .m-drawer-item--coffee svg .steam { animation: none; }
+  }
+
   /* Buy Me a Coffee box — the one button meant to stand out */
   @keyframes coffee-glow {
     0%, 100% { box-shadow: 0 0 6px rgba(255,221,0,0.45), 0 0 14px rgba(255,221,0,0.18); }
@@ -700,6 +916,34 @@
     color: #000;
     letter-spacing: 1px;
     line-height: 1.5;
+  }
+
+  /* Instagram sits under the coffee box, in the toolbar's own shape and colour
+     so the yellow one stays the only button that asks for something. */
+  .v-social {
+    margin-top: 8px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid var(--cyan);
+    border-radius: 0;
+    padding: 10px 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s ease;
+  }
+  .v-social:hover { background: rgba(0,196,255,0.14); transform: translateY(-2px); }
+  .v-social svg { display: block; flex-shrink: 0; }
+  .v-social-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: rgba(0, 196, 255, 0.55);
+    letter-spacing: 1px;
+    line-height: 1;
   }
 
 
@@ -878,7 +1122,18 @@
     flex-direction: column;
     align-items: center;
     gap: 16px;
-    width: 500px;
+    /* min() so the column is the same 500px on a desktop and never wider than
+       the screen on a phone, where it used to run off both edges and take the
+       row checkboxes with it. */
+    width: min(500px, 100%);
+    max-width: 100%;
+  }
+  .server-picker-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    min-width: 0;
   }
   .server-picker.active { display: flex; }
   .server-picker-title {
@@ -931,6 +1186,24 @@
   }
   .server-option-info { flex: 1; min-width: 0; }
   .server-option-name { color: #fff; }
+  /* Both of these are touch-only; a pointer screen keeps the inline "(shared)"
+     suffix and the always-visible address it has always had. */
+  .server-option-tags { display: none; }
+  .server-picker-addr { display: none; }
+  .server-tag {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    letter-spacing: 1px;
+    padding: 4px 6px;
+    border: 1px solid rgba(0,196,255,0.35);
+    color: rgba(0,196,255,0.9);
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .server-tag--off {
+    border-color: rgba(255,120,120,0.5);
+    color: #ff8a8a;
+  }
   .server-option-url {
     font-size: 22px;
     color: rgba(255,255,255,0.35);
@@ -1004,6 +1277,21 @@
     line-height: 1.8;
   }
   .display-status.visible { opacity: 1; }
+  .display-status .failure-headline {
+    font-size: 11px; letter-spacing: 2px; margin-bottom: 14px;
+  }
+  .display-status .failure-detail {
+    font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: 0;
+    line-height: 1.6; color: rgba(255,255,255,0.75); max-width: 560px; margin: 0 auto;
+    text-transform: none;
+  }
+  .display-status .failure-next {
+    font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0;
+    color: rgba(255,255,255,0.4); margin-top: 14px; text-transform: none;
+  }
+  /* amber: go and look at your server. red: this file or this browser. */
+  .display-status.server-side .failure-headline { color: #FFB020; }
+  .display-status.device-side .failure-headline { color: var(--red); }
 
   /* ══════════════════════════════════════
      NOW PLAYING OVERLAY
@@ -1297,6 +1585,34 @@
   .grid-row--promo[data-promo="email"] .grid-promo-dot { background: #00C4FF; box-shadow: 0 0 6px #00C4FF; }
   .grid-row--promo[data-promo="coffee"] .grid-promo-content { color: rgba(255,230,0,0.9); }
   .grid-row--promo[data-promo="coffee"] .grid-promo-dot { background: #FFE500; box-shadow: 0 0 6px #FFE500; }
+  /* Seasonal invitation: one channel row tall, outlined, nothing else in the grid changes */
+  .grid-row--seasonal {
+    height: 64px;
+    border: 2px solid rgba(255,120,0,0.7) !important;
+    background: rgba(255,120,0,0.08);
+    cursor: pointer;
+  }
+  .grid-row--seasonal .grid-promo-content { justify-content: flex-start; gap: 18px; color: #fff; }
+  .grid-seasonal-headline {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #FF7800;
+    white-space: nowrap;
+  }
+  .grid-seasonal-pill, .grid-seasonal-quiet {
+    font-family: 'VT323', monospace;
+    font-size: 19px;
+    letter-spacing: 1px;
+    border-radius: 999px;
+    padding: 4px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .grid-seasonal-pill { background: #FF7800; color: #000; border: 0; }
+  .grid-seasonal-pill:hover { background: #ff9a3c; }
+  .grid-seasonal-quiet { background: transparent; color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.2); }
+  .grid-seasonal-quiet:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
 
   /* Promo modal */
   .promo-modal {
@@ -1791,43 +2107,6 @@
   }
 
 
-  /* Blacklist tab */
-  .blacklist-search-wrap { position: relative; margin-bottom: 4px; }
-  .blacklist-input {
-    width: 100%; box-sizing: border-box;
-    background: rgba(255,255,255,0.05);
-    border: 2px solid rgba(255,255,255,0.15);
-    border-radius: 6px; color: #fff;
-    font-family: inherit; font-size: 14px;
-    padding: 12px 16px; outline: none;
-    letter-spacing: 0.5px;
-  }
-  .blacklist-input:focus { border-color: var(--cyan); }
-  .blacklist-input::placeholder { color: rgba(255,255,255,0.25); }
-  .blacklist-results {
-    position: absolute; left: 0; right: 0; top: calc(100% + 4px);
-    background: #1a1a1a; border: 2px solid var(--cyan);
-    border-radius: 6px; max-height: 240px; overflow-y: auto;
-    z-index: 20;
-  }
-  .blacklist-result-row {
-    padding: 10px 16px; cursor: pointer; font-size: 13px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .blacklist-result-row:last-child { border-bottom: none; }
-  .blacklist-result-row:hover { background: rgba(0,255,255,0.08); color: var(--cyan); }
-  .blacklist-entry {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 16px; margin-bottom: 4px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08); border-radius: 4px;
-    font-size: 13px; gap: 12px;
-  }
-  .blacklist-entry span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .blacklist-remove { cursor: pointer; color: rgba(255,255,255,0.25); font-size: 14px; flex-shrink: 0; line-height: 1; }
-  .blacklist-remove:hover { color: #ff4444; }
-
   /* Minimal fullscreen overlay (G key) */
   .fs-overlay {
     position: absolute;
@@ -1887,26 +2166,37 @@
     margin-right: 4px;
   }
 
+  /* Short desktop windows: the rail is centred, so once its content is taller
+     than the video row it spills past both ends and clips SOUND at the top and
+     the Instagram link at the bottom. Measured at 1280x800 and 1440x760 after
+     Instagram joined the rail: 20px and 30px over. Tighten the padding and the
+     gaps rather than drop a control. Touch pointers are excluded because there
+     the rail is the bottom bar, which has its own sizing. */
+  @media (pointer: fine) and (min-width: 1025px) and (max-height: 900px) {
+    .v-toolbar { padding: 10px 10px; gap: 6px; }
+    .v-btn { padding: 8px; gap: 4px; }
+    .v-coffee { margin-top: 6px; padding: 9px 8px; gap: 5px; }
+    .v-social { margin-top: 6px; padding: 8px; }
+  }
+  @media (pointer: fine) and (min-width: 1025px) and (max-height: 760px) {
+    .v-toolbar { padding: 6px 10px; gap: 4px; }
+    .v-btn { padding: 6px 8px; }
+    .v-coffee { margin-top: 4px; padding: 7px 8px; gap: 4px; }
+    .v-coffee svg { width: 26px; height: 26px; }
+    .v-social { margin-top: 4px; padding: 6px; }
+  }
+  @media (pointer: fine) and (min-width: 1025px) and (max-height: 700px) {
+    .v-toolbar { padding: 4px 10px; gap: 3px; }
+    .v-btn { padding: 4px 8px; gap: 3px; }
+    .v-coffee { margin-top: 3px; padding: 6px 8px; gap: 3px; }
+    .v-coffee svg { width: 22px; height: 22px; }
+    .v-social { margin-top: 3px; padding: 5px; }
+  }
+
   /* ══════════════════════════════════════
      RESPONSIVE
   ══════════════════════════════════════ */
-  @media (max-width: 700px) {
-    /* Video anchors to top, info panel stacks below */
-    .player-screen.layout-side .video-area {
-      flex: 1;
-      flex-direction: column;
-    }
-    .player-screen.layout-side.has-channel .info-panel {
-      width: 100%;
-      flex: 0 0 auto;
-      max-height: 40%;
-      overflow-y: auto;
-      padding: 16px 20px;
-      border-right: none;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      justify-content: flex-start;
-    }
-
+  @media (max-width: 1024px) {
     /* Unmute button — compact */
     .unmute-btn {
       font-size: 8px;
@@ -1923,6 +2213,498 @@
       position: static;
     }
   }
+
+  /* ──────────────────────────────────────
+     Shared touch pieces: the top bar with its menu button, the drawer that
+     holds every control, and no on-screen toolbar at all. Used by the portrait
+     and tablet-landscape blocks below. Desktop and TV never match either, so
+     nothing here can reach them.
+  ────────────────────────────────────── */
+  @media (max-width: 1024px) and (orientation: portrait),
+         (pointer: coarse) and (orientation: landscape) and (min-height: 501px) and (max-width: 1366px) {
+    .player-screen.has-channel .m-topbar { display: flex; }
+    /* The fixed corner mark sat on top of the channel tag once the info panel
+       went full width. The top bar carries the logo instead. */
+    .player-screen.has-channel .player-logo { display: none; }
+
+    /* The rail and the bottom bar are both gone here. Six controls were worth
+       a row of the guide on a phone and they are not: they are in the drawer,
+       one tap behind MENU, and the screen they held goes to the guide. */
+    .player-screen.layout-side.has-channel .v-toolbar { display: none; }
+    .player-screen.layout-side.has-channel {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .m-menu-btn { display: flex; }
+    .m-drawer { display: flex; }
+    .m-drawer-scrim { display: block; }
+    /* The closed drawer is parked off the right edge, which widens the document
+       and leaves the page scrollable sideways. body already clips; html does
+       not. */
+    html { overflow-x: hidden; overflow-x: clip; }
+
+    /* Compact info panel type. The desktop sizes are built for a 35% column on
+       a large screen and simply do not fit here. */
+    .player-screen.layout-side.has-channel .info-panel {
+      border-right: none;
+      justify-content: flex-start;
+    }
+    /* The pixel font has no built-in leading, so a tag that wraps to two lines
+       prints them on top of each other. */
+    .info-channel-tag { font-size: 8px; letter-spacing: 2px; margin-bottom: 8px; line-height: 1.6; }
+    .info-title {
+      font-size: 24px;
+      line-height: 1.15;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .info-episode-title {
+      font-size: 17px;
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .info-meta-row { font-size: 15px; gap: 8px; margin-bottom: 10px; }
+    .info-meta-badge { font-size: 7px; }
+    .info-time { font-size: 15px; }
+    .info-progress-wrap { gap: 10px; }
+    .info-upnext { font-size: 14px; margin-top: 10px; }
+
+    /* Guide: narrower channel column, shorter rows, so more of the lineup
+       is on screen at once. */
+    .grid-channel-col, .grid-row-channel { width: 104px; padding: 0 8px; }
+    .grid-channel-col { font-size: 7px; letter-spacing: 1px; }
+    .grid-row { height: 34px; }
+    .grid-ch-num { font-size: 16px; min-width: 18px; }
+    .grid-ch-name { font-size: 15px; letter-spacing: 0; }
+    /* The header is a fixed 32px; a wrapped time label spills into the rows. */
+    .grid-time-slot { font-size: 16px; padding: 0 6px; white-space: nowrap; }
+    .grid-footer { display: none; }
+  }
+
+  /* ──────────────────────────────────────
+     Portrait phones and tablets: the video leads, full width, then the
+     now-playing line, then the guide, then the bottom bar.
+  ────────────────────────────────────── */
+  @media (max-width: 1024px) and (orientation: portrait) {
+    .player-screen.layout-side .video-area {
+      flex: 0 0 auto;
+      flex-direction: column;
+      overflow: visible;
+    }
+    /* The video first and edge to edge. */
+    .player-screen.layout-side .video-container {
+      order: -1;
+      width: 100%;
+      flex: 0 0 auto;
+      aspect-ratio: 16 / 9;
+      min-height: 0;
+    }
+    .player-screen.layout-side.has-channel .info-panel {
+      order: 0;
+      width: 100%;
+      flex: 0 0 auto;
+      padding: 10px 14px 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    /* No room for prose next to a 16:9 video on a phone. The title, the meta
+       row and the progress are what a glance needs. */
+    .info-description { display: none; }
+    .guide-grid { flex: 1 1 auto; min-height: 0; }
+  }
+
+  /* Portrait phones proper: tighter still, and up next goes too. */
+  @media (max-width: 560px) and (orientation: portrait) {
+    .info-title { font-size: 20px; }
+    .info-episode-title { font-size: 15px; }
+    .info-upnext { display: none; }
+    .m-topbar-logo { width: 84px; }
+    /* A phone screen is all guide now, so the rows can afford to be a little
+       tighter: one more channel on screen at 393x852. */
+    .grid-row { height: 32px; }
+    /* Four time columns in 256px once the channel column is paid for. */
+    .grid-time-slot { font-size: 15px; padding: 0 5px; }
+  }
+
+  /* ──────────────────────────────────────
+     Tablet landscape: the side layout still earns its keep here, and losing
+     the 140px toolbar column is what the video needed. Type is compacted by
+     the shared block above.
+  ────────────────────────────────────── */
+  @media (pointer: coarse) and (orientation: landscape) and (min-height: 501px) and (max-width: 1366px) {
+    .player-screen.layout-side .video-area { flex: 1 1 auto; }
+    .player-screen.layout-side.has-channel .info-panel {
+      width: 34%;
+      padding: 16px 20px;
+      justify-content: center;
+    }
+    .info-description {
+      font-size: 15px;
+      line-height: 1.4;
+      max-height: calc(15px * 1.4 * 3);
+      -webkit-line-clamp: 3;
+      margin-bottom: 12px;
+    }
+    /* The bottom bar used to take 56px off the foot of the screen. Raised from
+       44% so the guide gets that back rather than the video row, which is
+       already as tall as the panel beside it allows. */
+    .guide-grid { flex: 0 0 auto; max-height: 50%; }
+  }
+
+  /* ──────────────────────────────────────
+     Landscape phones: height is the scarce dimension, so the toolbar stays a
+     vertical rail (a bottom bar would cost 56px of the 390 available) and
+     everything shrinks.
+  ────────────────────────────────────── */
+  @media (orientation: landscape) and (max-height: 500px) {
+    /* Pinned to the left edge over the full height, not just the video row.
+       Confined to the row it held six controls in 240px, which is under the
+       44px a thumb needs; the full height gives every one of them 55px. */
+    .player-screen.layout-side.has-channel {
+      padding-left: calc(84px + env(safe-area-inset-left));
+    }
+    .player-screen.layout-side.has-channel .v-toolbar {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: calc(84px + env(safe-area-inset-left));
+      padding: 6px 6px 6px calc(6px + env(safe-area-inset-left));
+      gap: 4px;
+      z-index: 70;
+      border-right: 1px solid rgba(255,255,255,0.14);
+    }
+    .player-screen.layout-side .video-area { flex: 0 0 62%; }
+    .v-toolbar .v-btn,
+    .v-toolbar .v-coffee,
+    .v-toolbar .v-social {
+      flex: 1 1 0;
+      min-height: 0;
+      padding: 4px 3px;
+      gap: 3px;
+      margin-top: 0;
+    }
+    .v-toolbar .v-btn-label,
+    .v-toolbar .v-key { display: none; }
+    .v-toolbar .v-btn-short {
+      display: block;
+      font-size: 6px;
+      letter-spacing: 0.5px;
+      color: rgba(0, 196, 255, 0.75);
+    }
+    .v-btn-value { font-size: 7px; letter-spacing: 0.5px; }
+    .v-btn--appletv { display: none; }
+    .v-toolbar .v-coffee { animation: none; }
+    .v-coffee svg { width: 16px; height: 16px; }
+    .v-coffee-label { font-size: 6px; letter-spacing: 0.5px; line-height: 1.4; }
+    .v-social { flex-direction: column; }
+    .v-social svg { width: 13px; height: 13px; }
+    .v-social-label { font-size: 6px; letter-spacing: 0.5px; }
+    @media (hover: none) {
+      .v-toolbar .v-btn:hover { background: rgba(0, 0, 0, 0.8); }
+      .v-toolbar .v-btn:hover .v-btn-short { color: rgba(0, 196, 255, 0.75); }
+      .v-toolbar .v-btn:hover .v-btn-value { color: var(--cyan); }
+      .v-toolbar .v-coffee:hover { background: var(--yellow); border-color: var(--yellow); transform: none; }
+    }
+
+    .player-screen.has-channel .player-logo { display: none; }
+    .player-screen.layout-side.has-channel .info-panel {
+      width: 32%;
+      padding: 12px 14px;
+      justify-content: center;
+    }
+    .info-channel-tag { font-size: 7px; letter-spacing: 1.5px; margin-bottom: 6px; line-height: 1.6; }
+    .info-title {
+      font-size: 19px;
+      line-height: 1.15;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .info-episode-title { font-size: 14px; margin-bottom: 4px; }
+    .info-description { display: none; }
+    .info-meta-row { font-size: 13px; gap: 6px; margin-bottom: 8px; }
+    .info-meta-badge { font-size: 6px; }
+    .info-time { font-size: 13px; }
+    .info-upnext { display: none; }
+
+    .grid-channel-col, .grid-row-channel { width: 96px; padding: 0 8px; }
+    .grid-channel-col { font-size: 7px; letter-spacing: 1px; }
+    .grid-row { height: 30px; }
+    .grid-ch-num { font-size: 15px; min-width: 16px; }
+    .grid-ch-name { font-size: 14px; letter-spacing: 0; }
+    .grid-time-slot { font-size: 15px; padding: 0 6px; white-space: nowrap; }
+    .grid-footer { display: none; }
+  }
+
+  /* ──────────────────────────────────────
+     Landscape phones, touch only: no rail either. The block above still runs
+     for a short desktop window, which keeps its rail and its key hints; this
+     one only overrides it where the pointer is a finger.
+
+     A top bar would cost 48px of the 393 available, so the menu button floats
+     in the top right corner instead, over the letterboxed black beside the
+     video, taking no layout height at all. The 84px the rail held goes back to
+     the guide's width, and the video row gives up a few percent of its height,
+     which is the only place extra guide rows can come from in landscape.
+  ────────────────────────────────────── */
+  @media (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+    .player-screen.layout-side.has-channel {
+      padding-left: env(safe-area-inset-left);
+    }
+    .player-screen.layout-side.has-channel .v-toolbar { display: none; }
+
+    /* The bar itself becomes the floating button's holder: no background, no
+       height in the flow, pinned to the top right corner. */
+    .player-screen.has-channel .m-topbar {
+      display: flex;
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: auto;
+      width: auto;
+      height: auto;
+      padding: 6px max(6px, env(safe-area-inset-right)) 0 0;
+      background: none;
+      border-bottom: 0;
+      z-index: 80;
+    }
+    .m-topbar-logo { display: none; }
+    .m-menu-btn { display: flex; height: 44px; background: rgba(0, 0, 0, 0.85); }
+    .m-drawer { display: flex; }
+    .m-drawer-scrim { display: block; }
+    html { overflow-x: hidden; overflow-x: clip; }
+
+    /* 393px of drawer for seven boxes: tighter rows, same tap target. */
+    .m-drawer { gap: 6px; padding-top: 8px; padding-bottom: 8px; }
+    .m-drawer-item { min-height: 44px; padding: 8px 12px; }
+
+
+    .player-screen.layout-side .video-area { flex: 0 0 55%; }
+  }
+
+  /* ──────────────────────────────────────
+     Touch: the server picker and the first-run build screen. Same gating as the
+     shared touch block above, so a desktop or TV pointer never matches any of
+     it. Both screens are reached before a channel exists, which is why they sit
+     outside the .has-channel rules.
+  ────────────────────────────────────── */
+  @media (max-width: 1024px) and (orientation: portrait),
+         (pointer: coarse) and (orientation: landscape) and (min-height: 501px) and (max-width: 1366px),
+         (orientation: landscape) and (max-height: 500px) {
+    /* The connect screen had no padding, so a 560px wordmark ran off both edges
+       of a 393px phone. Pad it, let it scroll when a long server list does not
+       fit, and keep the mark inside the gutters. */
+    .plex-connect {
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+               max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      justify-content: safe center;
+      overflow-y: auto;
+      gap: 16px;
+    }
+    .plex-logo { width: 100%; max-width: 360px; }
+    .plex-logo img { max-width: 100%; }
+    /* The waiting line wraps to two lines at this width and was ragged left. */
+    .plex-waiting-text, .plex-signin-label, .plex-hint { text-align: center; }
+    .server-picker-title {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 2px;
+    }
+    .server-picker, .server-picker-list { gap: 10px; }
+
+    /* A row is a name, a tick and two or three short badges. The address was
+       most of the row's height and none of its usefulness at this width. */
+    .server-option {
+      padding: 12px 14px;
+      min-height: 60px;
+      font-size: 22px;
+      border-radius: 4px;
+      gap: 12px !important;
+    }
+    .server-option-name {
+      font-size: 24px;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    .server-option-shared-inline { display: none; }
+    .server-option-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 7px;
+    }
+    .server-option-check {
+      width: 26px;
+      height: 26px;
+      font-size: 17px;
+    }
+    /* Selected has to read at a glance on a small screen, so it gets a cyan
+       edge down the left as well as the tick. */
+    .server-option.selected {
+      border-color: var(--cyan);
+      background: rgba(0,255,255,0.1);
+      box-shadow: inset 3px 0 0 var(--cyan);
+    }
+    .server-option:active { background: rgba(255,255,255,0.1); }
+
+    /* Addresses are collapsed, and come back wrapped rather than cut off. */
+    .server-option-url { display: none; }
+    .server-picker.show-addresses .server-option-url {
+      display: block;
+      font-size: 17px;
+      line-height: 1.3;
+      margin-top: 8px;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .server-picker-addr {
+      display: block;
+      background: none;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.55);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      letter-spacing: 1px;
+      padding: 14px 16px;
+      min-height: 44px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .server-picker-addr:active { background: rgba(255,255,255,0.08); }
+    .server-picker-connect {
+      width: 100%;
+      min-height: 52px;
+      padding: 16px 24px;
+      font-size: 11px;
+    }
+    .server-picker-connect:active { background: rgba(0,255,255,0.25); }
+
+    /* ── First-run build screen ──
+       The panel is inset:0 inside .video-container, which the portrait rules
+       size to a 16:9 box. Measured at 393x852: a 221px tall box holding 510px
+       of content, so the coffee block fell off the bottom and the remaining
+       two thirds of the screen was empty black. While .building is set there is
+       no video and no guide, so give the container the whole screen.
+       position:fixed is not an option here: the retro flicker animation puts a
+       transform on .video-container, which makes it the containing block for
+       fixed descendants, so fixed resolved to the same 221px box. */
+    .player-screen.building.layout-side .video-area,
+    .player-screen.building .video-area {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    .player-screen.building.layout-side .video-container,
+    .player-screen.building .video-container {
+      order: 0;
+      flex: 1 1 auto;
+      width: 100%;
+      height: 100%;
+      aspect-ratio: auto;
+      min-height: 0;
+    }
+    .player-screen.building .loading-library {
+      z-index: 120;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+               max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      /* One composed group rather than three things drifting apart: the mark,
+         the status card and the coffee ask sit together in the middle of the
+         screen, and the panel scrolls if a short window cannot hold them. */
+      justify-content: safe center;
+      gap: clamp(16px, 4vh, 40px);
+    }
+    /* Nothing else belongs on screen while the lineup builds. */
+    .player-screen.building .m-topbar,
+    .player-screen.building .guide-grid { display: none; }
+    /* Retro mode pins the empty video to 4:3 off its height. Once the container
+       is the full screen that is wider than the screen, which put a horizontal
+       scrollbar on the build screen (1137px of page at 393px of viewport).
+       Build state only: nothing is playing, and playback rules are untouched. */
+    body.retro-mode .player-screen.building #plex-video {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: auto;
+    }
+    /* Three bands rather than one floating stack: mark at the top, the live
+       status card in the middle, the coffee ask at the foot. */
+    .loading-library-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      max-width: 460px;
+      padding: 18px 16px;
+      border: 1px solid rgba(0,196,255,0.3);
+      border-radius: 6px;
+      background: rgba(0,196,255,0.05);
+    }
+    .loading-library-logo { margin-bottom: 0; max-height: 9vh; width: min(240px, 60%); }
+    .loading-library-first-hint {
+      white-space: normal;
+      font-size: 11px;
+      line-height: 1.5;
+      letter-spacing: 0.5px;
+      max-width: 34ch;
+    }
+    .loading-library-rail { margin-top: 0; max-width: 100%; }
+    /* The labels were ellipsised to CHANNE... at 10px. Smaller type and elastic
+       connectors fit all five steps, music included, at 360px. */
+    /* The step owns the width its label needs; the connectors take what is
+       left. Equal columns were what cut CHANNELS down to CHANNE... */
+    .load-rail-step { gap: 7px; flex: 0 1 auto; padding: 0 2px; }
+    .load-rail-dot { width: 22px; height: 22px; }
+    .load-rail-dot-active { width: 8px; height: 8px; }
+    .load-rail-label { font-size: 8px; letter-spacing: 0.5px; }
+    .load-rail-connector { width: auto; flex: 1 1 6px; min-width: 6px; margin-top: 10px; }
+    .loading-library-text {
+      font-size: 11px;
+      line-height: 1.8;
+      letter-spacing: 1.5px;
+    }
+    .loading-library-sub { font-size: 14px; letter-spacing: 1px; }
+    /* The rail was a thin line stranded in the middle of the screen. In the card
+       it is the width of the card, thicker, and reads with the count under it. */
+    .loading-library-progress-wrap { max-width: 100%; gap: 8px; }
+    .loading-library-progress-track { height: 10px; border-radius: 5px; }
+    .loading-library-progress { border-radius: 5px; }
+    .loading-library-progress-caption { font-size: 11px; }
+    .loading-library-coffee { margin-top: 0; }
+    .loading-library-coffee-lead { font-size: 11px; line-height: 1.5; }
+    .loading-library-coffee-btn { min-height: 48px; padding: 14px 20px; }
+  }
+
+  /* Landscape phones: height is the scarce dimension on both screens, so the
+     bands stack from the top and scroll rather than spreading apart. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .plex-logo { max-width: 240px; }
+    /* 393px of height has to hold the mark, the title, four rows and CONNECT.
+       The list still scrolls, but a row is half the height it is in portrait. */
+    .plex-connect { gap: 10px; }
+    .plex-logo img { max-height: 15vh; object-fit: contain; }
+    .server-picker, .server-picker-list { gap: 8px; }
+    .server-option { min-height: 48px; padding: 8px 12px; }
+    .server-option-name { font-size: 20px; }
+    .server-option-tags { margin-top: 4px; }
+    .server-tag { font-size: 6px; padding: 3px 5px; }
+    .server-picker-connect { min-height: 46px; padding: 12px 20px; }
+    .player-screen.building .loading-library {
+      justify-content: safe center;
+      gap: 10px;
+    }
+    .loading-library-logo { max-height: 14vh; width: min(180px, 40%); }
+    .loading-library-panel { padding: 12px 14px; gap: 10px; max-width: 520px; }
+    .loading-library-first-hint { max-width: 60ch; }
+    .loading-library-coffee { gap: 8px; }
+  }
 </style>
 </head>
 <body>
@@ -1933,6 +2715,62 @@
   <!-- CORNER LOGO -->
   <div class="player-logo">
     <img src="./logo/nostalgex-white.svg" alt="Nostalgex">
+  </div>
+
+  <!-- TOUCH TOP BAR (phones and tablets only; the corner logo is fixed and
+       overlaps the channel tag once the info panel goes full width). The
+       wordmark on the left, and on the right the one control a phone shows:
+       everything else is behind it in the drawer. -->
+  <div class="m-topbar" id="m-topbar">
+    <img class="m-topbar-logo" src="./logo/nostalgex-white.svg" alt="Nostalgex">
+    <button class="m-menu-btn" id="m-menu-btn" type="button" aria-label="Open controls"
+            aria-haspopup="dialog" aria-expanded="false" aria-controls="m-drawer">
+      <span class="m-menu-btn-label">MENU</span>
+      <span class="m-menu-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
+  </div>
+
+  <!-- TOUCH CONTROLS DRAWER. A phone shows the guide and the video; the
+       controls live in here until asked for. Duplicated rather than moved out
+       of the vertical rail so the desktop rail is untouched. -->
+  <div class="m-drawer-scrim" id="m-drawer-scrim"></div>
+  <div class="m-drawer" id="m-drawer" role="dialog" aria-modal="true" aria-label="Controls" aria-hidden="true">
+    <div class="m-drawer-head">
+      <span class="m-drawer-title">CONTROLS</span>
+      <button class="m-drawer-close" id="m-drawer-close" type="button" aria-label="Close controls">X</button>
+    </div>
+    <button class="m-drawer-item" type="button" onclick="toggleMute()">
+      <span class="m-drawer-label">SOUND</span>
+      <!-- Playback starts muted, so this starts in its off colour. -->
+      <span class="m-drawer-value off" id="dw-sound-val">OFF</span>
+    </button>
+    <button class="m-drawer-item" type="button" onclick="closeDrawer(); toggleFullscreen();">
+      <span class="m-drawer-label">FULL SCREEN</span>
+    </button>
+    <button class="m-drawer-item" type="button" onclick="toggleRetroMode()">
+      <span class="m-drawer-label">RETRO</span>
+      <span class="m-drawer-value" id="dw-retro-val">ON</span>
+    </button>
+    <button class="m-drawer-item" type="button" onclick="closeDrawer(); showConfig();">
+      <span class="m-drawer-label">SETTINGS</span>
+    </button>
+    <a class="m-drawer-item" href="https://www.instagram.com/nostalgex_" target="_blank" rel="noopener noreferrer" onclick="closeDrawer()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="2.75" y="2.75" width="18.5" height="18.5" rx="5.25" stroke="#00C4FF" stroke-width="1.8"/>
+        <circle cx="12" cy="12" r="4.25" stroke="#00C4FF" stroke-width="1.8"/>
+        <circle cx="17.4" cy="6.6" r="1.25" fill="#00C4FF"/>
+      </svg>
+      <span class="m-drawer-label">INSTAGRAM</span>
+    </a>
+    <a class="m-drawer-item m-drawer-item--coffee" href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener noreferrer" onclick="closeDrawer()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path class="steam" d="M9 2.5c-.6.8-.6 1.5 0 2.3M12 2c-.6.9-.6 1.7 0 2.6M15 2.5c-.6.8-.6 1.5 0 2.3" stroke="#000" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M4 8.5h12v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-5z" stroke="#000" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="M16 9.5h2.2a2.3 2.3 0 0 1 0 4.6H16" stroke="#000" stroke-width="1.7" stroke-linejoin="round"/>
+        <path d="M3 20.5h14" stroke="#000" stroke-width="1.7" stroke-linecap="round"/>
+      </svg>
+      <span class="m-drawer-label">BUY ME A COFFEE</span>
+    </a>
   </div>
 
   <!-- VIDEO AREA (flexible, fills remaining space) -->
@@ -1956,23 +2794,29 @@
 
     <!-- VERTICAL TOOLBAR (beside info panel in side layout) -->
     <div class="v-toolbar" id="v-toolbar">
+      <!-- Each button carries a desktop label with its keyboard hint and a short
+           touch label without one. A key hint means nothing on a phone. -->
       <button class="v-btn" onclick="toggleMute()">
         <span class="v-btn-label">SOUND [M]</span>
+        <span class="v-btn-short">SOUND</span>
         <span class="v-btn-value" id="tb-sound-val">OFF</span>
       </button>
       <button class="v-btn" onclick="toggleFullscreen()">
         <span class="v-btn-label">FULLSCREEN</span>
-        <span class="v-btn-value">[F]</span>
+        <span class="v-btn-short">FULL SCREEN</span>
+        <span class="v-btn-value v-key">[F]</span>
       </button>
       <button class="v-btn" onclick="toggleRetroMode()">
         <span class="v-btn-label">RETRO [B]</span>
+        <span class="v-btn-short">RETRO</span>
         <span class="v-btn-value" id="tb-retro-val">ON</span>
       </button>
       <button class="v-btn" onclick="showConfig()">
         <span class="v-btn-label">SETTINGS</span>
-        <span class="v-btn-value">[H]</span>
+        <span class="v-btn-short">SETTINGS</span>
+        <span class="v-btn-value v-key">[H]</span>
       </button>
-      <a class="v-btn" href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener noreferrer" aria-label="Download Nostalgex on Apple TV">
+      <a class="v-btn v-btn--appletv" href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener noreferrer" aria-label="Download Nostalgex on Apple TV">
         <span class="v-btn-label">APPLE TV</span>
         <span class="v-btn-value">[↓]</span>
       </a>
@@ -1985,12 +2829,23 @@
         </svg>
         <span class="v-coffee-label">BUY ME<br>A COFFEE</span>
       </a>
+      <a class="v-social" href="https://www.instagram.com/nostalgex_" target="_blank" rel="noopener noreferrer" aria-label="Nostalgex on Instagram">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="2.75" y="2.75" width="18.5" height="18.5" rx="5.25" stroke="#00C4FF" stroke-width="1.8"/>
+          <circle cx="12" cy="12" r="4.25" stroke="#00C4FF" stroke-width="1.8"/>
+          <circle cx="17.4" cy="6.6" r="1.25" fill="#00C4FF"/>
+        </svg>
+        <span class="v-social-label">INSTAGRAM</span>
+      </a>
     </div>
 
     <!-- VIDEO CONTAINER (wraps video + overlays) -->
     <div class="video-container" id="video-container">
       <!-- Actual video player -->
-      <video id="plex-video" autoplay muted></video>
+      <!-- playsinline is load-bearing on iPhone: without it iOS refuses to run the
+           video inline at all, hands playback to the native fullscreen player, and
+           pauses on the way out. webkit-playsinline is the same promise for older iOS. -->
+      <video id="plex-video" autoplay muted playsinline webkit-playsinline></video>
 
       <!-- Unmute button -->
       <button class="unmute-btn" id="unmute-btn">CLICK TO UNMUTE &nbsp;/&nbsp; M KEY</button>
@@ -1998,17 +2853,23 @@
       <!-- Loading library indicator -->
       <div class="loading-library" id="loading-library" style="display: none;">
         <img class="loading-library-logo" src="./logo/nostalgex-white.svg" alt="Nostalgex">
-        <div class="loading-library-first-hint" id="loading-library-first-hint" style="display: none;">
-          First setup can take a few minutes to scan and build channels.
-        </div>
-        <div class="loading-library-rail" id="loading-library-rail" aria-hidden="true"></div>
-        <div class="loading-library-text" id="loading-library-headline">SCANNING YOUR LIBRARY</div>
-        <div class="loading-library-sub" id="loading-library-sub">Discovering your content</div>
-        <div class="loading-library-progress-wrap" id="loading-library-progress-wrap">
-          <div class="loading-library-progress-track">
-            <div class="loading-library-progress" id="loading-library-progress"></div>
+        <!-- display:contents on a pointer screen, so the desktop and TV column is
+             exactly the flat stack it always was. Touch sizes turn it into one
+             card, which is what stops the steps, the status line and the rail
+             reading as three stranded things on a phone. -->
+        <div class="loading-library-panel">
+          <div class="loading-library-first-hint" id="loading-library-first-hint" style="display: none;">
+            First setup can take a few minutes to scan and build channels.
           </div>
-          <div class="loading-library-progress-caption" id="loading-library-progress-caption"></div>
+          <div class="loading-library-rail" id="loading-library-rail" aria-hidden="true"></div>
+          <div class="loading-library-text" id="loading-library-headline">SCANNING YOUR LIBRARY</div>
+          <div class="loading-library-sub" id="loading-library-sub">Discovering your content</div>
+          <div class="loading-library-progress-wrap" id="loading-library-progress-wrap">
+            <div class="loading-library-progress-track">
+              <div class="loading-library-progress" id="loading-library-progress"></div>
+            </div>
+            <div class="loading-library-progress-caption" id="loading-library-progress-caption"></div>
+          </div>
         </div>
         <div class="loading-library-coffee">
           <div class="loading-library-coffee-lead">Channels are building. Grab a coffee while you wait.</div>
@@ -2103,7 +2964,7 @@
     </div>
     <div class="grid-body" id="grid-body"></div>
     <div class="grid-footer">
-      <span>[V]</span> HIDE GUIDE  <span>[ENTER]</span> TUNE IN  <span>[UP/DOWN]</span> BROWSE
+      <span>[ENTER]</span> TUNE IN  <span>[UP/DOWN]</span> BROWSE
     </div>
   </div>
 
@@ -2123,7 +2984,6 @@
       <div class="config-tab active" id="tab-bundles" onclick="switchConfigTab('bundles')">BUNDLES</div>
       <div class="config-tab" id="tab-server" onclick="switchConfigTab('server')">SERVER</div>
       <div class="config-tab" id="tab-help" onclick="switchConfigTab('help')">HELP</div>
-      <div class="config-tab" id="tab-blacklist" onclick="switchConfigTab('blacklist')">BLACKLIST</div>
     </div>
 
     <div id="config-tab-bundles" style="display:none">
@@ -2131,7 +2991,17 @@
       <div style="color: rgba(255,255,255,0.4); font-size: 12px; letter-spacing: 1px; margin-bottom: 16px;">
         Toggle channel packages on or off. Matching the tvOS app.
       </div>
+      <div id="enrichment-status" style="display:none; color: var(--cyan); font-size: 11px; letter-spacing: 1px; margin: -6px 0 16px;"></div>
       <div id="bundle-list">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="config-section-label" style="margin-top: 28px;">MY COLLECTIONS</div>
+      <div style="color: rgba(255,255,255,0.4); font-size: 12px; letter-spacing: 1px; margin-bottom: 16px;">
+        Collections on your server with 3 or more movies or episodes. Switch one on and it airs from CH 500.
+      </div>
+      <div id="collections-status" style="color: rgba(255,255,255,0.4); font-size: 11px; letter-spacing: 1px; margin-bottom: 12px;"></div>
+      <div id="collection-list">
         <!-- Rendered by JS -->
       </div>
     </div>
@@ -2150,7 +3020,7 @@
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.08); border-radius: 6px;">
         <div>
           <div style="font-size: 22px; color: rgba(255,255,255,0.85);">Sync activity to server</div>
-          <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">Off by default. Turn on and every program you tune past is reported, so it piles up in Continue Watching and grows play counts.</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">Off by default. When on, your server sees what's playing and a film you watch most of counts as watched. Channel surfing never fills your Continue Watching.</div>
         </div>
         <button class="plex-btn" id="cfg-plexsync-toggle" style="font-size: 11px; padding: 12px 22px;" onclick="toggleSyncActivity()">OFF</button>
       </div>
@@ -2282,21 +3152,10 @@
     </div><!-- end config-columns -->
     </div><!-- end config-tab-channels -->
 
-    <div id="config-tab-blacklist" style="display:none">
-      <div class="config-section-label">BLACKLIST</div>
-      <div style="color:rgba(255,255,255,0.35);font-size:12px;margin-bottom:16px;letter-spacing:0.5px;">Exclude titles from all channels. Search your library and click to add.</div>
-      <div class="blacklist-search-wrap">
-        <input type="text" id="blacklist-input" class="blacklist-input" placeholder="Search your library..." autocomplete="off" spellcheck="false" />
-        <div class="blacklist-results" id="blacklist-results" style="display:none"></div>
-      </div>
-      <div class="config-section-label" id="blacklist-count-label" style="margin-top:24px;font-size:9px;"></div>
-      <div id="blacklist-list"></div>
-    </div>
-
     <div id="config-tab-help" style="display:none">
       <div class="help-content">
         <div class="help-section-label">PLAYBACK</div>
-        <div class="help-row"><div class="help-key">UP / DOWN</div><div class="help-desc">Change channel</div></div>
+        <div class="help-row"><div class="help-key">LEFT / RIGHT</div><div class="help-desc">Change channel</div></div>
         <div class="help-row"><div class="help-key">M</div><div class="help-desc">Mute / unmute</div></div>
         <div class="help-row"><div class="help-key">F</div><div class="help-desc">Fullscreen</div></div>
         <div class="help-row"><div class="help-key">B</div><div class="help-desc">Toggle retro mode (4:3 + CRT)</div></div>
@@ -2444,6 +3303,62 @@
     return bundle.activeMonths.includes(currentMonth);
   }
 
+  // What the guide prints. `id` is the stable key (collections live at 1,000,000+,
+  // seasonal channels at 404+); `number` is the dial position inside its bundle.
+  function chNum(ch) { return ch.number || ch.id; }
+
+  // Mirrors GuideChannelOrder.swift: a seasonal package can be switched on any month,
+  // and for the month it runs it leads the guide as a block, in its bundle's order,
+  // above channel one. Numbers are untouched.
+  function seasonalLeadIDs() {
+    const now = new Date();
+    return bundles
+      .filter(b => b.activeMonths && enabledBundleIDs.has(b.id) && isBundleInSeason(b))
+      .flatMap(b => b.channelIDs || []);
+  }
+
+  function sortChannelsForGuide(list) {
+    const lead = seasonalLeadIDs();
+    const rank = new Map();
+    lead.forEach((id, i) => { if (!rank.has(id)) rank.set(id, i); });
+    const leading = list.filter(ch => rank.has(ch.id)).sort((a, b) => rank.get(a.id) - rank.get(b.id));
+    const rest = list.filter(ch => !rank.has(ch.id)).sort((a, b) => chNum(a) - chNum(b));
+    return leading.concat(rest);
+  }
+
+  // Mirrors SeasonalPrompt.swift: offer the first seasonal package that is in season,
+  // not on, and not silenced (NOT THIS YEAR silences until the year turns; DON'T ASK
+  // AGAIN silences for good).
+  function seasonalPromptKey(bundleId) { return `nostalgex_seasonal_prompt_${bundleId}`; }
+  function isSeasonalPromptSilenced(bundleId) {
+    try {
+      const v = JSON.parse(localStorage.getItem(seasonalPromptKey(bundleId)) || 'null');
+      if (!v) return false;
+      if (v.never) return true;
+      return v.notNowYear === new Date().getFullYear();
+    } catch (e) { return false; }
+  }
+  function answerSeasonalPrompt(bundleId, answer) {
+    if (answer === 'yes') {
+      localStorage.removeItem(seasonalPromptKey(bundleId));
+      if (!enabledBundleIDs.has(bundleId)) toggleBundle(bundleId);
+      return;
+    }
+    const v = answer === 'never' ? { never: true } : { notNowYear: new Date().getFullYear() };
+    localStorage.setItem(seasonalPromptKey(bundleId), JSON.stringify(v));
+    renderActiveGuide();
+  }
+  function seasonalBundleOnOffer() {
+    return bundles.find(b => b.activeMonths && isBundleInSeason(b)
+      && !enabledBundleIDs.has(b.id) && !isSeasonalPromptSilenced(b.id)) || null;
+  }
+  function seasonalHeadline(bundle) {
+    if (bundle.id === 'seasonal') return "IT'S OCTOBER. ARE YOU READY TO SCREAM?";
+    if (bundle.id === 'tis-the-season') return "IT'S DECEMBER. DECK THE CHANNELS.";
+    const month = new Date().toLocaleString('en-US', { month: 'long' }).toUpperCase();
+    return `IT'S ${month}. ${bundle.name} IS ON.`;
+  }
+
   function applyBundleFilter() {
     if (bundles.length === 0) {
       // No bundles defined: show all channels (backward compat)
@@ -2451,7 +3366,7 @@
     }
     const enabledChannelIDs = new Set();
     bundles.forEach(b => {
-      if (enabledBundleIDs.has(b.id) && isBundleInSeason(b)) {
+      if (enabledBundleIDs.has(b.id)) {
         b.channelIDs.forEach(id => enabledChannelIDs.add(id));
       }
     });
@@ -2463,7 +3378,9 @@
         CHANNELS.push(ch);
       }
     });
-    CHANNELS.sort((a, b) => (a.number || a.id) - (b.number || b.id));
+    const ordered = sortChannelsForGuide(CHANNELS);
+    CHANNELS.length = 0;
+    ordered.forEach(ch => CHANNELS.push(ch));
   }
 
   // Exclusive rule matching: returns the owning channelID if item is exclusive, else null
@@ -2472,12 +3389,6 @@
     if (MB) return MB.itemDisplayLine(item);
     if (item.episodeTitle) return `${item.title}: ${item.episodeTitle}`;
     return item.title || '';
-  }
-
-  function itemTitleHaystack(item) {
-    const MB = globalThis.NostalgexMusicBrainz;
-    if (MB) return MB.titleHaystack(item);
-    return (item.title || '').toLowerCase();
   }
 
 
@@ -2617,7 +3528,10 @@
       manifest: channelMembershipManifest,
       exclusiveRules,
     });
-    return pool.items.filter(item => !blacklist.has(String(item.ratingKey)));
+    // A Settings blacklist used to be filtered out here. The tab is gone, so a
+    // list saved under plex90_blacklist is no longer read: titles hidden through
+    // a tab nobody can open would stay missing with no way to bring them back.
+    return pool.items;
   }
 
   function getCoveredGenres() {
@@ -2675,11 +3589,30 @@
   let isDemoMode = false;
   let videoMuted = true;
   let hlsInstance = null;
+  // Consecutive items that failed to play on the current channel. Reset by any frame of
+  // real playback. Stops a dead server from skipping through a whole channel at speed.
+  let consecutivePlaybackFailures = 0;
+  // The Plex transcode session this page started, so it can be stopped on the way out.
+  // Without a `session` of our own, Plex keys the transcode off the client id alone, so
+  // every channel change quietly repurposed the previous one and the old loader's segment
+  // requests started 404ing. Measured 2026-10-07: one abandoned session produced 2,239
+  // requests for a single dead segment while an unrelated channel played.
+  let activeTranscodeSession = null;
+
+  function stopActiveTranscode() {
+    const session = activeTranscodeSession;
+    activeTranscodeSession = null;
+    if (!session || mediaBackend === 'jellyfin') return;
+    const url = `${session.serverUrl}/video/:/transcode/universal/stop`
+      + `?session=${encodeURIComponent(session.id)}&X-Plex-Token=${encodeURIComponent(session.token)}`;
+    // Best effort: the channel has already moved on either way.
+    fetch(url, { keepalive: true }).catch(() => {});
+  }
   let appState = 'connect'; // 'connect' | 'player' | 'guide' | 'config'
   let discoveredGenres = {}; // { genreName: itemCount }
   let allItemsCache = []; // cached items for populating new channels
   let guideLayout = localStorage.getItem('plex90_guide_layout') || 'side';
-  let configTab = 'channels'; // 'channels' | 'help' | 'blacklist' | 'server'
+  let configTab = 'channels'; // 'channels' | 'help' | 'server'
   let activeSuggestedTab = 'movie'; // 'general' | 'movie' | 'tv' | 'music'
   let retroMode = localStorage.getItem('plex90_retro_mode') !== 'false';
 
@@ -2701,15 +3634,10 @@
   const activeSubtitleTracks = [];
   const activeSubtitleBlobUrls = [];
 
-  // Blacklist — ratingKeys excluded from all channels
-  let blacklist = new Set();
-  let blacklistedItems = []; // [{ratingKey, title}] for display
-
   // ══════════════════════════════════════
   // INITIALIZE
   // ══════════════════════════════════════
   async function init() {
-    loadBlacklist();
     await loadStockChannelsFromJSON();
     if (channelsLoadFailed) {
       const errorEl = document.getElementById('plex-error-label');
@@ -2769,6 +3697,46 @@
     // Reflect the saved retro state across all controls on load
     updateRetroControls();
     updateSyncActivityControls();
+
+    // Touch controls drawer: the button, the close box, and the scrim.
+    const menuBtn = document.getElementById('m-menu-btn');
+    if (menuBtn) menuBtn.addEventListener('click', toggleDrawer);
+    const drawerClose = document.getElementById('m-drawer-close');
+    if (drawerClose) drawerClose.addEventListener('click', closeDrawer);
+    const drawerScrim = document.getElementById('m-drawer-scrim');
+    if (drawerScrim) drawerScrim.addEventListener('click', closeDrawer);
+    // A tap outside the sheet closes it even where the scrim does not reach,
+    // for instance the floating menu button's own corner in landscape.
+    document.addEventListener('pointerdown', (e) => {
+      if (!document.body.classList.contains('drawer-open')) return;
+      const drawer = document.getElementById('m-drawer');
+      if (drawer && drawer.contains(e.target)) return;
+      if (menuBtn && menuBtn.contains(e.target)) return;
+      closeDrawer();
+    });
+    // Escape closes and Tab stays inside. Everything else falls through, so
+    // M, F, B and H keep working while it is open.
+    document.addEventListener('keydown', (e) => {
+      if (!document.body.classList.contains('drawer-open')) return;
+      if (e.key === 'Escape') {
+        closeDrawer();
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const items = drawerFocusables();
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !items.includes(active))) {
+        last.focus();
+        e.preventDefault();
+      } else if (!e.shiftKey && (active === last || !items.includes(active))) {
+        first.focus();
+        e.preventDefault();
+      }
+    }, true);
 
     // Wire up grid row clicks
     document.getElementById('grid-body').addEventListener('click', (e) => {
@@ -2838,13 +3806,80 @@
     return div.innerHTML;
   }
 
-  // MediaError code → readable message
-  const VIDEO_ERRORS = {
-    1: 'PLAYBACK ABORTED',
-    2: 'NETWORK ERROR. CHECK YOUR SERVER',
-    3: 'CODEC NOT SUPPORTED. TRY A DIFFERENT BROWSER',
-    4: 'FORMAT NOT SUPPORTED BY THIS BROWSER',
-  };
+  // ══════════════════════════════════════
+  // WHY A PROGRAMME WOULD NOT PLAY
+  // Mirrors the Apple TV app's PlaybackFailure, same words, so a person sees the
+  // same verdict whichever surface they are on. The one advantage here: hls.js
+  // hands over the HTTP status directly, so there is nothing to probe.
+  // ══════════════════════════════════════
+  const BACKEND_NAMES = { plex: 'Plex', jellyfin: 'Jellyfin', emby: 'Emby' };
+  function backendDisplayName() {
+    return BACKEND_NAMES[mediaBackend] || 'your server';
+  }
+
+  function classifyPlaybackFailure(e) {
+    const server = backendDisplayName();
+    const status = e.httpStatus || 0;
+    if (status === 401 || status === 403) return {
+      kind: 'notAuthorised', serverSide: true,
+      headline: 'Your server refused the request',
+      detail: `${server} rejected the sign-in saved in this browser. Sign in again.`,
+    };
+    if (status === 404) return {
+      kind: 'fileMissing', serverSide: true,
+      headline: "Your server can't find this file",
+      detail: `${server} listed this title but couldn't open the file. It was probably moved or deleted since the last library scan.`,
+    };
+    if (status >= 400) return {
+      kind: 'serverRefused', serverSide: true,
+      headline: "Your server wouldn't start this one",
+      detail: `${server} answered HTTP ${status} before it started sending video. That's the server, not this file and not your network. Other titles on the same server are unaffected.`,
+    };
+    if (e.network) return {
+      kind: 'serverUnreachable', serverSide: true,
+      headline: "Can't reach your server",
+      detail: `Nothing answered at the address saved for your ${server} server. Check it's awake and on the same network.`,
+    };
+    if (e.noSource) return {
+      kind: 'noPlayableSource', serverSide: true,
+      headline: 'Nothing to play for this title',
+      detail: `${server} listed this title but gave no stream to open. A library rescan usually clears it.`,
+    };
+    if (e.tooSlow) return {
+      kind: 'serverTooSlow', serverSide: true,
+      headline: "Your server couldn't keep up",
+      detail: `${server} couldn't produce video fast enough to watch. The file is probably too heavy for it to convert.`,
+    };
+    if (e.mediaError && !e.decodedAFrame) return {
+      kind: 'deviceCannotRender', serverSide: false,
+      headline: "This browser couldn't play this file",
+      detail: `The video arrived, but this browser couldn't turn it into a picture. The server sent it in a format this browser can't decode. Safari or Chrome may differ.`,
+    };
+    return {
+      kind: 'unknown', serverSide: false,
+      headline: "This one wouldn't play",
+      detail: `No reason came back from ${server} or from the player. The browser console has the details if it keeps happening.`,
+    };
+  }
+
+  function showPlaybackFailure(failure, willSkip) {
+    const display = document.getElementById('channel-display');
+    const status = document.getElementById('display-status');
+    display.classList.add('active');
+    status.textContent = '';
+    status.classList.remove('server-side', 'device-side');
+    status.classList.add(failure.serverSide ? 'server-side' : 'device-side');
+    const h = document.createElement('div'); h.className = 'failure-headline'; h.textContent = failure.headline;
+    const d = document.createElement('div'); d.className = 'failure-detail'; d.textContent = failure.detail;
+    status.append(h, d);
+    if (willSkip) {
+      const n = document.createElement('div'); n.className = 'failure-next';
+      n.textContent = 'Moving on to the next programme.';
+      status.append(n);
+    }
+    status.classList.add('visible');
+    console.warn('[PLEX 90] Playback failed:', failure.kind, '-', failure.headline, '|', failure.detail);
+  }
 
   function showVideoError(message) {
     const display = document.getElementById('channel-display');
@@ -2947,6 +3982,41 @@
     const enabledChannels = CHANNELS.filter(ch => ch.enabled);
     const fragment = document.createDocumentFragment();
 
+    // Seasonal invitation above channel one (mirrors SeasonalInviteRow on tvOS).
+    const offer = seasonalBundleOnOffer();
+    if (offer) {
+      const row = document.createElement('div');
+      row.className = 'grid-row grid-row--promo grid-row--seasonal';
+      row.dataset.promo = 'seasonal';
+      const content = document.createElement('div');
+      content.className = 'grid-promo-content';
+      const headline = document.createElement('span');
+      headline.className = 'grid-seasonal-headline';
+      headline.textContent = seasonalHeadline(offer);
+      const pill = document.createElement('button');
+      pill.className = 'grid-seasonal-pill';
+      pill.type = 'button';
+      pill.textContent = `PRESS TO ADD THE ${offer.name} PACKAGE`;
+      pill.addEventListener('click', (e) => { e.stopPropagation(); answerSeasonalPrompt(offer.id, 'yes'); });
+      const notNow = document.createElement('button');
+      notNow.className = 'grid-seasonal-quiet';
+      notNow.type = 'button';
+      notNow.textContent = 'NOT THIS YEAR';
+      notNow.addEventListener('click', (e) => { e.stopPropagation(); answerSeasonalPrompt(offer.id, 'notNow'); });
+      const never = document.createElement('button');
+      never.className = 'grid-seasonal-quiet';
+      never.type = 'button';
+      never.textContent = "DON'T ASK AGAIN";
+      never.addEventListener('click', (e) => { e.stopPropagation(); answerSeasonalPrompt(offer.id, 'never'); });
+      content.appendChild(headline);
+      content.appendChild(pill);
+      content.appendChild(notNow);
+      content.appendChild(never);
+      row.appendChild(content);
+      row.addEventListener('click', () => answerSeasonalPrompt(offer.id, 'yes'));
+      fragment.appendChild(row);
+    }
+
     const total = enabledChannels.length;
     // Coffee at ~2/3; email at ~85% with enough separation (20+ channels only)
     const promoCoffeeAt = total > 3 ? Math.floor(total * 2 / 3) - 1 : -1;
@@ -2996,7 +4066,7 @@
       const chCol = document.createElement('div');
       chCol.className = 'grid-row-channel';
       chCol.innerHTML = `
-        <div class="grid-ch-num">${ch.id}</div>
+        <div class="grid-ch-num">${chNum(ch)}</div>
         <div class="grid-ch-name" style="color: ${escapeHtml(ch.colorHex)}">${escapeHtml(ch.name)}</div>
       `;
 
@@ -3216,7 +4286,7 @@
     document.getElementById('player-screen').classList.remove('building');
 
     // Update now playing overlay
-    document.getElementById('np-channel-tag').textContent = `\u25CF CH ${String(ch.id).padStart(2, '0')} \u2014 ${ch.name}`;
+    document.getElementById('np-channel-tag').textContent = `\u25CF CH ${String(chNum(ch)).padStart(2, '0')} \u2014 ${ch.name}`;
     document.getElementById('np-channel-tag').style.color = ch.color;
     document.getElementById('np-title').textContent = now.title.toUpperCase();
     document.getElementById('np-meta').textContent = now.meta || '';
@@ -3278,10 +4348,24 @@
   async function getJellyfinTranscodeUrl(item) {
     const msid = item.partKey || item.ratingKey;
     const startTicks = item.offsetSeconds ? Math.floor(item.offsetSeconds) * 10000000 : 0;
-    const fallback = `${plexServerUrl}/Videos/${item.ratingKey}/master.m3u8`
-      + `?MediaSourceId=${encodeURIComponent(msid)}&api_key=${plexToken}`
-      + `&VideoCodec=h264&AudioCodec=aac&MaxWidth=3840&SegmentContainer=ts&DeviceId=${getClientId()}`
-      + (startTicks ? `&StartTimeTicks=${startTicks}` : '');
+    // No StartTimeTicks on the fallback URL. Jellyfin copies the master's query string onto
+    // main.m3u8 and then onto every segment, and its segment handler refuses the parameter:
+    // measured against Jellyfin 12.2, master 200, main.m3u8 200, segment 0 HTTP 400. Without
+    // it the same segment is 584 KB and plays. hls.js already joins mid-programme through
+    // `startPosition` below, so the offset is the client's job here, exactly as on tvOS
+    // (see JellyfinPlaybackResolver.offsetPlayback). StartTimeTicks still goes in the
+    // PlaybackInfo body, where it only informs the decision and never reaches a segment URL.
+    // withApiKey adds ApiKey: Jellyfin 12.2 with legacy auth off answers 401 to api_key alone.
+    // The fallback also carries its own PlaySessionId, or Emby refuses every segment with a
+    // 400. A direct play that failed lands here, because PlaybackInfo offers no
+    // TranscodingUrl for a file it thinks the browser can already play.
+    const fallback = NostalgexJellyfinUrls.fallbackHlsUrl({
+      serverUrl: plexServerUrl,
+      itemId: item.ratingKey,
+      mediaSourceId: msid,
+      token: plexToken,
+      deviceId: getClientId(),
+    });
     const deviceProfile = {
       MaxStreamingBitrate: 120000000,
       DirectPlayProfiles: [
@@ -3315,9 +4399,7 @@
       const sources = data.MediaSources || [];
       const source = sources.find(s => s.Id === msid) || sources[0];
       if (source && source.TranscodingUrl) {
-        let url = `${plexServerUrl}${source.TranscodingUrl}`;
-        if (!/[?&]api_key=/.test(url)) url += (url.includes('?') ? '&' : '?') + `api_key=${plexToken}`;
-        return url;
+        return NostalgexJellyfinUrls.withApiKey(`${plexServerUrl}${source.TranscodingUrl}`, plexToken);
       }
       return fallback;
     } catch (e) {
@@ -3334,9 +4416,22 @@
   //
   // Hybrid gate (both must pass): tuned in during the first 15% of the program
   // (entry gate) AND accumulated >= 75% of total runtime as active watch time.
+  //
+  // Continue Watching: reporting must never leave a program in Continue Watching,
+  // Resume or On Deck. Plex timeline reports carry no position, so Plex lists the title
+  // in Now Playing and stores nothing; a counted episode's next-up entry is removed
+  // unless its show was already in Continue Watching. Jellyfin/Emby reports keep the
+  // position (a stop without one marks the item played), so the tracker reads UserData
+  // before the first report and puts it back when the session ends. Decision table and
+  // request shapes: scripts/nostalgex-watch-state.js, shared with the Apple TV app
+  // through scripts/watch-cleanup-golden.json. Every call goes through one queue so the
+  // cleanup always lands after the last report. A server that stops answering gets
+  // fewer pulses (createPulseBackoff); nothing here changes the user's setting.
   let playbackTracker = null;
 
   function makePlaybackTracker(item) {
+    const WS = window.NostalgexWatchState;
+    const queue = WS.sharedQueue;
     const totalSec = (item.duration || 0) * 60;
     const seekOffset = Math.floor(item.offsetSeconds || 0);
     const entryFrac = totalSec > 0 ? seekOffset / totalSec : 1;
@@ -3346,7 +4441,16 @@
     const serverUrl = item.serverUrl || plexServerUrl;
     const serverToken = item.serverToken || plexToken;
     const isPlex = mediaBackend !== 'jellyfin';
+    const guard = isPlex
+      ? WS.plexGuard({
+          serverUrl,
+          authQuery: `X-Plex-Token=${encodeURIComponent(serverToken)}`
+            + `&X-Plex-Client-Identifier=${encodeURIComponent(getClientId())}`
+            + `&X-Plex-Product=Nostalgex&X-Plex-Platform=Web`,
+        })
+      : WS.mediaServerGuard({ serverUrl: plexServerUrl, userId: jellyfinUserId, authHeader: jellyfinAuthHeader });
 
+    const backoff = WS.createPulseBackoff();
     const t = {
       eligibleEntry: entryFrac <= 0.15,
       activeWatchSeconds: 0,
@@ -3355,6 +4459,10 @@
       stopped: false,
       started: false,
       timer: null,
+      prior: null,      // what the server held before the first report (null = unreadable)
+      captureQueued: false,
+      captured: false,  // the read has finished
+      paused: false,    // Plex Now Playing shows a pause as a pause
     };
 
     function accumulate() {
@@ -3362,60 +4470,90 @@
       t.activeWatchSeconds += (Date.now() - t.watchStart) / 1000;
       t.watchStart = null;
     }
-    function timeMs() { return (seekOffset * 1000) + Math.round(t.activeWatchSeconds * 1000); }
-    function durationMs() { return Math.round(totalSec * 1000); }
+    // Jellyfin/Emby position. Plex reports never carry one.
+    function timeMs() {
+      return (seekOffset * 1000) + Math.round(t.activeWatchSeconds * 1000);
+    }
 
-    // ── Plex reporting ──
-    function plexTimeline(state) {
-      const u = `${serverUrl}/:/timeline?ratingKey=${encodeURIComponent(rk)}`
-        + `&key=${encodeURIComponent('/library/metadata/' + rk)}`
-        + `&state=${state}&time=${timeMs()}&duration=${durationMs()}`
-        + `&X-Plex-Session-Identifier=${encodeURIComponent(sessionID)}`
-        + `&X-Plex-Token=${encodeURIComponent(serverToken)}`
-        + `&X-Plex-Client-Identifier=${encodeURIComponent(getClientId())}`
-        + `&X-Plex-Product=Nostalgex&X-Plex-Platform=Web`;
-      fetch(u, { method: 'PUT', headers: { 'Accept': 'application/json' } }).catch(() => {});
+    // One report through the queue. Pulses wait out the backoff; everything else goes.
+    // `now` (page unloading) sends immediately with keepalive instead of queueing.
+    function report(doFetch, opts) {
+      const o = opts || {};
+      if (o.pulse && !backoff.allowPulse()) return;
+      const run = () => doFetch(!!o.now).then(r => backoff.record(!!(r && r.ok)), () => backoff.record(false));
+      if (o.now) run(); else queue.enqueue(run);
+    }
+
+    // ── Plex reporting (position-free) ──
+    function plexTimeline(state, opts) {
+      const reported = state === 'playing' && t.paused ? 'paused' : state;
+      const u = guard.timelineUrl(rk, reported, sessionID);
+      report(keepalive => fetch(u, { method: 'PUT', headers: { 'Accept': 'application/json' }, keepalive }), opts);
     }
     function plexScrobble() {
-      const u = `${serverUrl}/:/scrobble?key=${encodeURIComponent('/library/metadata/' + rk)}`
-        + `&identifier=com.plexapp.plugins.library`
-        + `&X-Plex-Token=${encodeURIComponent(serverToken)}`
-        + `&X-Plex-Client-Identifier=${encodeURIComponent(getClientId())}`;
-      fetch(u, { headers: { 'Accept': 'application/json' } }).catch(() => {});
+      const u = guard.scrobbleUrl(rk);
+      queue.enqueue(() => fetch(u, { headers: { 'Accept': 'application/json' } }).catch(() => {}));
     }
 
     // ── Jellyfin / Emby reporting ──
-    // Jellyfin owns its own play-count math: it increments PlayCount when a
-    // /Sessions/Playing/Stopped report lands with the position near completion. So we
-    // just drive the native lifecycle and let the server count once — no explicit
-    // mark-played (that would double-count). On a mid-program channel change the stop
-    // position is partial, so Jellyfin correctly does NOT count it.
-    function jfPost(path) {
-      fetch(`${plexServerUrl}${path}`, {
+    // Both bump PlayCount on the start report and store the stop position; the cleanup
+    // writes the exact final state back (prior, or prior + 1 watch when the gate passed).
+    function jfPost(path, opts) {
+      const body = JSON.stringify({
+        ItemId: rk,
+        PlaySessionId: sessionID,
+        MediaSourceId: item.partKey || rk,
+        PositionTicks: timeMs() * 10000, // ms -> 100ns ticks
+        IsPaused: false,
+      });
+      report(keepalive => fetch(`${plexServerUrl}${path}`, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': jellyfinAuthHeader() },
-        body: JSON.stringify({
-          ItemId: rk,
-          PlaySessionId: sessionID,
-          MediaSourceId: item.partKey || rk,
-          PositionTicks: timeMs() * 10000, // ms -> 100ns ticks
-          IsPaused: false,
-        }),
-      }).catch(() => {});
+        body,
+        keepalive,
+      }), opts);
+    }
+
+    // Read the prior state once, queued ahead of the first report.
+    function captureOnce() {
+      if (t.captureQueued) return;
+      t.captureQueued = true;
+      queue.enqueue(async () => {
+        t.prior = await guard.capture(rk, item.type);
+        t.captured = true;
+        console.log('[Tracker] PRIOR', rk, t.prior ? JSON.stringify(t.prior) : 'none (Plex film, or unreadable)');
+      });
+    }
+    // Put Continue Watching / Resume back. `unloading`: the page is going away, so send
+    // now with keepalive instead of waiting on the queue (best effort).
+    function cleanup(unloading) {
+      if (!t.started) return;
+      const counted = t.scrobbled;
+      if (unloading) {
+        guard.restore(rk, t.captured ? t.prior : null, counted, { keepalive: true });
+        return;
+      }
+      queue.enqueue(() => guard.restore(rk, t.prior, counted));
     }
 
     function reportProgress() {
-      if (isPlex) plexTimeline('playing');
-      else jfPost('/Sessions/Playing/Progress');
+      if (isPlex) plexTimeline('playing', { pulse: true });
+      else jfPost('/Sessions/Playing/Progress', { pulse: true });
     }
-    // Plex only: timeline never bumps the view count, so we scrobble explicitly when the
-    // hybrid gate passes. (Jellyfin increments itself via the stop report above.)
+    // Plex: timeline never bumps the view count, so we scrobble explicitly when the
+    // hybrid gate passes. Jellyfin/Emby: mark played unless the position is already past
+    // the server's own completion line (the stop report counts it there).
     function evaluateAndScrobble() {
-      if (!isPlex || t.scrobbled) return;
+      if (t.scrobbled) return;
       if (!t.eligibleEntry || totalSec <= 0) return;
       if (t.activeWatchSeconds / totalSec < 0.75) return;
+      const fraction = timeMs() / (totalSec * 1000);
       t.scrobbled = true;
-      plexScrobble();
+      if (isPlex) plexScrobble();
+      else if (fraction < 0.9) {
+        const u = guard.markPlayedUrl(rk);
+        queue.enqueue(() => fetch(u, { method: 'POST', headers: { 'Authorization': jellyfinAuthHeader() } }).catch(() => {}));
+      }
       console.log('[Tracker] SCROBBLE', item.title);
     }
     function tick() {
@@ -3433,34 +4571,85 @@
         if (t.stopped || t.started) return;
         t.started = true;
         t.watchStart = Date.now();
+        captureOnce();
         if (isPlex) plexTimeline('playing');
         else jfPost('/Sessions/Playing');
         t.timer = setInterval(tick, 10000);
       },
-      onPause() { if (!t.stopped) accumulate(); },
-      onResume() { if (!t.stopped && t.started) t.watchStart = Date.now(); },
-      // Flush, send the stop report, and do a final Plex scrobble check.
-      stop() {
+      // `fromPlayer`: the video element itself paused or played (not a hidden tab), so
+      // Plex Now Playing shows it right away instead of on the next pulse.
+      onPause(fromPlayer) {
+        if (t.stopped) return;
+        accumulate();
+        if (fromPlayer && isPlex && t.started && !t.paused) { t.paused = true; plexTimeline('paused'); }
+      },
+      onResume(fromPlayer) {
+        if (t.stopped || !t.started) return;
+        t.watchStart = Date.now();
+        if (fromPlayer && isPlex && t.paused) { t.paused = false; plexTimeline('playing'); }
+      },
+      // Flush, send the stop report, do a final scrobble check, then clean up.
+      // `unloading` (pagehide) sends now with keepalive instead of waiting on the queue.
+      stop(unloading) {
         if (t.stopped) return;
         t.stopped = true;
         if (t.timer) { clearInterval(t.timer); t.timer = null; }
         accumulate();
+        const now = unloading ? { now: true } : null;
         if (t.started) {
-          if (isPlex) plexTimeline('stopped');
-          else jfPost('/Sessions/Playing/Stopped');
+          // Plex stop is position-free, so it can never write a resume point.
+          if (isPlex) plexTimeline('stopped', now);
+          else jfPost('/Sessions/Playing/Stopped', now);
         }
-        evaluateAndScrobble();
+        if (!unloading) evaluateAndScrobble();
+        cleanup(!!unloading);
       },
-      // Tear down without reporting anything (used when the user turns off activity
-      // sync mid-program). Clears the pulse timer so no further timeline/scrobble fires
-      // and, unlike stop(), sends no final "stopped" report — so no view-offset is
-      // written and the item never lands in Continue Watching.
+      // Tear down without further progress (the user turned reporting off mid-program).
+      // Plex gets one position-free stop so Now Playing clears; Jellyfin/Emby get no stop
+      // (it would store a position or mark the item played) and the cleanup restores UserData.
       abandon() {
         if (t.stopped) return;
         t.stopped = true;
         if (t.timer) { clearInterval(t.timer); t.timer = null; }
+        if (isPlex && t.started) plexTimeline('stopped');
+        cleanup(false);
       },
     };
+  }
+
+  // Start playback and, if the browser refuses, try again on the viewer's next touch or
+  // key instead of logging and giving up. A refused play() used to leave the channel on a
+  // loaded but frozen frame with no way back short of a reload, which is what an iPhone
+  // did on every tune: the element had no playsinline, so iOS would not run it inline and
+  // rejected every play() the schedule made outside a gesture.
+  let pendingPlayRetry = null;
+  function startVideoPlayback(video) {
+    const p = video.play();
+    if (!p || !p.catch) return;
+    p.catch(e => {
+      console.warn('Playback blocked, will retry on the next tap or key:', e);
+      armPlayRetry(video);
+    });
+  }
+  function armPlayRetry(video) {
+    if (pendingPlayRetry) return;   // one armed listener, not one per refused play
+    const retry = () => {
+      disarmPlayRetry();
+      // Only chase it if the element still wants to be playing (the viewer did not
+      // deliberately pause, and the channel did not move on).
+      if (!video.paused || !video.src && !video.currentSrc) return;
+      const p = video.play();
+      if (p && p.catch) p.catch(() => {});
+    };
+    pendingPlayRetry = retry;
+    for (const ev of ['pointerdown', 'touchend', 'keydown'])
+      document.addEventListener(ev, retry, { once: true, capture: true });
+  }
+  function disarmPlayRetry() {
+    if (!pendingPlayRetry) return;
+    for (const ev of ['pointerdown', 'touchend', 'keydown'])
+      document.removeEventListener(ev, pendingPlayRetry, { capture: true });
+    pendingPlayRetry = null;
   }
 
   async function playCurrentItem(item, channel) {
@@ -3473,11 +4662,12 @@
       return;
     }
     if (!item.ratingKey) {
-      showVideoError('NO MEDIA KEY. THIS ITEM DID NOT LOAD CORRECTLY');
+      showPlaybackFailure(classifyPlaybackFailure({ noSource: true }), false);
       return;
     }
 
     clearVideoError();
+    disarmPlayRetry();   // a retry armed for the outgoing program must not start this one
     const video = document.getElementById('plex-video');
 
     // Hide the text display
@@ -3487,6 +4677,10 @@
     // container does NOT reveal the codec (an mp4 can hold HEVC). So decide by the actual
     // video/audio codec when we have it; the video.onerror handler falls back to transcode
     // if we still guess wrong. canDirectPlay is function-scoped so onerror can read it.
+    // Release the outgoing transcode before a new session id is minted below, or we would
+    // be stopping the id we are about to start (and never releasing the old one).
+    stopActiveTranscode();
+
     let streamUrl;
     let canDirectPlay = false;
     if (mediaBackend === 'jellyfin') {
@@ -3501,10 +4695,17 @@
       // transcode (safer than a decode failure).
       canDirectPlay = !item._forceTranscode && containerOK && videoOK && audioOK;
       if (canDirectPlay) {
+        // stream.mp4 for the mp4/m4v/mov family: Jellyfin labels a static stream by file
+        // name, so an MP4 saved as .mkv would otherwise come back video/x-matroska.
         const pickedAudio = pickAudioStream(item.audioStreams || []);
-        streamUrl = `${plexServerUrl}/Videos/${item.ratingKey}/stream`
-          + `?Static=true&MediaSourceId=${encodeURIComponent(msid)}&api_key=${plexToken}`
-          + (pickedAudio ? `&AudioStreamIndex=${pickedAudio.index}` : '');
+        streamUrl = NostalgexJellyfinUrls.staticStreamUrl({
+          serverUrl: plexServerUrl,
+          itemId: item.ratingKey,
+          mediaSourceId: msid,
+          container,
+          token: plexToken,
+          audioStreamIndex: pickedAudio ? pickedAudio.index : null,
+        });
       } else {
         // Let Jellyfin build the transcode URL (valid PlaySessionId, forced h264/aac).
         streamUrl = await getJellyfinTranscodeUrl(item);
@@ -3521,11 +4722,16 @@
 
       } else {
         // HLS transcode - works for all formats
+        const transcodeSessionId = (crypto.randomUUID && crypto.randomUUID())
+          || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        activeTranscodeSession = { id: transcodeSessionId, serverUrl: itemServerUrl, token: itemServerToken };
         streamUrl = `${itemServerUrl}/video/:/transcode/universal/start.m3u8`
           + `?path=${encodeURIComponent('/library/metadata/' + item.ratingKey)}`
           + `&mediaIndex=0&partIndex=0&protocol=hls`
           + `&offset=${Math.floor(item.offsetSeconds || 0)}`
           + `&copyts=1&X-Plex-Token=${itemServerToken}`
+          + `&session=${transcodeSessionId}`
+          + `&X-Plex-Session-Identifier=${transcodeSessionId}`
           + `&X-Plex-Client-Identifier=${getClientId()}`
           + `&X-Plex-Product=Plex%2090`
           + `&X-Plex-Platform=Web&X-Plex-Platform-Version=1.0`
@@ -3534,7 +4740,8 @@
       }
     }
 
-    // Destroy previous HLS instance
+    // Destroy the previous loader so it cannot sit there requesting segments of a session
+    // that has already been released above.
     if (hlsInstance) {
       hlsInstance.destroy();
       hlsInstance = null;
@@ -3560,38 +4767,76 @@
       hlsInstance.loadSource(streamUrl);
       hlsInstance.attachMedia(video);
       hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(e => console.warn('Autoplay blocked:', e));
+        startVideoPlayback(video);
       });
+      // One recovery attempt per kind, per program. The flags live out here on purpose:
+      // hls.js builds a fresh payload object for every error event, so a flag written onto
+      // `data` is always unset on the next one. Measured 2026-10-07 in Chrome against a
+      // playlist of 404s: the old `data._retried` guard made 14,612 requests in 8 seconds
+      // (~1,800/s at the user's server); the same handler with the flag out here made 14.
+      let networkRetried = false;
+      let mediaRecovered = false;
+      const thisInstance = hlsInstance;
+      // A manifest that will not load has nothing to re-load: startLoad() is silent and the
+      // channel sits on a black screen forever. Measured against a file Plex refuses to
+      // transcode (Dolby Vision profile 5): exactly one fatal `manifestLoadError` with
+      // HTTP 400, and no further events. Those go straight to the skip.
+      const DEAD_STREAM_DETAILS = new Set([
+        (Hls.ErrorDetails && Hls.ErrorDetails.MANIFEST_LOAD_ERROR) || 'manifestLoadError',
+        (Hls.ErrorDetails && Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) || 'manifestLoadTimeOut',
+        (Hls.ErrorDetails && Hls.ErrorDetails.MANIFEST_PARSING_ERROR) || 'manifestParsingError',
+        (Hls.ErrorDetails && Hls.ErrorDetails.LEVEL_EMPTY_ERROR) || 'levelEmptyError',
+      ]);
       hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            // Attempt one recovery before giving up
-            if (!data._retried) {
-              data._retried = true;
-              hlsInstance.startLoad();
-            } else {
-              showVideoError('NETWORK ERROR. CANNOT REACH YOUR SERVER');
-            }
-          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            showVideoError('CODEC NOT SUPPORTED. TRY A DIFFERENT BROWSER');
-          } else {
-            showVideoError(`STREAM FAILED (${data.details || 'UNKNOWN'}). CHECK YOUR SERVER`);
-          }
+        if (!data.fatal) return;
+        if (DEAD_STREAM_DETAILS.has(data.details)) {
+          try { thisInstance.destroy(); } catch (e) {}
+          if (hlsInstance === thisInstance) hlsInstance = null;
+          const code = data.response && data.response.code;
+          failCurrentItem(channel, item, classifyPlaybackFailure({
+            httpStatus: code,
+            network: !code && data.type === Hls.ErrorTypes.NETWORK_ERROR,
+            decodedAFrame: video.currentTime > 0.5,
+          }));
+          return;
         }
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && !networkRetried) {
+          networkRetried = true;
+          thisInstance.startLoad();
+          return;
+        }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !mediaRecovered) {
+          mediaRecovered = true;
+          thisInstance.recoverMediaError();
+          return;
+        }
+        // Out of recoveries: stop this loader dead, then move the channel on rather than
+        // parking on an error card the way a broken file used to.
+        try { thisInstance.destroy(); } catch (e) {}
+        if (hlsInstance === thisInstance) hlsInstance = null;
+        const code = data.response && data.response.code;
+        failCurrentItem(channel, item, classifyPlaybackFailure({
+          httpStatus: code,
+          network: !code && data.type === Hls.ErrorTypes.NETWORK_ERROR,
+          // bufferStalledError after a picture is the server falling behind, not a codec
+          tooSlow: data.details === 'bufferStalledError' || data.details === 'bufferNudgeOnStall',
+          mediaError: data.type === Hls.ErrorTypes.MEDIA_ERROR,
+          decodedAFrame: video.currentTime > 0.5,
+        }));
       });
     } else if (isHLS && video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari native HLS
       video.src = streamUrl;
       video.addEventListener('loadedmetadata', () => {
         if (item.offsetSeconds) video.currentTime = item.offsetSeconds;
-        video.play().catch(e => console.warn('Autoplay blocked:', e));
+        startVideoPlayback(video);
       }, { once: true });
     } else {
       // Direct play (mp4, webm)
       video.src = streamUrl;
       video.addEventListener('loadedmetadata', () => {
         if (item.offsetSeconds) video.currentTime = item.offsetSeconds;
-        video.play().catch(e => console.warn('Autoplay blocked:', e));
+        startVideoPlayback(video);
       }, { once: true });
     }
 
@@ -3622,14 +4867,15 @@
     // Drive the playback tracker off real player events. Using on* assignment (not
     // addEventListener) so each new program replaces the handler instead of leaking one.
     video.onplaying = () => {
+      consecutivePlaybackFailures = 0;   // something actually played; the run is broken
       armStall();
       if (playbackTracker) {
         playbackTracker.onReady();   // idempotent: starts the session once
-        playbackTracker.onResume();  // re-arm the watch clock after a stall/pause
+        playbackTracker.onResume(true);  // re-arm the watch clock after a stall/pause
       }
     };
     video.onwaiting = armStall;
-    video.onpause = () => { if (playbackTracker) playbackTracker.onPause(); };
+    video.onpause = () => { if (playbackTracker) playbackTracker.onPause(true); };
 
     // Handle video ending - advance to next item
     video.onended = () => { clearStall(); onItemEnded(channel); };
@@ -3642,8 +4888,33 @@
         playCurrentItem({ ...item, _forceTranscode: true, _retryHls: true }, channel);
         return;
       }
-      showVideoError(VIDEO_ERRORS[code] || `PLAYBACK FAILED (ERROR ${code ?? '?'})`);
+      // MediaError: 1 aborted, 2 network, 3 decode, 4 source not supported. Same verdict
+      // and same five-second skip as the HLS path and the Apple TV app.
+      failCurrentItem(channel, item, classifyPlaybackFailure({
+        network: code === 2,
+        mediaError: code === 3 || code === 4,
+        decodedAFrame: code === 3 && video.currentTime > 0.5,
+      }));
     };
+  }
+
+  // A program that cannot play should not hold the channel. Show why for a moment, then
+  // move on, the way the Apple TV app does. After three in a row the channel stops instead
+  // of racing through the schedule, because that means the server, not the file.
+  const MAX_CONSECUTIVE_FAILURES = 3;
+  function failCurrentItem(channel, item, failure) {
+    consecutivePlaybackFailures += 1;
+    console.warn('[PLEX 90] Playback failed', item && item.title,
+      `(${consecutivePlaybackFailures}/${MAX_CONSECUTIVE_FAILURES})`);
+    const willSkip = consecutivePlaybackFailures < MAX_CONSECUTIVE_FAILURES;
+    showPlaybackFailure(failure, willSkip);
+    if (!willSkip) return;   // three in a row points at the server; park rather than spin
+    // Five seconds, same as the Apple TV: long enough to read why.
+    setTimeout(() => {
+      if (currentChannel !== (channel && channel.id)) return;  // user already tuned away
+      clearVideoError();
+      onItemEnded(channel);
+    }, 5000);
   }
 
   function onItemEnded(channel) {
@@ -3663,6 +4934,7 @@
   function stopVideo() {
     // Finalize any in-flight watch session (flush + scrobble check) before tearing down.
     if (playbackTracker) { playbackTracker.stop(); playbackTracker = null; }
+    disarmPlayRetry();
     const video = document.getElementById('plex-video');
     video.pause();
     video.removeAttribute('src');
@@ -3671,6 +4943,7 @@
       hlsInstance.destroy();
       hlsInstance = null;
     }
+    stopActiveTranscode();
     document.getElementById('unmute-btn').style.display = 'none';
   }
 
@@ -3693,7 +4966,7 @@
     const now = ch.schedule[0];
     const next = ch.schedule[1];
 
-    document.getElementById('info-channel-tag').textContent = `CH ${String(ch.id).padStart(2, '0')} \u2014 ${ch.name}`;
+    document.getElementById('info-channel-tag').textContent = `CH ${String(chNum(ch)).padStart(2, '0')} \u2014 ${ch.name}`;
     document.getElementById('info-channel-tag').style.color = ch.color;
     const MB = globalThis.NostalgexMusicBrainz;
     const isMusic = MB && MB.isMusicVideoItem(now);
@@ -3812,7 +5085,7 @@
     }
   }
 
-  function updateGuideFocus() {
+  function updateGuideFocus(wrapped = false) {
     // `guideFocusIndex` indexes getEnabledChannels(), but the promo rows share the
     // .grid-row class, so walking the full NodeList by position drifted one row per
     // promo row above the cursor. The highlight then sat on the channel before the
@@ -3833,7 +5106,10 @@
     });
 
     if (focusedRow) {
-      focusedRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // A wrap lands at the far end of the list. Centering the row there runs the
+      // scroll all the way to that end, so wrapping to channel one shows the top of
+      // the guide again, seasonal invite included, the way Apple TV centers its rows.
+      focusedRow.scrollIntoView({ behavior: 'smooth', block: wrapped ? 'center' : 'nearest' });
     }
   }
 
@@ -3935,7 +5211,7 @@
         }
       });
     }
-    CHANNELS.sort((a, b) => a.id - b.id);
+    CHANNELS.sort((a, b) => chNum(a) - chNum(b));
     saveChannelConfig();
     renderConfig();
     renderActiveGuide();
@@ -4129,33 +5405,11 @@
     saveChannelConfig();
   }
 
-  function saveBlacklist() {
-    localStorage.setItem('plex90_blacklist', JSON.stringify(blacklistedItems));
-  }
-  function loadBlacklist() {
-    try {
-      const raw = localStorage.getItem('plex90_blacklist');
-      if (!raw) return;
-      const arr = JSON.parse(raw);
-      arr.forEach(e => {
-        blacklist.add(String(e.ratingKey));
-        blacklistedItems.push({ ratingKey: e.ratingKey, title: e.title });
-      });
-    } catch(e) {}
-  }
-
-  function applyBlacklistToChannels() {
-    CHANNELS.forEach(ch => {
-      if (!ch.rules || !allItemsCache.length) return;
-      ch.itemPool = shuffleArray(filterItems(allItemsCache, ch.rules, ch.id, ch.category));
-      if (ch.itemPool.length >= (ch.minItems || 50)) buildChannelSchedule(ch);
-      else ch.enabled = false;
-    });
-    renderConfig();
-  }
-
   function saveChannelConfig() {
-    const config = CHANNELS.filter(ch => !ch.autoGenerated).map(ch => ({
+    // Collection channels are rebuilt from the server scan and the saved switches
+    // (nostalgex_enabled_collections); restoring one here would bring it back as a
+    // custom channel with no rules.
+    const config = CHANNELS.filter(ch => !ch.autoGenerated && !ch.collection).map(ch => ({
       id: ch.id,
       name: ch.name,
       colorHex: ch.colorHex,
@@ -4249,12 +5503,32 @@
   // ══════════════════════════════════════
   // CONFIG VISIBILITY
   // ══════════════════════════════════════
+  // iPhone has no element fullscreen API at all: Element.requestFullscreen and its webkit
+  // spelling are both undefined there, so the old call threw a TypeError and the FULL
+  // SCREEN control did nothing. The video element's own webkitEnterFullscreen is the only
+  // fullscreen iOS offers, so fall back to it.
+  function isVideoFullscreen() {
+    if (document.fullscreenElement) return true;
+    const video = document.getElementById('plex-video');
+    return !!(video && video.webkitDisplayingFullscreen);
+  }
+
   function toggleFullscreen() {
     const container = document.getElementById('video-container');
-    if (!document.fullscreenElement) {
-      container.requestFullscreen().catch(e => console.warn('Fullscreen failed:', e));
-    } else {
+    const video = document.getElementById('plex-video');
+    if (!isVideoFullscreen()) {
+      if (container.requestFullscreen) {
+        container.requestFullscreen().catch(e => console.warn('Fullscreen failed:', e));
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+      } else if (video && video.webkitEnterFullscreen) {
+        // iPhone. Leaving this player pauses the video; webkitendfullscreen resumes it.
+        try { video.webkitEnterFullscreen(); } catch (e) { console.warn('Fullscreen failed:', e); }
+      }
+    } else if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen();
+    } else if (video && video.webkitExitFullscreen) {
+      video.webkitExitFullscreen();
     }
   }
 
@@ -4268,6 +5542,22 @@
     }
   });
 
+  // iOS native player: same subtitle gate as fullscreenchange, and, on the way out,
+  // put playback back inline. iOS pauses the element when the native player closes, so
+  // without this the tuner sits on a still frame with the schedule running on without it.
+  (() => {
+    const video = document.getElementById('plex-video');
+    if (!video) return;
+    video.addEventListener('webkitbeginfullscreen', () => {
+      loadSubtitleForCurrentItem(currentPlayingItem);
+    });
+    video.addEventListener('webkitendfullscreen', () => {
+      clearSubtitleTracks();
+      // The handler runs inside the dismissal gesture, so this play() is allowed.
+      if (video.paused && !video.ended && (video.src || video.currentSrc)) startVideoPlayback(video);
+    });
+  })();
+
   // Pause the watch clock when the tab is hidden, resume when it returns — so
   // background time doesn't count toward the 75% scrobble gate.
   document.addEventListener('visibilitychange', () => {
@@ -4275,8 +5565,10 @@
     if (document.hidden) playbackTracker.onPause();
     else playbackTracker.onResume();
   });
-  // Flush a final timeline/scrobble check if the user closes or navigates away mid-program.
-  window.addEventListener('pagehide', () => { if (playbackTracker) playbackTracker.stop(); });
+  // Close the session if the user closes or navigates away mid-program (Plex: clears Now
+  // Playing; Jellyfin/Emby: restores UserData). The page is going away, so the tracker
+  // sends with keepalive instead of waiting on its queue.
+  window.addEventListener('pagehide', () => { if (playbackTracker) playbackTracker.stop(true); });
 
   function toggleMute() {
     const video = document.getElementById('plex-video');
@@ -4287,10 +5579,59 @@
   }
 
   function updateToolbarSound() {
-    const el = document.getElementById('tb-sound-val');
-    if (!el) return;
-    el.textContent = videoMuted ? 'OFF' : 'ON';
-    el.classList.toggle('off', videoMuted);
+    // The rail and the touch drawer each carry their own copy of the value.
+    for (const id of ['tb-sound-val', 'dw-sound-val']) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.textContent = videoMuted ? 'OFF' : 'ON';
+      el.classList.toggle('off', videoMuted);
+    }
+  }
+
+  /* ══════════════════════════════════════
+     TOUCH CONTROLS DRAWER
+
+     Opening it only moves a panel: it never touches the video element, so
+     playback carries on behind the scrim. Dismissed by the close box, by a tap
+     outside, or by Escape. While it is open Tab cycles inside it, and every
+     other key falls through to the normal shortcuts.
+  ══════════════════════════════════════ */
+  let drawerReturnFocus = null;
+
+  function drawerFocusables() {
+    const drawer = document.getElementById('m-drawer');
+    if (!drawer) return [];
+    return [...drawer.querySelectorAll('button, a[href]')]
+      .filter(el => !el.disabled && el.getBoundingClientRect().width > 0);
+  }
+
+  function openDrawer() {
+    const drawer = document.getElementById('m-drawer');
+    const btn = document.getElementById('m-menu-btn');
+    if (!drawer) return;
+    drawerReturnFocus = document.activeElement;
+    document.body.classList.add('drawer-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    const first = drawerFocusables()[0];
+    if (first) first.focus();
+  }
+
+  function closeDrawer() {
+    const drawer = document.getElementById('m-drawer');
+    const btn = document.getElementById('m-menu-btn');
+    if (!drawer || !document.body.classList.contains('drawer-open')) return;
+    document.body.classList.remove('drawer-open');
+    drawer.setAttribute('aria-hidden', 'true');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    const back = drawerReturnFocus && document.contains(drawerReturnFocus) ? drawerReturnFocus : btn;
+    if (back && typeof back.focus === 'function') back.focus();
+    drawerReturnFocus = null;
+  }
+
+  function toggleDrawer() {
+    if (document.body.classList.contains('drawer-open')) closeDrawer();
+    else openDrawer();
   }
 
   function tbRefresh() {
@@ -4331,8 +5672,10 @@
   // Reflect retro state across every control (side toolbar value, floating button,
   // settings toggle) so the on/off state is always clear, not hidden behind the B key.
   function updateRetroControls() {
-    const tb = document.getElementById('tb-retro-val');
-    if (tb) { tb.textContent = retroMode ? 'ON' : 'OFF'; tb.classList.toggle('off', !retroMode); }
+    for (const id of ['tb-retro-val', 'dw-retro-val']) {
+      const tb = document.getElementById(id);
+      if (tb) { tb.textContent = retroMode ? 'ON' : 'OFF'; tb.classList.toggle('off', !retroMode); }
+    }
     const cfg = document.getElementById('cfg-retro-toggle');
     if (cfg) { cfg.textContent = retroMode ? 'ON' : 'OFF'; cfg.classList.toggle('on', retroMode); }
   }
@@ -4360,9 +5703,9 @@
   function toggleSyncActivity() {
     syncPlexActivity = !syncPlexActivity;
     localStorage.setItem('plex90_sync_activity', syncPlexActivity);
-    // If we're turning it off mid-program, silently abandon the live tracker so no
-    // further reports fire and no final "stopped" offset is written (which would still
-    // create a Continue Watching entry). Turning it on takes effect on the next program.
+    // If we're turning it off mid-program, abandon the live tracker so no further
+    // reports fire; it restores whatever the reports already sent wrote to Continue
+    // Watching. Turning it on takes effect on the next program.
     if (!syncPlexActivity && playbackTracker) { playbackTracker.abandon(); playbackTracker = null; }
     updateSyncActivityControls();
   }
@@ -4470,7 +5813,7 @@
   async function loadSubtitleForCurrentItem(item) {
     const autoForeign = item && shouldAutoEnableSubs(item.audioStreams || []);
     if ((!subtitlesEnabled && !autoForeign) || mediaBackend !== 'jellyfin') return;
-    if (!document.fullscreenElement) return;  // fullscreen-only, matching tvOS
+    if (!isVideoFullscreen()) return;  // fullscreen-only, matching tvOS
     if (!item || !Array.isArray(item.subtitles) || item.subtitles.length === 0) return;
     const sub = pickSubtitle(item.subtitles);
     if (!sub) return;
@@ -4533,8 +5876,9 @@
   let fsOverlayTimer = null;
 
   function toggleFsOverlay() {
-    // Enter fullscreen if not already
-    if (!document.fullscreenElement) {
+    // Enter fullscreen if not already. requestFullscreen is undefined on iPhone, where
+    // this overlay is keyboard-only anyway, so guard rather than throw.
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen().catch(() => {});
     }
     fsOverlayVisible = !fsOverlayVisible;
@@ -4556,7 +5900,7 @@
     const ch = CHANNELS.find(c => c.id === currentChannel);
     if (!ch || !ch.schedule || !ch.schedule[0]) return;
     const now = ch.schedule[0];
-    document.getElementById('fs-overlay-channel').textContent = `CH ${String(ch.id).padStart(2,'0')} · ${ch.name}`;
+    document.getElementById('fs-overlay-channel').textContent = `CH ${String(chNum(ch)).padStart(2,'0')} · ${ch.name}`;
     document.getElementById('fs-overlay-channel').style.color = ch.color || 'var(--cyan)';
     const MB = globalThis.NostalgexMusicBrainz;
     const fsTitle = MB && MB.isMusicVideoItem(now)
@@ -4619,7 +5963,7 @@
 
     row.innerHTML = `
       <div class="config-ch-swatch" style="background: ${escapeHtml(ch.colorHex)}"></div>
-      <div class="config-ch-number" style="color: ${escapeHtml(ch.colorHex)}">${String(ch.id).padStart(2, '0')}</div>
+      <div class="config-ch-number" style="color: ${escapeHtml(ch.colorHex)}">${String(chNum(ch)).padStart(2, '0')}</div>
       <div class="config-ch-name">${escapeHtml(ch.name)}${ch.stock ? ' <span class="stock-badge">STOCK</span>' : ''}</div>
       <div class="config-ch-badges">${badgeHtml}</div>
       <div class="config-ch-count">${escapeHtml(countDisplay)}</div>
@@ -4641,8 +5985,9 @@
     }
 
     const visibleBundles = bundles.filter(b => b.id !== 'collections');
-    // Clamp focus index
-    if (bundleFocusIndex >= visibleBundles.length) bundleFocusIndex = Math.max(0, visibleBundles.length - 1);
+    // Clamp focus index. The collection rows below continue the same index.
+    const focusRows = visibleBundles.length + visibleCollections().length;
+    if (bundleFocusIndex >= focusRows) bundleFocusIndex = Math.max(0, focusRows - 1);
 
     visibleBundles.forEach((bundle, idx) => {
       const isEnabled = enabledBundleIDs.has(bundle.id);
@@ -4695,26 +6040,98 @@
       // Scroll focused row into view
       if (isFocused) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
+    renderCollectionList();
+  }
+
+  // Mirrors the MY COLLECTIONS rows in BundleManagerView.swift: one switch per server
+  // collection, "N movies" / "N shows · E episodes" or the duplicate warning underneath.
+  function renderCollectionList() {
+    const container = document.getElementById('collection-list');
+    const statusEl = document.getElementById('collections-status');
+    if (!container || !statusEl) return;
+    container.innerHTML = '';
+
+    const rows = visibleCollections();
+    const offset = bundles.filter(b => b.id !== 'collections').length;
+    const onAir = rows.filter(c => c.enabled).length;
+    let status = '';
+    if (collectionScanState === 'scanning') {
+      status = `READING COLLECTIONS FROM YOUR SERVER${collectionScanDetail ? ' ' + collectionScanDetail : ''}`;
+    } else if (collectionScanState === 'failed' && !rows.length) {
+      status = 'COULD NOT READ COLLECTIONS FROM YOUR SERVER';
+    } else if (rawCollections && !rows.length) {
+      status = 'NO COLLECTIONS WITH 3 OR MORE MOVIES OR EPISODES';
+    } else if (rows.length) {
+      status = `${onAir}/${rows.length} ON AIR`;
+    }
+    if (collectionsOverCap > 0) {
+      status += `${status ? ' · ' : ''}${collectionsOverCap} SWITCHED ON PAST CH 699, NOT ON AIR`;
+    }
+    statusEl.textContent = status;
+
+    const channelByCollection = new Map(
+      allChannelsUnfiltered.filter(ch => ch.collection).map(ch => [ch.collectionID, ch]));
+    const CL = globalThis.NostalgexCollections;
+
+    rows.forEach((c, i) => {
+      const idx = offset + i;
+      const isFocused = configTab === 'bundles' && idx === bundleFocusIndex;
+      const ch = channelByCollection.get(c.id);
+      const warning = CL ? CL.duplicateWarning(c) : null;
+      const subtitle = warning || (CL ? CL.memberSummary(c) : `${c.movieCount} movies`);
+
+      const row = document.createElement('div');
+      row.className = 'bundle-row';
+      const borderColor = isFocused ? 'var(--cyan)' : (c.enabled ? 'rgba(0,255,255,0.3)' : 'rgba(255,255,255,0.08)');
+      const bgColor = isFocused ? 'rgba(0,255,255,0.1)' : (c.enabled ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)');
+      row.style.cssText = `
+        display: flex; align-items: center; gap: 16px;
+        padding: 14px 16px; margin-bottom: 8px;
+        background: ${bgColor};
+        border: 2px solid ${borderColor};
+        border-radius: 6px; cursor: pointer;
+        transition: all 0.2s;
+        opacity: ${warning && !c.enabled ? 0.7 : 1};
+        ${isFocused ? 'box-shadow: 0 0 12px rgba(0,255,255,0.2);' : ''}
+      `;
+      row.addEventListener('click', () => {
+        bundleFocusIndex = idx;
+        toggleCollection(c.id);
+      });
+      const right = ch
+        ? `<div style="font-size: 14px; color: var(--cyan); letter-spacing: 1px;">CH ${ch.number}</div>
+           <div style="font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 1px;">CHANNEL</div>`
+        : `<div style="font-size: 14px; color: rgba(255,255,255,0.3); letter-spacing: 1px;">${c.showCount ? (c.movieCount || 0) + c.showCount : c.movieCount}</div>
+           <div style="font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 1px;">${!c.showCount ? 'MOVIES' : (c.movieCount ? 'TITLES' : 'SHOWS')}</div>`;
+      row.innerHTML = `
+        <div class="toggle-switch ${c.enabled ? 'on' : ''}" style="flex-shrink: 0;"></div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 16px; font-weight: bold; letter-spacing: 2px; color: ${c.enabled ? '#fff' : 'rgba(255,255,255,0.4)'};">
+            ${escapeHtml(c.title)}
+          </div>
+          <div style="font-size: 11px; color: ${warning ? 'rgba(255,229,0,0.7)' : 'rgba(255,255,255,0.4)'}; margin-top: 4px; letter-spacing: 1px;">
+            ${escapeHtml(subtitle)}
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0;">${right}</div>
+      `;
+      container.appendChild(row);
+      if (isFocused) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }
 
   function switchConfigTab(tab) {
     configTab = tab;
     document.getElementById('tab-bundles').classList.toggle('active', tab === 'bundles');
     document.getElementById('tab-help').classList.toggle('active', tab === 'help');
-    document.getElementById('tab-blacklist').classList.toggle('active', tab === 'blacklist');
     document.getElementById('tab-general').classList.toggle('active', tab === 'general');
     document.getElementById('tab-server').classList.toggle('active', tab === 'server');
     document.getElementById('config-tab-channels').style.display = 'none';
     document.getElementById('config-tab-bundles').style.display = tab === 'bundles' ? '' : 'none';
     document.getElementById('config-tab-help').style.display = tab === 'help' ? '' : 'none';
-    document.getElementById('config-tab-blacklist').style.display = tab === 'blacklist' ? '' : 'none';
     document.getElementById('config-tab-general').style.display = tab === 'general' ? '' : 'none';
     document.getElementById('config-tab-server').style.display = tab === 'server' ? '' : 'none';
     if (tab === 'bundles') { bundleFocusIndex = 0; renderBundleList(); }
-    if (tab === 'blacklist') {
-      renderBlacklistList();
-      setTimeout(initBlacklistSearch, 50);
-    }
     // Give the new pane a focus anchor so the first Up/Down has somewhere to
     // start from. Bundles runs its own index, so leave that one alone.
     if (tab !== 'bundles') {
@@ -4728,89 +6145,6 @@
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
     renderSuggestedList();
-  }
-
-  // ══════════════════════════════════════
-  // BLACKLIST
-  // ══════════════════════════════════════
-  function addToBlacklist(item) {
-    blacklist.add(String(item.ratingKey));
-    blacklistedItems.push({ ratingKey: item.ratingKey, title: item.title });
-    saveBlacklist();
-    applyBlacklistToChannels();
-    renderBlacklistList();
-    document.getElementById('blacklist-input').value = '';
-    hideBlacklistResults();
-  }
-
-  function removeFromBlacklist(ratingKey) {
-    blacklist.delete(String(ratingKey));
-    blacklistedItems = blacklistedItems.filter(e => String(e.ratingKey) !== String(ratingKey));
-    saveBlacklist();
-    applyBlacklistToChannels();
-    renderBlacklistList();
-  }
-
-  function renderBlacklistResults(matches) {
-    const el = document.getElementById('blacklist-results');
-    if (!matches.length) { hideBlacklistResults(); return; }
-    el.innerHTML = '';
-    matches.forEach(item => {
-      const row = document.createElement('div');
-      row.className = 'blacklist-result-row';
-      const typeTag = item.type === 'movie' ? 'MOVIE' : item.type === 'episode' ? 'TV' : 'MUSIC';
-      const line = itemGuideTitle(item);
-      row.innerHTML = `<span>${escapeHtml(line)}</span> <span style="opacity:0.4;font-size:11px;">${typeTag} ${item.year || ''}</span>`;
-      row.addEventListener('mousedown', (e) => { e.preventDefault(); addToBlacklist(item); });
-      el.appendChild(row);
-    });
-    el.style.display = 'block';
-  }
-
-  function hideBlacklistResults() {
-    const el = document.getElementById('blacklist-results');
-    if (el) el.style.display = 'none';
-  }
-
-  function renderBlacklistList() {
-    const el = document.getElementById('blacklist-list');
-    const label = document.getElementById('blacklist-count-label');
-    if (!el) return;
-    if (label) label.textContent = blacklistedItems.length
-      ? `${blacklistedItems.length} EXCLUDED TITLE${blacklistedItems.length !== 1 ? 'S' : ''}`
-      : '';
-    if (!blacklistedItems.length) {
-      el.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:12px;padding:12px 0;">No titles blacklisted yet.</div>';
-      return;
-    }
-    el.innerHTML = '';
-    [...blacklistedItems].reverse().forEach(entry => {
-      const row = document.createElement('div');
-      row.className = 'blacklist-entry';
-      row.innerHTML = `<span>${escapeHtml(entry.title)}</span><span class="blacklist-remove" onclick="removeFromBlacklist('${escapeHtml(String(entry.ratingKey))}')">&#x2715;</span>`;
-      el.appendChild(row);
-    });
-  }
-
-  let blacklistSearchTimer = null;
-  function initBlacklistSearch() {
-    const input = document.getElementById('blacklist-input');
-    if (!input || input._blacklistInit) return;
-    input._blacklistInit = true;
-    input.addEventListener('input', () => {
-      clearTimeout(blacklistSearchTimer);
-      blacklistSearchTimer = setTimeout(() => {
-        const q = input.value.trim().toLowerCase();
-        if (q.length < 2) { hideBlacklistResults(); return; }
-        const matches = allItemsCache
-          .filter(i => itemTitleHaystack(i).includes(q) && !blacklist.has(String(i.ratingKey)))
-          .slice(0, 20);
-        renderBlacklistResults(matches);
-      }, 200);
-    });
-    input.addEventListener('blur', () => {
-      setTimeout(hideBlacklistResults, 200);
-    });
   }
 
   function showConfig() {
@@ -4849,14 +6183,13 @@
   // ── Settings keyboard navigation ──────────────────────────────
   // Up/Down used to walk `.config-channel-row` no matter which tab was open.
   // Those rows live in #config-tab-channels, which is always display:none, so
-  // on General, Server and Blacklist the index moved while nothing on screen
-  // changed and the cursor appeared stuck. Walk the visible pane instead.
+  // on General and Server the index moved while nothing on screen changed and
+  // the cursor appeared stuck. Walk the visible pane instead.
   const CONFIG_FOCUSABLE_SEL = [
     'button',
     'select',
     'input:not([type="hidden"])',
     'a[href]',
-    '.blacklist-remove',
     '[tabindex]:not([tabindex="-1"])',
   ].join(', ');
 
@@ -4882,11 +6215,6 @@
     let next = current === -1 ? (delta > 0 ? 0 : items.length - 1) : current + delta;
     next = Math.max(0, Math.min(next, items.length - 1));
     const el = items[next];
-    // Spans like .blacklist-remove are not focusable on their own; -1 allows
-    // programmatic focus without adding them to the tab order.
-    if (!el.hasAttribute('tabindex') && !/^(BUTTON|INPUT|SELECT|A)$/.test(el.tagName)) {
-      el.setAttribute('tabindex', '-1');
-    }
     el.focus({ preventScroll: true });
     el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -4894,12 +6222,6 @@
   function focusFirstConfigItem() {
     const items = getConfigFocusables();
     if (items.length) items[0].focus({ preventScroll: true });
-  }
-
-  /** True when the user is typing, so arrows should move the caret, not the UI. */
-  function isTypingInConfig() {
-    const el = document.activeElement;
-    return !!el && el.tagName === 'INPUT' && /^(text|search|email|url|password|number)$/i.test(el.type || 'text');
   }
 
   function toggleChannel(index) {
@@ -4926,6 +6248,7 @@
   let pollInterval = null;
   let discoveredServers = [];
   let serverFocusIndex = 0;
+  let serverAddressesShown = false; // touch picker: addresses are collapsed until asked for
   let selectedServerIndices = new Set(); // indices into discoveredServers (multi-select)
   let selectedServers = []; // [{name, url, token, connections}] — all connected servers
 
@@ -5079,6 +6402,10 @@
           connections: r.connections || [],
           accessToken: r.accessToken,
           owned: r.owned,
+          // plex.tv already knows whether it can see the server. Carrying the
+          // flag through is what lets the picker say so before the user picks
+          // a server that is never going to answer.
+          presence: r.presence,
           machineIdentifier: r.clientIdentifier || '',
         }));
 
@@ -5125,22 +6452,53 @@
     picker.innerHTML = '';
     picker.appendChild(title);
 
+    const list = document.createElement('div');
+    list.className = 'server-picker-list';
+    picker.appendChild(list);
+
     discoveredServers.forEach((server, i) => {
       const selected = selectedServerIndices.has(i);
       const opt = document.createElement('div');
       opt.className = `server-option${selected ? ' selected' : ''}`;
+      opt.setAttribute('role', 'checkbox');
+      opt.setAttribute('tabindex', '0');
+      opt.setAttribute('aria-checked', selected ? 'true' : 'false');
       opt.style.cssText = 'display:flex;align-items:center;gap:14px;cursor:pointer;';
       const bestConn = server.connections.find(c => c.local) || server.connections[0];
+      // What a phone actually needs from a row: the name, whether it is someone
+      // else's, and whether it can be reached. The address is 80 characters of
+      // plex.direct hash that never fits, so it moves behind SHOW ADDRESSES.
+      const tags = [];
+      if (!server.owned) tags.push('<span class="server-tag">SHARED</span>');
+      if (server.presence === false) tags.push('<span class="server-tag server-tag--off">OFFLINE</span>');
+      else if (bestConn && bestConn.relay) tags.push('<span class="server-tag">RELAY</span>');
+      else if (bestConn && bestConn.local) tags.push('<span class="server-tag">LOCAL</span>');
+      else if (bestConn) tags.push('<span class="server-tag">REMOTE</span>');
       opt.innerHTML = `
         <div class="server-option-check">${selected ? '✓' : ''}</div>
         <div class="server-option-info">
-          <div class="server-option-name">${escapeHtml(server.name)}${server.owned ? '' : ' (shared)'}</div>
+          <div class="server-option-name">${escapeHtml(server.name)}${server.owned ? '' : '<span class="server-option-shared-inline"> (shared)</span>'}</div>
+          ${tags.length ? `<div class="server-option-tags">${tags.join('')}</div>` : ''}
           <div class="server-option-url">${bestConn ? escapeHtml(bestConn.uri) : 'Unknown address'}</div>
         </div>
       `;
       opt.addEventListener('click', () => toggleServerOption(i));
-      picker.appendChild(opt);
+      list.appendChild(opt);
     });
+
+    // Touch only (hidden by the pointer rules in CSS): the addresses are still
+    // one tap away for anyone working out why a server will not connect.
+    const addrToggle = document.createElement('button');
+    addrToggle.className = 'server-picker-addr';
+    addrToggle.type = 'button';
+    addrToggle.textContent = serverAddressesShown ? 'HIDE ADDRESSES' : 'SHOW ADDRESSES';
+    addrToggle.setAttribute('aria-expanded', serverAddressesShown ? 'true' : 'false');
+    addrToggle.addEventListener('click', () => {
+      serverAddressesShown = !serverAddressesShown;
+      renderServerOptions();
+    });
+    picker.appendChild(addrToggle);
+    picker.classList.toggle('show-addresses', serverAddressesShown);
 
     const connectBtn = document.createElement('button');
     connectBtn.className = 'server-picker-connect';
@@ -5408,6 +6766,11 @@
     // The library cache persists across sessions now, so it has to go with the
     // credentials. Otherwise a signed-out browser keeps the whole library.
     clearLibraryCache();
+    // Collection titles and their members are library data too.
+    try { localStorage.removeItem(COLLECTION_SCAN_KEY); } catch (e) {}
+    libraryExtrasGeneration++;
+    rawCollections = null;
+    collectionCandidates = [];
     mediaBackend = 'plex';
     jellyfinUserId = '';
 
@@ -5528,6 +6891,9 @@
   // ══════════════════════════════════════
   const LIBRARY_CACHE_KEY = 'plex90_library_cache';
   const LIBRARY_CACHE_TTL = 86400000; // 24 hours
+  // 2: Plex items carry a tmdbID now that the scan asks for includeGuids=1. A version-1
+  // cache would serve a whole day of items with no ids, so it is refused once.
+  const LIBRARY_CACHE_VERSION = 2;
 
   // localStorage, not sessionStorage. The 24 hour TTL above only means something
   // if the cache outlives the tab, and sessionStorage is cleared the moment the
@@ -5535,7 +6901,10 @@
   // TTL never once applied. Anything that ends a session has to clear this now
   // that it persists: see signOut().
   function saveLibraryCache(items) {
-    const payload = { ts: Date.now(), url: plexServerUrl, items };
+    // Enrichment has its own cache (IndexedDB, see nostalgex-enrichment.js); keep it
+    // out of this one so the library still fits in localStorage.
+    items = items.map(it => (it && it.enrichment ? { ...it, enrichment: undefined } : it));
+    const payload = { v: LIBRARY_CACHE_VERSION, ts: Date.now(), url: plexServerUrl, items };
     try {
       localStorage.setItem(LIBRARY_CACHE_KEY, JSON.stringify(payload));
       return;
@@ -5568,6 +6937,7 @@
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       const { ts, url, items } = parsed;
+      if (parsed.v !== LIBRARY_CACHE_VERSION) return null;
       if (url !== plexServerUrl) return null;
       const stale = Date.now() - ts > LIBRARY_CACHE_TTL;
       if (stale && !allowStale) return null;
@@ -5592,7 +6962,8 @@
     if (!options.skipCacheSave) saveLibraryCache(allItems);
     if (!options.skipManifestClear) NostalgexDailyManifest.clearManifests(manifestServerKey());
 
-    const targets = allChannelsUnfiltered.filter(ch => poolIDs.has(ch.id));
+    // Collection channels have no rules; their pool is the collection itself.
+    const targets = allChannelsUnfiltered.filter(ch => poolIDs.has(ch.id) && !ch.collection);
     LL.state.channelBuildTotal = targets.length;
     LL.state.channelBuildIndex = 0;
     LL.setPhase('buildingChannels', buildAll ? 'Full lineup' : 'Enabled bundles');
@@ -5661,7 +7032,278 @@
     let working = applyMusicCacheToLibrary(allItems);
     await repopulateChannelsFromLibrary(working, options);
     if (!options.background) startDeferredMusicEnrichmentIfNeeded(working);
+    // Not awaited: the guide is built and tuned before any of this lands.
+    startLibraryExtras(working);
     return working;
+  }
+
+  // ══════════════════════════════════════
+  // TMDB ENRICHMENT + SERVER COLLECTIONS
+  // Both run after the guide is up and never hold it. Enrichment mirrors
+  // EnrichmentService.swift then AppState.refilterChannelsWithEnrichment();
+  // collections mirror AppState.scanCollections() / materializeDynamicChannels().
+  // ══════════════════════════════════════
+  let libraryExtrasGeneration = 0;
+  let enrichmentRecords = null;      // Map tmdbID -> record, re-attached after any item copy
+  let enrichmentLocalCache = null;
+  let enrichmentStatus = '';
+
+  function setEnrichmentStatus(text) {
+    enrichmentStatus = text;
+    const el = document.getElementById('enrichment-status');
+    if (el) {
+      el.textContent = text;
+      el.style.display = text ? '' : 'none';
+    }
+  }
+
+  function startLibraryExtras(items) {
+    const gen = ++libraryExtrasGeneration;
+    // The last scan's collections come back at once, so a switched-on collection
+    // channel does not drop out of the guide while the server is asked again.
+    restoreCollectionsFromCache();
+    runEnrichment(items, gen).catch(err => console.warn('[Enrichment] Failed:', err));
+    scanServerCollections(gen).catch(err => console.warn('[Collections] Scan failed:', err));
+  }
+
+  async function runEnrichment(items, gen) {
+    const EN = globalThis.NostalgexEnrichment;
+    if (!EN) return;
+    const isCancelled = () => gen !== libraryExtrasGeneration;
+    if (!enrichmentLocalCache && globalThis.indexedDB) enrichmentLocalCache = EN.indexedDBCache();
+    let rebuiltEarly = false;
+    const result = await EN.enrichLibrary(items, {
+      config: EN.configFromPage(document, location),
+      cache: enrichmentLocalCache || undefined,
+      // The OMDb pass only asks about titles that could land on an IMDb-gated channel.
+      channels: allChannelsUnfiltered,
+      isCancelled,
+      onProgress: (done, total, phase) => {
+        if (isCancelled()) return;
+        setEnrichmentStatus(phase === 'cache'
+          ? `CHECKING METADATA CACHE ${done}/${total}`
+          : `FETCHING METADATA ${done}/${total}`);
+      },
+      onCacheReady: (records) => {
+        if (isCancelled()) return;
+        enrichmentRecords = records;
+        refilterChannelsWithEnrichment();
+        rebuiltEarly = true;
+      },
+    });
+    if (isCancelled()) return;
+    setEnrichmentStatus('');
+    if (result.skipped) return;
+    enrichmentRecords = result.records;
+    if (result.stats.fetched > 0 || (result.omdb && result.omdb.fetched > 0) || !rebuiltEarly) {
+      refilterChannelsWithEnrichment();
+    }
+  }
+
+  function poolMemberKey(it) {
+    return `${it.serverUrl || ''}|${it.ratingKey}`;
+  }
+
+  function samePoolMembers(a, b) {
+    if (a.length !== b.length) return false;
+    const keys = new Set(a.map(poolMemberKey));
+    return b.every(it => keys.has(poolMemberKey(it)));
+  }
+
+  /** Rebuilds every rules channel whose pool the enrichment changed. Returns how many. */
+  function refilterChannelsWithEnrichment() {
+    const EN = globalThis.NostalgexEnrichment;
+    if (EN && enrichmentRecords) EN.attach(allItemsCache, enrichmentRecords);
+    if (!allItemsCache.length) return 0;
+    const LL = globalThis.NostalgexLibraryLoad;
+    const poolIDs = LL.staticChannelIDsForPoolBuild({
+      buildAll: false, bundles, enabledBundleIDs, allChannelsUnfiltered, isBundleInSeason,
+    });
+    const changed = [];
+    for (const ch of allChannelsUnfiltered) {
+      if (ch.collection || !ch.rules) continue;
+      const before = ch.itemPool || [];
+      if (!poolIDs.has(ch.id) && before.length === 0) continue;
+      const matched = filterItems(allItemsCache, ch.rules, ch.id, ch.category);
+      if (samePoolMembers(before, matched)) continue;
+      ch.itemPool = shuffleArray(matched);
+      ch.enabled = ch.itemPool.length >= (ch.minItems || 50);
+      changed.push({ ch, before: before.length });
+    }
+    if (!changed.length) return 0;
+    applyBundleFilter();
+    changed.forEach(({ ch }) => { if (ch.enabled) buildChannelSchedule(ch); });
+    console.log(`[Enrichment] Re-filtered ${changed.length} channels: `
+      + changed.map(({ ch, before }) => `CH ${chNum(ch)} ${ch.name} ${before}->${ch.itemPool.length}`).join(', '));
+    refreshCollectionChannels();
+    renderConfig();
+    if (guideVisible) renderActiveGuide();
+    if (configVisible && configTab === 'bundles') renderBundleList();
+    return changed.length;
+  }
+
+  // ── Server collections ──
+  const ENABLED_COLLECTIONS_KEY = 'nostalgex_enabled_collections';
+  const COLLECTION_SCAN_KEY = 'nostalgex_collection_scan';
+  let enabledCollectionKeys = loadEnabledCollectionKeys();
+  let rawCollections = null;           // [{ id, title, childKeys, serverKey }] from the last scan
+  let collectionCandidates = [];
+  let collectionsOverCap = 0;
+  let collectionScanState = 'idle';    // idle | scanning | done | failed
+  let collectionScanDetail = '';
+
+  function loadEnabledCollectionKeys() {
+    try {
+      const v = JSON.parse(localStorage.getItem(ENABLED_COLLECTIONS_KEY) || '[]');
+      return new Set(Array.isArray(v) ? v.filter(k => typeof k === 'string') : []);
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function saveEnabledCollectionKeys() {
+    try { localStorage.setItem(ENABLED_COLLECTIONS_KEY, JSON.stringify([...enabledCollectionKeys])); } catch (e) {}
+  }
+
+  // Collection ids are `${serverKey}:${ratingKey}`, saved as the viewer's switches, so the
+  // key has to outlive a change of connection: the machine identifier, as on tvOS, or
+  // 'plex' for a single server restored without one. Never the URL.
+  function collectionServerKeyForItem(it) {
+    return mediaBackend === 'jellyfin' ? 'jellyfin' : (it.serverID || 'plex');
+  }
+
+  function restoreCollectionsFromCache() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(COLLECTION_SCAN_KEY) || 'null');
+      if (!saved || saved.server !== manifestServerKey() || !Array.isArray(saved.collections)) return;
+      rawCollections = saved.collections;
+      refreshCollectionChannels();
+    } catch (e) {}
+  }
+
+  function saveCollectionScan() {
+    try {
+      localStorage.setItem(COLLECTION_SCAN_KEY, JSON.stringify({
+        server: manifestServerKey(), ts: Date.now(), collections: rawCollections || [],
+      }));
+    } catch (e) {}
+  }
+
+  function setCollectionScanState(state, detail = '') {
+    collectionScanState = state;
+    collectionScanDetail = detail;
+    if (configVisible && configTab === 'bundles') renderCollectionList();
+  }
+
+  async function scanServerCollections(gen) {
+    const CL = globalThis.NostalgexCollections;
+    if (!CL || !plexServerUrl || !plexToken) return;
+    const isCancelled = () => gen !== libraryExtrasGeneration;
+    setCollectionScanState('scanning');
+    const progress = (done, total) => {
+      if (!isCancelled()) setCollectionScanState('scanning', `${done}/${total}`);
+    };
+    let found = [];
+    let anyOK = false;
+    if (mediaBackend === 'jellyfin') {
+      const headers = { 'Accept': 'application/json', 'Authorization': jellyfinAuthHeader() };
+      const getJSON = async (path) => {
+        const res = await fetch(`${plexServerUrl}${path}`, { headers });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      };
+      try {
+        found = await CL.fetchBoxSetCollections('jellyfin', jellyfinUserId, getJSON, progress);
+        anyOK = true;
+      } catch (err) {
+        console.warn('[Collections] BoxSet listing failed:', err && err.message);
+      }
+    } else {
+      const servers = selectedServers.length > 0
+        ? selectedServers
+        : [{ name: plexServerName || 'Plex', url: plexServerUrl, token: plexToken, connections: plexConnections, machineIdentifier: '' }];
+      for (const server of servers) {
+        const serverKey = server.machineIdentifier || 'plex';
+        try {
+          const list = await CL.fetchPlexCollections(serverKey, (path) => plexLibraryFetchForServer(path, server), progress);
+          found = found.concat(list);
+          anyOK = true;
+        } catch (err) {
+          console.warn(`[Collections] ${server.name}: ${err && err.message}`);
+        }
+        if (isCancelled()) return;
+      }
+    }
+    if (isCancelled()) return;
+    if (!anyOK) {
+      setCollectionScanState('failed');
+      return;
+    }
+    rawCollections = found;
+    saveCollectionScan();
+    console.log(`[Collections] ${found.length} server collections read`);
+    setCollectionScanState('done');
+    refreshCollectionChannels();
+  }
+
+  /** Recomputes the collection list and its channels from the last scan. Cheap; no network. */
+  function refreshCollectionChannels() {
+    const CL = globalThis.NostalgexCollections;
+    if (!CL || !rawCollections || !allItemsCache.length) return;
+
+    // Films and episodes, with episodes grouped by show, so a collection of shows
+    // expands to the episodes already loaded. This indexed films only, which is where
+    // a collection of shows lost every member.
+    const indexByServer = CL.indexLibrary(allItemsCache, collectionServerKeyForItem);
+    // What the app compares against (its `allChannels`): every stock channel built with
+    // enough to air, whether or not its bundle is switched on. Fold targets are the
+    // FRANCHISES bundle's channels among them (`availableStockFranchiseChannelIDs`).
+    const staticChannels = allChannelsUnfiltered.filter(ch =>
+      ch.stock && !ch.collection && (ch.itemPool || []).length >= (ch.minItems || 50));
+    const franchiseIDs = new Set((bundles.find(b => b.id === 'franchises') || {}).channelIDs || []);
+    collectionCandidates = CL.buildCandidates(rawCollections, indexByServer, {
+      staticChannels,
+      channelsByID: new Map(allChannelsUnfiltered.map(ch => [ch.id, ch])),
+      franchiseChannels: staticChannels.filter(ch => franchiseIDs.has(ch.id)),
+      itemKey: it => `${collectionServerKeyForItem(it)}|${it.ratingKey}`,
+      enabledKeys: enabledCollectionKeys,
+      manifest: channelMembershipManifest,
+    });
+    const folded = collectionCandidates.filter(c => c.foldedInto);
+    if (folded.length) {
+      console.log('[Collections] Folded into stock franchise channels: '
+        + folded.map(c => `${c.title} -> ${c.foldedInto}`).join(', '));
+    }
+
+    const { channels, overCap } = CL.materialize(collectionCandidates);
+    collectionsOverCap = overCap;
+    for (let i = allChannelsUnfiltered.length - 1; i >= 0; i--) {
+      if (allChannelsUnfiltered[i].collection) allChannelsUnfiltered.splice(i, 1);
+    }
+    for (const ch of channels) {
+      ch.enabled = ch.itemPool.length >= ch.minItems;
+      if (ch.enabled) buildChannelSchedule(ch);
+      allChannelsUnfiltered.push(ch);
+    }
+    applyBundleFilter();
+    renderConfig();
+    if (guideVisible) renderActiveGuide();
+    if (configVisible && configTab === 'bundles') renderBundleList();
+    if (currentChannel && !CHANNELS.some(ch => ch.id === currentChannel)) {
+      const first = CHANNELS.find(ch => ch.enabled);
+      if (first) switchChannel(first.id);
+    }
+  }
+
+  function visibleCollections() {
+    return collectionCandidates.filter(c => !c.foldedInto);
+  }
+
+  function toggleCollection(id) {
+    if (enabledCollectionKeys.has(id)) enabledCollectionKeys.delete(id);
+    else enabledCollectionKeys.add(id);
+    saveEnabledCollectionKeys();
+    refreshCollectionChannels();
   }
 
   // Dispatch to the active backend's loader. Both produce the same item shape and
@@ -5840,6 +7482,9 @@
                     rating: show.CommunityRating || 0,
                     userRating: 0,
                     type: 'episode',
+                    // The series id, which a BoxSet of shows lists in place of its
+                    // episodes. NostalgexCollections.indexLibrary expands it.
+                    showKey: String(show.Id),
                     thumb: null,
                     art: null,
                     viewCount: (ep.UserData && ep.UserData.PlayCount) || 0,
@@ -6029,8 +7674,12 @@
     const all = [];
     let start = 0;
     while (true) {
-      const url = `${server.url}/library/sections/${section.key}/all`
-        + `?X-Plex-Container-Start=${start}&X-Plex-Container-Size=${PLEX_PAGE_SIZE}`;
+      // includeGuids=1 is what puts `Guid: [{id: 'tmdb://603'}, ...]` on each item, the
+      // same as PlexAPIService.fetchSectionItemsPaged. Without it a library on Plex's
+      // current agents only carries `plex://movie/...` guids, so items had no tmdbID:
+      // no membership-manifest matches and nothing for enrichment to look up.
+      const url = `${server.url}/library/sections/${section.key}/all?includeGuids=1`
+        + `&X-Plex-Container-Start=${start}&X-Plex-Container-Size=${PLEX_PAGE_SIZE}`;
       const res = await fetch(url, {
         headers: { 'Accept': 'application/json', 'X-Plex-Token': server.token },
       });
@@ -6087,6 +7736,9 @@
               batch.map(async (show) => {
                 const showGenres = (show.Genre || []).map(g => g.tag);
                 showGenres.forEach(g => { discoveredGenres[g] = (discoveredGenres[g] || 0) + 1; });
+                // Episodes take the show's TMDB id, as PlexMediaItem does on tvOS
+                // (`tmdbID: show.tmdbID`). allLeaves carries no show Guid array.
+                const showTmdb = channelFilter() ? channelFilter().parseTmdbIdFromPlex(show, false) : null;
 
                 try {
                   const epRes = await fetch(`${server.url}/library/metadata/${show.ratingKey}/allLeaves`, {
@@ -6131,15 +7783,19 @@
                       rating: show.rating || 0,
                       userRating: show.userRating || 0,
                       type: 'episode',
+                      // The show's key (episode grandparentRatingKey), which a collection
+                      // of shows lists. NostalgexCollections.indexLibrary expands it.
+                      showKey: String(show.ratingKey),
                       thumb: ep.thumb || show.thumb,
                       art: show.art,
                       viewCount: ep.viewCount || 0,
                       addedAt: ep.addedAt || 0,
                       studio: show.studio || '',
                       librarySource,
-                      tmdbID: CF ? CF.parseTmdbIdFromPlex(ep, true) : null,
+                      tmdbID: showTmdb ?? (CF ? CF.parseTmdbIdFromPlex(ep, true) : null),
                       serverUrl: server.url,
                       serverToken: server.token,
+                      serverID: server.machineIdentifier || '',
                     };
                   }).filter(Boolean);
                 } catch (err) {
@@ -6228,6 +7884,7 @@
             tmdbID: CF ? CF.parseTmdbIdFromPlex(item, false) : null,
             serverUrl: server.url,
             serverToken: server.token,
+            serverID: server.machineIdentifier || '',
           });
         });
       } catch (err) {
@@ -6444,10 +8101,7 @@
         return;
       }
       if (key === 'ArrowLeft' || key === 'ArrowRight') {
-        // Don't yank the user off the tab while they are typing in the
-        // blacklist search box; let the arrows move the caret instead.
-        if (isTypingInConfig()) return;
-        const tabs = ['general', 'bundles', 'server', 'help', 'blacklist'];
+        const tabs = ['general', 'bundles', 'server', 'help'];
         const idx = tabs.indexOf(configTab);
         switchConfigTab(key === 'ArrowRight' ? tabs[(idx + 1) % tabs.length] : tabs[(idx + tabs.length - 1) % tabs.length]);
         e.preventDefault();
@@ -6456,8 +8110,9 @@
       // Bundle tab keyboard navigation
       if (configTab === 'bundles') {
         const visibleBundles = bundles.filter(b => b.id !== 'collections');
+        const collectionRows = visibleCollections();
         if (key === 'ArrowDown') {
-          bundleFocusIndex = Math.min(bundleFocusIndex + 1, visibleBundles.length - 1);
+          bundleFocusIndex = Math.min(bundleFocusIndex + 1, visibleBundles.length + collectionRows.length - 1);
           renderBundleList();
           e.preventDefault();
           return;
@@ -6470,15 +8125,17 @@
         }
         if (key === 'Enter' || key === ' ') {
           const bundle = visibleBundles[bundleFocusIndex];
+          const collection = collectionRows[bundleFocusIndex - visibleBundles.length];
           if (bundle) toggleBundle(bundle.id);
+          else if (collection) toggleCollection(collection.id);
           e.preventDefault();
           return;
         }
         e.preventDefault();
         return;
       }
-      // General, Server, Blacklist and Help: walk whatever is actually on
-      // screen in the active tab.
+      // General, Server and Help: walk whatever is actually on screen in the
+      // active tab.
       if (key === 'ArrowDown') {
         moveConfigFocus(1);
         e.preventDefault();
@@ -6490,8 +8147,8 @@
         return;
       }
       if (key === 'Enter') {
-        // Let the focused control handle it. Inputs keep their own behaviour
-        // (the blacklist search commits on Enter), everything else is a click.
+        // Let the focused control handle it. Inputs keep their own behaviour,
+        // everything else is a click.
         const el = document.activeElement;
         if (el && el.tagName !== 'INPUT' && typeof el.click === 'function') {
           el.click();
@@ -6515,20 +8172,21 @@
         return;
       }
 
-      // Navigation: Up/Down to browse channels
+      // Navigation: Up/Down to browse channels. Both ends wrap: Down on the
+      // last channel goes to channel one, Up on channel one goes to the last.
       const prevKey = 'ArrowUp';
       const nextKey = 'ArrowDown';
 
-      if (key === prevKey) {
-        guideFocusIndex = Math.max(guideFocusIndex - 1, 0);
-        updateGuideFocus();
-        e.preventDefault();
-        return;
-      }
-      if (key === nextKey) {
-        const enabled = getEnabledChannels();
-        guideFocusIndex = Math.min(guideFocusIndex + 1, enabled.length - 1);
-        updateGuideFocus();
+      if (key === prevKey || key === nextKey) {
+        const count = getEnabledChannels().length;
+        if (count > 0) {
+          // The index can sit past the end after channels were switched off.
+          const from = Math.min(Math.max(guideFocusIndex, 0), count - 1);
+          const step = key === nextKey ? 1 : -1;
+          const wrapped = step === 1 ? from === count - 1 : from === 0;
+          guideFocusIndex = (from + step + count) % count;
+          updateGuideFocus(wrapped);
+        }
         e.preventDefault();
         return;
       }

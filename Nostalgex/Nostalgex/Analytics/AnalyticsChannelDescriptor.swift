@@ -10,8 +10,10 @@ import Foundation
 ///
 /// For **static** channels (defined in the app's own `channels.json`) we send:
 /// - `channelType = "static"`
-/// - `channelID`  = the fixed id from `channels.json` (1..223 today), same on
-///   every device — this is what "which channel is watched most" filters on.
+/// - `channelID`  = the fixed id from `channels.json` (1..414 today; runtime
+///   collection and franchise channels take ids from 1,000,000 up, see
+///   `ChannelIDSpace`), same on every device — this is what "which channel is
+///   watched most" filters on.
 /// - `channelName` = the fixed display name from the app's **bundled**
 ///   `channels.json` for that id (e.g. `REWATCHABLES MOVIES`, `KIDZ CARTOONS`).
 ///   Deliberately NOT `Channel.name` at runtime — that could be overridden by
@@ -22,13 +24,16 @@ import Foundation
 ///   (`nostalgex`, `kids`, `truecrime`, `high-rotation`, ...).
 ///
 /// For **dynamic collection** channels (built from a user's own Plex/Jellyfin/Emby
-/// collections at runtime by `AppState.materializeCollectionChannels`) we send:
+/// collections, or from the franchises found in their library, at runtime by
+/// `AppState.materializeDynamicChannels`) we send:
 /// - `channelType = "collection"`
 /// - no `channelID` (the per-install id would leak user ordering)
 /// - **no `channelName`** — the runtime name is the user's own collection
-///   title, which must never leave the device.
+///   title (or a franchise name derived from their library), which must never
+///   leave the device.
 /// - `bundle`     = the collection category bundle key
-///   (`collections-franchises`, `collections-actors`, `collections-custom`).
+///   (`collections-franchises`, `collections-custom`; `collections-actors` is
+///   retired but may still arrive from an older build).
 ///
 /// A grep for `channelType`, `channelID`, `channelName`, or `bundle` outside
 /// this file / the event catalog should return nothing — the descriptor is

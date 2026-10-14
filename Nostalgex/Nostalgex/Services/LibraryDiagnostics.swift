@@ -11,7 +11,7 @@ import Foundation
 enum LibraryDiagnostics {
 
     static func summary(_ items: [PlexMediaItem]) -> String {
-        guard !items.isEmpty else { return "No titles loaded — the scan came back empty." }
+        guard !items.isEmpty else { return "No titles loaded. The scan came back empty." }
         let movies = items.filter { $0.type == .movie }.count
         let episodes = items.filter { $0.type == .episode }.count
         let shows = Set(items.filter { $0.type == .episode }.map(\.title)).count

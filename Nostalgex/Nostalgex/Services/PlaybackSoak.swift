@@ -33,6 +33,14 @@ enum PlaybackSoak {
         guard t.hasPrefix("rk:") else { return nil }
         return t.dropFirst(3).split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
     }
+    /// Trigger line `hold:N` keeps each passing file playing N more seconds and reports how
+    /// far the playhead got, so sustained playback is measured, not just first picture.
+    static var holdSeconds: Int {
+        guard let url = triggerURL, let text = try? String(contentsOf: url, encoding: .utf8) else { return 0 }
+        for line in text.split(separator: "\n") where line.hasPrefix("hold:") { return Int(line.dropFirst(5).trimmingCharacters(in: .whitespaces)) ?? 0 }
+        return 0
+    }
+
     /// Second trigger line `q:name=value;name=value` overrides transcode query items for the
     /// run (value `UNSET` removes one), so server-side parameters can be trialled on a real
     /// Apple TV without a rebuild per trial.
@@ -100,6 +108,7 @@ enum PlaybackSoak {
     static func run(appState: AppState) async {
         let count = requestedCount ?? 40
         let keys = requestedRatingKeys
+        let hold = holdSeconds
         loadQueryOverrides()
         if let t = triggerURL { try? FileManager.default.removeItem(at: t) }  // one run per trigger
         if let r = resultsURL {
@@ -146,6 +155,22 @@ enum PlaybackSoak {
                 }
             }
             if result == "TIMEOUT", firstPlaying != nil, !sawFrame { result = "AUDIO_ONLY" }
+            if result == "PASS", hold > 0 {
+                // Sustained playback: sample the playhead once a second for `hold` seconds.
+                let startHead = appState.player?.currentTime().seconds ?? 0
+                var stalls = 0, lastHead = startHead
+                for _ in 0..<hold {
+                    try? await Task.sleep(for: .seconds(1))
+                    if appState.currentItem?.ratingKey != item.ratingKey { result = "SKIPPED_DURING_HOLD"; break }
+                    let head = appState.player?.currentTime().seconds ?? lastHead
+                    if head - lastHead < 0.25 { stalls += 1 }
+                    lastHead = head
+                }
+                let advanced = lastHead - startHead
+                let access = appState.player?.currentItem?.accessLog()?.events.last
+                emit("[SOAK] hold \(hold)s: playhead advanced \(String(format: "%.1f", advanced))s, still-seconds=\(stalls), segments=\(access?.numberOfMediaRequests ?? -1) stalls=\(access?.numberOfStalls ?? -1) observedKbps=\(Int((access?.observedBitrate ?? 0) / 1000)) dropped=\(access?.numberOfDroppedVideoFrames ?? -1)  \"\(item.title)\"")
+                if result == "PASS", advanced < Double(hold) * 0.8 { result = "STALLED_IN_HOLD" }
+            }
             let ttp = firstPlaying.map { String(format: "%.1fs", $0) } ?? "-"
             emit("[SOAK] \(index + 1)/\(sample.count) \(result.padding(toLength: 12, withPad: " ", startingAt: 0)) \(cat.padding(toLength: 28, withPad: " ", startingAt: 0)) playing@\(ttp.padding(toLength: 6, withPad: " ", startingAt: 0)) video=\(Int(size.width))x\(Int(size.height)) frames=\(sawFrame) link=\(linkMs.map { "\($0)ms" } ?? "down")  \"\(item.title)\" rk=\(item.ratingKey)")
             outcomes.append(Outcome(item: item, category: cat, result: result, firstPlayingSeconds: firstPlaying))

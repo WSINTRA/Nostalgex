@@ -21,7 +21,7 @@ extension PlexMediaItem {
             }
         }
 
-        let newYear = year ?? music.releaseYear
+        let newYear = MusicYear.resolve(titleYear: MusicTitleParser.yearInTitle(title), musicBrainzYear: music.releaseYear, plexYear: year)
 
         return PlexMediaItem(
             id: id,
@@ -52,7 +52,28 @@ extension PlexMediaItem {
             studio: studio,
             tmdbID: tmdbID,
             imdbID: imdbID,
-            librarySource: librarySource
+            librarySource: librarySource, serverID: serverID, additionalPartKeys: additionalPartKeys,
+            videoBitDepth: videoBitDepth, doviProfile: doviProfile, videoWidth: videoWidth, videoHeight: videoHeight,
+            mediaIndex: mediaIndex, partIndex: partIndex, playbackParts: playbackParts, exactDurationSeconds: exactDurationSeconds
+        )
+    }
+
+    /// The same year rule for a music video that has no enrichment row yet, so a 1970
+    /// or date-added year from Plex never decides a decade channel.
+    func applyingTrustedMusicYear() -> PlexMediaItem {
+        guard isMusicVideo else { return self }
+        let resolved = MusicYear.resolve(titleYear: MusicTitleParser.yearInTitle(title), musicBrainzYear: nil, plexYear: year)
+        guard resolved != year else { return self }
+        return PlexMediaItem(
+            id: id, title: title, artist: artist, episodeTitle: episodeTitle, seTag: seTag, summary: summary,
+            year: resolved, originallyAvailableAt: originallyAvailableAt, contentRating: contentRating,
+            duration: duration, ratingKey: ratingKey, partKey: partKey, container: container,
+            videoCodec: videoCodec, audioCodec: audioCodec, videoProfile: videoProfile, bitrate: bitrate,
+            genres: genres, rating: rating, userRating: userRating, type: type, thumb: thumb, art: art,
+            viewCount: viewCount, addedAt: addedAt, studio: studio, tmdbID: tmdbID, imdbID: imdbID,
+            librarySource: librarySource, serverID: serverID, additionalPartKeys: additionalPartKeys,
+            videoBitDepth: videoBitDepth, doviProfile: doviProfile, videoWidth: videoWidth, videoHeight: videoHeight,
+            mediaIndex: mediaIndex, partIndex: partIndex, playbackParts: playbackParts, exactDurationSeconds: exactDurationSeconds
         )
     }
 

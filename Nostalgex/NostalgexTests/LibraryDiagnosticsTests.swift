@@ -14,7 +14,7 @@ final class LibraryDiagnosticsTests: XCTestCase {
     }
 
     func testEmptyLibrarySaysSoPlainly() {
-        XCTAssertEqual(LibraryDiagnostics.summary([]), "No titles loaded — the scan came back empty.")
+        XCTAssertEqual(LibraryDiagnostics.summary([]), "No titles loaded. The scan came back empty.")
     }
 
     func testCountsMoviesEpisodesAndShows() {

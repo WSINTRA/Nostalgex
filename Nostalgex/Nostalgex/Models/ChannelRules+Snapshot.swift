@@ -21,6 +21,7 @@ extension ChannelRules {
             unwatchedOnly: unwatchedOnly,
             rewatched: rewatched,
             titleContains: titleContains,
+            episodeTitleContains: episodeTitleContains,
             titleExcludes: titleExcludes,
             editorialOverrides: editorialOverrides,
             addedWithinDays: addedWithinDays,

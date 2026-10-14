@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { BUNDLE_STYLE } from "./bundle-style.mjs";
 
 // Renders the channel lineup (bundles + channels) into
 // index.html from channels.json, the same config the app + web tuner consume.
@@ -10,27 +11,12 @@ import { readFile, writeFile } from "node:fs/promises";
 // Bundle NAMES also come from channels.json (bundle.name) so the site is always
 // in sync with the app — there is no separate marketing name. Only the accent
 // color and an optional punchier blurb are presentation, and live in
-// BUNDLE_STYLE below (keyed by bundle id). To rename a bundle everywhere
-// (app + web tuner + site), change channels.json, then re-run this script.
+// BUNDLE_STYLE (scripts/bundle-style.mjs, keyed by bundle id, shared with the
+// channel guide generator). To rename a bundle everywhere (app + web tuner +
+// site), change channels.json, then re-run this script.
 
 const CHANNELS_PATH = new URL("../channels.json", import.meta.url);
 const TARGETS = ["index.html"];
-
-const BUNDLE_STYLE = {
-  "nostalgex":     { color: "#FFE500", desc: "The 80s and 90s. All retro, all the time." },
-  "kids":          { color: "#00C4FF", desc: "Disney, Nick, Pixar, and the whole crew." },
-  "truecrime":     { color: "#B0392E", desc: "Docs, thrillers, and whodunits." },
-  "essentials":    { color: "#9B59B6", desc: "Everyday favorites and feel-good picks." },
-  "premium":       { color: "#FF3D6E", desc: "The curated stuff. Anime, musicals, the greats." },
-  "adventureland": { color: "#D4A017", desc: "Epic quests, disasters, and adrenaline." },
-  "sports":        { color: "#1DB954", desc: "Movies, shows, and docs." },
-  "decades":       { color: "#C0392B", desc: "Sorted by era, the 60s through today." },
-  "franchises":    { color: "#FFE81F", desc: "Movie franchise marathons." },
-  "streamers":     { color: "#8B5CF6", desc: "By streaming service and studio." },
-  "seasonal":      { color: "#C41E3A", desc: "Halloween and holiday, in season." },
-  "high-rotation": { color: "#FF2DB4", desc: "Music videos by genre." },
-  "arthouse":      { color: "#F5E6C8", desc: "Criterion, foreign films, midnight movies, and cult classics." },
-};
 
 function esc(text) {
   return String(text).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -111,7 +97,10 @@ const lineup = bundles
     const group = [
       `    <div class="lineup__group fade-in">`,
       `      <div class="lineup__group-head">`,
-      `        <span class="lineup__group-name">${esc(b.meta.label)}</span>`,
+      // The name links to the bundle's guide page; the rest of the head stays
+      // the collapse toggle that app.js wires up. Anchor text is the bundle
+      // name on purpose, so the internal link says what it points at.
+      `        <a class="lineup__group-name lineup__group-link" href="/channels/${b.id}">${esc(b.meta.label)}</a>`,
       `        <span class="lineup__group-count">${b.chans.length} CHANNELS</span>`,
       `      </div>`,
       `      <div class="lineup__grid">`,

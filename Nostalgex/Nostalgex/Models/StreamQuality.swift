@@ -112,7 +112,14 @@ enum StreamQuality: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Whether the server may drop quality mid-stream. Only `.maximum` pins it, since
-    /// pinning is the whole point of choosing maximum.
-    var allowsAutoAdjust: Bool { self != .maximum }
+    /// Whether the server may drop quality mid-stream (`autoAdjustQuality` on the request).
+    ///
+    /// Always off. Measured 2026-10-06 against Chad's Plex server: with it on, every stream
+    /// where both video and audio are re-encoded came back as 3-second segments, served the
+    /// first eight at full speed, then one segment every 6.1 seconds for the rest of the
+    /// film. tvOS 26 abandons a segment that slow (CoreMedia -15628) and the picture died at
+    /// 24 seconds, at 4K and at the 1080p retry alike, on every such file. With it off the
+    /// same request came back as 1-second segments and ran 75 seconds of content in 75
+    /// seconds. Quality stepping is the app's own job now (PlaybackStarvation).
+    var allowsAutoAdjust: Bool { false }
 }

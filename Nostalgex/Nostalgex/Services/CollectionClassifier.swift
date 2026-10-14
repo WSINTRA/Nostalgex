@@ -2,7 +2,23 @@ import Foundation
 
 enum CollectionClassifier {
 
-    static func classify(title: String, items: [PlexMediaItem]) -> CollectionCategory {
+    /// - Parameter enrichmentFor: optional TMDB enrichment lookup. When provided and the
+    ///   library is enriched, a shared `franchiseID` across the collection's films is the
+    ///   authoritative franchise signal; the string heuristics below are the fallback for
+    ///   un-enriched items. Defaulted to nil so existing callers and tests are unchanged.
+    static func classify(title: String, items: [PlexMediaItem],
+                         enrichmentFor: ((PlexMediaItem) -> MediaEnrichment?)? = nil) -> CollectionCategory {
+        // Shows. Every episode carries its show's title, so the repeated-word and
+        // name-in-titles rules below would call any collection of shows a franchise
+        // (one show with 30 episodes is "30 titles sharing a word"). FRANCHISES is movie
+        // series, so the films alone decide, exactly as they did when the scan kept only
+        // films; a collection with no films is the viewer's own set.
+        let films = items.filter { $0.type == .movie }
+        if films.count < items.count {
+            guard !films.isEmpty else { return .custom }
+            return classify(title: title, items: films, enrichmentFor: enrichmentFor)
+        }
+
         let cleaned = title
             .replacingOccurrences(of: " Collection", with: "", options: .caseInsensitive)
             .replacingOccurrences(of: "Collection", with: "", options: .caseInsensitive)
@@ -12,9 +28,19 @@ enum CollectionClassifier {
         let lower = cleaned.lowercased()
 
         // 0. Auto-generated list/overlay collections (e.g. "IMDb Popular", "Anilist Top
-        //    Rated", "MyAnimeList Favorited"). These are not franchises or actor sets, so
-        //    they go straight to Custom — never Franchises or Notable Stars.
+        //    Rated", "MyAnimeList Favorited"). These are not franchises, so they go
+        //    straight to Custom. Checked before the franchiseID signal so a "Popular"
+        //    list that happens to hold two films of one series still lands in Custom.
         if isGeneratedListCollection(lower) { return .custom }
+
+        // 0.5 Enriched truth: if 2+ of the collection's items share a non-nil TMDB
+        //    franchiseID (belongs_to_collection), it is a real franchise collection no
+        //    matter how the name reads. This replaces the string guesswork below whenever
+        //    the library is enriched; the heuristics remain the fallback for items that
+        //    have no enrichment yet.
+        if let enrichmentFor, sharesFranchiseID(items, enrichmentFor: enrichmentFor) {
+            return .franchises
+        }
 
         // 1. Known franchise names (catches tricky ones like James Bond)
         if isKnownFranchise(lower) { return .franchises }
@@ -25,11 +51,36 @@ enum CollectionClassifier {
         // 3. Repeating name detection -- if 3+ items share a common title word/phrase, it's a franchise
         if items.count >= 3 && hasRepeatingNames(items) { return .franchises }
 
-        // 4. Person name detection (strict)
-        if isPersonName(cleaned) { return .actors }
+        // 4. The collection's own name in 2+ of its titles. Catches franchises that read
+        //    like a person ("John Wick", "Hunger Games") when a sequel drops the name
+        //    ("Parabellum", "Catching Fire") and step 3 misses. A person's name almost
+        //    never appears in their films' titles more than once.
+        if nameAppearsInTitles(lower, items: items) { return .franchises }
 
-        // 5. Everything else
+        // 5. Everything else, actor and director sets included. NOTABLE STARS used to
+        //    sit here as its own category; those collections now belong with the rest
+        //    of the user's own sets under OTHER COLLECTIONS.
         return .custom
+    }
+
+    /// True when 2+ items share the same non-nil TMDB franchiseID. Two films from one
+    /// TMDB collection is a strong franchise signal; actor/director sets (Tom Hanks,
+    /// Christopher Nolan) hold films from many different collections, so they never trip
+    /// this. One film alone is not enough — a collection of one is not a franchise.
+    private static func sharesFranchiseID(_ items: [PlexMediaItem],
+                                          enrichmentFor: (PlexMediaItem) -> MediaEnrichment?) -> Bool {
+        var counts: [Int: Int] = [:]
+        for item in items {
+            guard let fid = enrichmentFor(item)?.franchiseID else { continue }
+            counts[fid, default: 0] += 1
+            if counts[fid]! >= 2 { return true }
+        }
+        return false
+    }
+
+    private static func nameAppearsInTitles(_ lowerName: String, items: [PlexMediaItem]) -> Bool {
+        guard lowerName.count >= 3 else { return false }
+        return items.filter { $0.title.lowercased().contains(lowerName) }.count >= 2
     }
 
     // MARK: - Generated / list collections
@@ -155,68 +206,6 @@ enum CollectionClassifier {
         }
 
         return false
-    }
-
-    // MARK: - Person Name Detection
-
-    private static let nonPersonWords: Set<String> = [
-        "the", "a", "an", "of", "in", "on", "at", "to", "for", "with", "by", "from",
-        "movies", "films", "movie", "film", "shows", "show", "tv",
-        "horror", "action", "comedy", "drama", "thriller", "romance", "romantic",
-        "sci-fi", "fantasy", "animated", "animation", "documentary", "musical",
-        "western", "noir", "superhero", "spy", "heist", "disaster", "sports",
-        "war", "crime", "mystery", "adventure", "indie",
-        "best", "top", "classic", "classics", "greatest", "ultimate", "essential",
-        "favorites", "favourites", "favorite", "favourite",
-        "good", "great", "bad", "new", "old", "modern", "vintage", "retro",
-        "must", "watch", "see", "rated",
-        "night", "marathon", "edition", "picks", "list", "mix", "playlist",
-        "series", "saga", "trilogy", "universe", "franchise", "chronicles",
-        "4k", "hdr", "uhd", "blu-ray", "bluray", "dvd", "imax", "3d",
-        "christmas", "holiday", "halloween", "summer", "winter", "spring", "fall",
-        "date", "family", "kids", "boys", "girls",
-        "hip", "hop", "rock", "pop", "punk", "metal", "jazz", "soul", "funk",
-        "toy", "story", "tales", "world", "land", "city", "house", "street",
-        "star", "wars", "dark", "black", "white", "red", "blue", "green",
-        "dead", "lost", "wild", "fast", "mad", "big", "little", "young", "high", "low",
-        "fittest", "fit", "strong", "tough", "power", "super", "mega", "ultra",
-        "all", "time", "ever", "most", "only", "just", "every",
-        "true", "real", "pure", "raw", "fresh", "hot", "cold", "cool",
-        "life", "love", "death", "blood", "fire", "ice", "rain", "sun", "moon",
-        "king", "queen", "prince", "princess", "lord", "lady",
-        "man", "men", "woman", "women", "boy", "girl", "baby",
-        "one", "two", "three", "first", "last", "final", "next",
-        "national", "vacation", "lampoon", "universal", "paramount", "disney",
-        "pixar", "marvel", "dc", "warner", "dreamworks", "illumination",
-        "studio", "studios", "pictures", "entertainment", "productions",
-        "various", "unwatched", "watched", "random", "misc", "other", "more"
-    ]
-
-    private static let nameConnectors: Set<String> = [
-        "de", "van", "von", "del", "la", "le", "di", "el", "al", "bin", "ibn",
-        "jr", "jr.", "sr", "sr.", "ii", "iii", "iv"
-    ]
-
-    private static func isPersonName(_ title: String) -> Bool {
-        let words = title.split(separator: " ").map(String.init)
-        guard words.count >= 2 && words.count <= 3 else { return false }
-
-        for word in words {
-            if nonPersonWords.contains(word.lowercased()) { return false }
-        }
-
-        let nameWords = words.filter { !nameConnectors.contains($0.lowercased()) }
-        guard nameWords.count >= 2 else { return false }
-
-        for word in nameWords {
-            guard let first = word.first, first.isUppercase else { return false }
-            guard word.count >= 2 else { return false }
-            let valid = word.allSatisfy { $0.isLetter || $0 == "'" || $0 == "-" || $0 == "." }
-            guard valid else { return false }
-            if word.count > 2 && word == word.uppercased() { return false }
-        }
-
-        return true
     }
 
     // MARK: - Helpers

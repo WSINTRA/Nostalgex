@@ -5,7 +5,53 @@
 
 Timeline reporting and scrobbling ship in the tvOS app, implemented in `Services/PlaybackTracker.swift`. Plex uses its timeline and scrobble endpoints. Jellyfin and Emby use their session reports, and the app reads `PlayCount` back when it loads the library. Rewatchables filters on `viewCount >= 3` for all three.
 
-**Activity sync defaults to OFF.** The user turns it on in Settings under PLAYBACK REPORTING. Nothing is reported until they do. Plays they already made in Plex, Jellyfin, or Emby still count toward Rewatchables, because those counts live on the server.
+**Activity sync defaults to OFF.** The user turns it on in Settings under CONNECTION (REPORT PLAYBACK). Nothing is reported until they do. Plays they already made in Plex, Jellyfin, or Emby still count toward Rewatchables, because those counts live on the server.
+
+**Reporting never fills Continue Watching (2026-10-11).** Turning it on means "my server sees what's playing and a real watch counts", not "every channel I surf past lands in Continue Watching". Settings copy, both surfaces: *"Off by default. When on, your server sees what's playing and a film you watch most of counts as watched. Channel surfing never fills your Continue Watching."*
+
+---
+
+## Continue Watching guard
+
+Code: `Services/PlaybackTracker.swift` + `Services/WatchStateGuard.swift` (tvOS), the tracker in `plex-tuner.html` + `scripts/nostalgex-watch-state.js` (web). The decision table is shared through `scripts/watch-cleanup-golden.json`; `WatchStateGuardTests` and `npm run test:watch-state` both read it. One switch, REPORT PLAYBACK TO <SERVER>, off by default, on both surfaces.
+
+**Plex: position-free reports (2026-10-13, from community PR #18 by w6trp).**
+
+1. Every timeline report is `PUT /:/timeline?ratingKey={rk}&key=/library/metadata/{rk}&state={playing|paused|buffering|stopped}` with the session in `X-Plex-Session-Identifier` and **no `time` or `duration`**. Plex lists the session in Now Playing at offset 0 and stores nothing, so a surf never reaches Continue Watching and needs no cleanup. `stopped` takes it out of Now Playing. The state follows the player (tvOS `timeControlStatus`, web video pause/play), so a pause shows as a pause.
+2. A qualifying watch (entry in the first 15%, at least 75% active) is scrobbled with the bare rating key. Plex then adds the show's **next episode** to Continue Watching; the tracker removes it (`PUT /actions/removeFromContinueWatching?ratingKey={next}`) unless the show already had an entry before tune-in. For an episode the tracker reads `GET /library/metadata/{rk}` and `GET /hubs/continueWatching/items` before the first report to learn that; films are never read. The removal looks up to three times, a second apart, because Plex adds the entry about a second after the scrobble.
+3. Nothing else is undone or restored on Plex: no unscrobble, no `/:/progress`, no prior-state capture for films.
+
+**Jellyfin/Emby: restore.** Position-free does not work there (measured below), so reports keep the position and the tracker puts UserData back:
+
+| Server | Before | Session | Cleanup |
+|---|---|---|---|
+| Jellyfin/Emby | never played | surfed | `DELETE /Users/{uid}/PlayedItems/{id}` |
+| Jellyfin/Emby | anything else | surfed | `POST /Users/{uid}/Items/{id}/UserData` with the prior position, PlayCount, Played, LastPlayedDate |
+| Jellyfin/Emby | known | counted | `UserData` position 0, Played, PlayCount = prior + 1 |
+| Jellyfin/Emby | unreadable | either | `UserData` position 0 only |
+
+The capture runs before the first report and the cleanup when the session ends (channel change, advance, disconnect, app backgrounded, reporting turned off), all through one serial queue so the cleanup lands after the last report. Transcode lifecycle calls (`Sessions/Playing/Stopped` with only a `PlaySessionId`) are separate and unchanged.
+
+**Failures never change the setting.** A report that fails or times out makes the tracker skip more of its 10 second pulses (1, 2, 4 ... up to 30, about five minutes); any answered report resets that. Starts, stops, scrobbles and cleanup always go out. Only the user turns reporting off. Turning it off mid-program sends Plex one position-free stop (Now Playing clears) and restores Jellyfin/Emby UserData. On tvOS, backgrounding asks the OS for a few seconds so the final stop and cleanup reach the server (PR #18); a force quit or network loss can still drop them.
+
+### Measured 2026-10-13
+
+- Plex (real server): `PUT /:/timeline` with `state=playing` and no `time`/`duration` puts the item in `/status/sessions` with `viewOffset` 0, writes no resume point and adds nothing to Continue Watching; `state=stopped` with no time removes it from Now Playing. `GET /:/scrobble?key=/library/metadata/{rk}` is still a 404; the bare key works. An episode scrobble still adds the next episode; `removeFromContinueWatching` on it removes it.
+- **Emby 4.10.1, position-free:** `/Sessions/Playing` without `PositionTicks` shows the item in Now Playing (Emby extrapolates the position itself) and writes no resume point, but the start report alone takes PlayCount 0 -> 1 and sets LastPlayedDate, and `/Sessions/Playing/Stopped` without `PositionTicks` marks the item **Played with PlayCount 2**. So Emby keeps the restore approach. Jellyfin shares the session code it was forked from and was not re-measured; it keeps the same approach. The item was put back with `DELETE PlayedItems` + `UserData` and read back identical.
+
+### Measured 2026-10-11 (the restore design Plex used before position-free reports)
+
+A real Plex Media Server, Emby 4.10.1.0, Jellyfin 12.2.0 (local, test library):
+
+- Plex: `playing` timeline reports write `viewOffset` immediately (the item is in `/hubs/continueWatching/items` after the first one). `stopped` with `time=0` and `/:/progress` with `time=0`, `1` or `-1` change nothing. `/:/progress` with a real time sets that exact offset. `removeFromContinueWatching` hides the entry and keeps the offset. `/:/unscrobble` clears offset, `viewCount` and `lastViewedAt`. A scrobble clears the offset, but the next nonzero report writes a new one on the now-watched item; reports at `time=0` do not. An episode scrobble adds the show's next episode to Continue Watching within a second.
+- **Plex `/:/scrobble` with `key=/library/metadata/{rk}` returns 404.** Only the bare rating key works. Both surfaces had sent the path form since 1.0.9, so no Nostalgex watch had ever been counted on Plex. Fixed.
+- Emby and Jellyfin both increment `PlayCount` on the `/Sessions/Playing` start report (a 30 second surf counted as a play) and store the stop position as a resume point. `POST .../UserData` restores position, PlayCount, Played and a non-null LastPlayedDate exactly; it cannot null LastPlayedDate, which is why a never-played item is reset with `DELETE .../PlayedItems/{id}` instead. Both servers answer the `/Users/{uid}/...` routes (Jellyfin keeps them beside `/UserItems`). The transcode cleanup's `Sessions/Playing/Stopped` with only a `PlaySessionId` does not touch user data.
+- Jellyfin 12.2 rejects `api_key` in the query string (401); the `Authorization: MediaBrowser ... Token=` header works on both.
+- End to end, through the real tvOS tracker on a fake clock (`LiveContinueWatchingTests`, skipped unless `TEST_RUNNER_NOSTALGEX_LIVE_*` is set): a two minute surf on an unwatched Plex film (in Continue Watching mid-surf) and a counted Plex episode leave the Continue Watching row identical and the items' metadata back to their original state; the same surf plus a counted watch on Emby and Jellyfin leave Resume unchanged and UserData exact.
+
+Not verified: Jellyfin/Emby **Next Up** after a counted episode (the Emby server measured has no TV library and the local Jellyfin test library has no shows). Next Up is a separate row from Resume on both, and a counted episode is a real watch, so it is left alone.
+
+---
 
 The rest of this document is the original design, kept because the gates, endpoints, and edge cases below are what actually shipped.
 
@@ -57,10 +103,8 @@ The cable TV model still risks inflation if the app auto-advances while nobody i
 
 **2. Scrobble** — `GET /:/scrobble`
 
-- `key` = `/library/metadata/{ratingKey}`
+- `key` = `{ratingKey}` (the bare key; `/library/metadata/{ratingKey}` is answered with 404, measured 2026-10-11)
 - `identifier` = `com.plexapp.plugins.library`
-
-Verify params against your Plex server before implementation.
 
 ---
 
@@ -102,7 +146,7 @@ Verify params against your Plex server before implementation.
 
 ## Opt-in default
 
-Reporting is **off unless the user turns it on** (Settings → PLAYBACK REPORTING; web tuner: Settings → PLAYBACK). Channel surfing tunes past far more programs than a user deliberately starts, and reporting each one buries the household's real Continue Watching row. Consequence for the Rewatchables channel: `viewCount` stays as reliable as it ever was, but Nostalgex only adds to it for users who opted in.
+Reporting is **off unless the user turns it on** (Settings → CONNECTION → REPORT PLAYBACK; web tuner: Settings → PLAYBACK). Channel surfing tunes past far more programs than a user deliberately starts. Since 2026-10-11 the Continue Watching guard above means turning it on no longer buries the household's real Continue Watching row either. Consequence for the Rewatchables channel: `viewCount` stays as reliable as it ever was, but Nostalgex only adds to it for users who opted in.
 
 ---
 

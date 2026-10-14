@@ -65,6 +65,22 @@ final class VersionPickerTests: XCTestCase {
         let best = try XCTUnwrap(item.bestMedia)
         XCTAssertEqual(best.Part?.first?.key, "/4k")
         XCTAssertEqual(best.bitrate, 12000)
+        XCTAssertEqual(item.bestMediaIndex, 1)
+    }
+
+    func testPartDescriptorsKeepDurationAndOwnCodecs() throws {
+        let item = try decodePlex("""
+        {"ratingKey":"1","title":"X","Media":[{"container":"mkv","videoCodec":"hevc","audioCodec":"aac","Part":[
+          {"key":"/one","duration":60000,"Stream":[{"streamType":1,"codec":"hevc","bitDepth":10,"DOVIProfile":7}]},
+          {"key":"/two","duration":120000,"container":"mp4","Stream":[{"streamType":1,"codec":"h264","bitDepth":8},{"streamType":2,"codec":"ac3"}]},
+          {"key":"/three","duration":30000}
+        ]}]}
+        """)
+        let parts = try XCTUnwrap(item.bestMedia?.playbackParts)
+        XCTAssertEqual(parts.map(\.key), ["/one","/two","/three"])
+        XCTAssertEqual(parts.map(\.durationSeconds), [60,120,30])
+        XCTAssertEqual(parts[1].container, "mp4"); XCTAssertEqual(parts[1].videoCodec, "h264")
+        XCTAssertEqual(parts[1].audioCodec, "ac3"); XCTAssertNil(parts[1].doviProfile)
     }
 
     func testPlexTieBreaksByResolution() throws {

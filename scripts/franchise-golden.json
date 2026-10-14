@@ -1,0 +1,463 @@
+{
+  "version": 1,
+  "about": "Golden vectors for franchise channel grouping. Read by BOTH Nostalgex/NostalgexTests/FranchiseGoldenTests.swift (the Apple TV builder) and scripts/nostalgex-franchise-smoke.mjs (the web builder, npm run test:franchises). Each case runs against franchises.json unless it carries its own definitions. Items are the tuner's shape: movies carry TMDB data under enrichment ({ franchiseID, franchiseName }); no enrichment key means not enriched yet; franchiseID null means enriched but TMDB has no collection. tvItems use the SHOW title. Expected groupings list item ids in input order. When a rule changes, change both engines, then update or add a case here.",
+  "cases": [
+    {
+      "name": "john-wick-parabellum-joins-by-collection",
+      "about": "A real library titles the third film just Parabellum. It carries no john wick token, so only its collection id (404609) places it. Chapter 4, not enriched yet, joins by token. The Continental joins by its listed show title. Wicked shares no token.",
+      "availableStockChannelIDs": [],
+      "movies": [
+        { "id": "jw1", "title": "John Wick", "enrichment": { "franchiseID": 404609, "franchiseName": "John Wick Collection" } },
+        { "id": "jw2", "title": "John Wick: Chapter 2", "enrichment": { "franchiseID": 404609, "franchiseName": "John Wick Collection" } },
+        { "id": "jw3", "title": "Parabellum", "enrichment": { "franchiseID": 404609, "franchiseName": "John Wick Collection" } },
+        { "id": "jw4", "title": "John Wick: Chapter 4 (2023)" },
+        { "id": "x1", "title": "Wicked (2024)", "enrichment": { "franchiseID": null } }
+      ],
+      "tvItems": [
+        { "id": "c1", "title": "The Continental: From the World of John Wick", "episodeTitle": "Night One" }
+      ],
+      "expected": [
+        {
+          "name": "JOHN WICK", "stableID": "dict:JOHN WICK", "placement": { "type": "dynamic" },
+          "movies": ["jw1", "jw2", "jw3", "jw4"], "tvItems": ["c1"],
+          "mergedFranchiseIDs": [404609], "fromDictionary": true
+        }
+      ]
+    },
+    {
+      "name": "john-wick-unenriched-parabellum-stays-out",
+      "about": "The same Parabellum before enrichment has neither a collection id nor the token, so it cannot join. Two films are under the three-film gate, so nothing is built.",
+      "availableStockChannelIDs": [],
+      "movies": [
+        { "id": "jw1", "title": "John Wick", "enrichment": { "franchiseID": 404609, "franchiseName": "John Wick Collection" } },
+        { "id": "jw2", "title": "John Wick: Chapter 2", "enrichment": { "franchiseID": 404609, "franchiseName": "John Wick Collection" } },
+        { "id": "jw3", "title": "Parabellum" }
+      ],
+      "tvItems": [],
+      "expected": []
+    },
+    {
+      "name": "star-wars-folds-into-ch100",
+      "about": "Collection 10 holds the saga. Rogue One (enriched, TMDB collection null) and Solo (not enriched, Plex year suffix) join by the star wars token. The Mandalorian and Andor episodes join by listed title, The Clone Wars by listed title. Breaking Bad and Spaceballs stay out. CH100 is in the lineup, so it is a stock fold.",
+      "availableStockChannelIDs": [100, 101, 102, 103, 104, 105, 106],
+      "movies": [
+        { "id": "sw1", "title": "Star Wars", "enrichment": { "franchiseID": 10, "franchiseName": "Star Wars Collection" } },
+        { "id": "sw2", "title": "The Empire Strikes Back", "enrichment": { "franchiseID": 10, "franchiseName": "Star Wars Collection" } },
+        { "id": "sw3", "title": "Return of the Jedi", "enrichment": { "franchiseID": 10, "franchiseName": "Star Wars Collection" } },
+        { "id": "sw4", "title": "Rogue One: A Star Wars Story", "enrichment": { "franchiseID": null } },
+        { "id": "sw5", "title": "Solo: A Star Wars Story (2018)" },
+        { "id": "x1", "title": "Spaceballs", "enrichment": { "franchiseID": null } }
+      ],
+      "tvItems": [
+        { "id": "m1", "title": "The Mandalorian", "episodeTitle": "Chapter 1: The Mandalorian" },
+        { "id": "m2", "title": "The Mandalorian", "episodeTitle": "Chapter 2: The Child" },
+        { "id": "a1", "title": "Andor", "episodeTitle": "Kassa" },
+        { "id": "cw", "title": "Star Wars: The Clone Wars", "episodeTitle": "Ambush" },
+        { "id": "bb", "title": "Breaking Bad", "episodeTitle": "Pilot" }
+      ],
+      "expected": [
+        {
+          "name": "STAR WARS", "stableID": "dict:STAR WARS", "placement": { "type": "stock", "channelID": 100 },
+          "movies": ["sw1", "sw2", "sw3", "sw4", "sw5"], "tvItems": ["m1", "m2", "a1", "cw"],
+          "mergedFranchiseIDs": [10], "fromDictionary": true
+        }
+      ]
+    },
+    {
+      "name": "star-wars-without-ch100-is-dynamic",
+      "about": "With CH100 absent from the lineup the same franchise becomes a dynamic channel, gated on three films.",
+      "availableStockChannelIDs": [],
+      "movies": [
+        { "id": "sw1", "title": "Star Wars", "enrichment": { "franchiseID": 10, "franchiseName": "Star Wars Collection" } },
+        { "id": "sw2", "title": "The Empire Strikes Back", "enrichment": { "franchiseID": 10, "franchiseName": "Star Wars Collection" } },
+        { "id": "sw4", "title": "Rogue One: A Star Wars Story", "enrichment": { "franchiseID": null } }
+      ],
+      "tvItems": [
+        { "id": "m1", "title": "The Mandalorian", "episodeTitle": "Chapter 1: The Mandalorian" }
+      ],
+      "expected": [
+        {
+          "name": "STAR WARS", "stableID": "dict:STAR WARS", "placement": { "type": "dynamic" },
+          "movies": ["sw1", "sw2", "sw4"], "tvItems": ["m1"],
+          "mergedFranchiseIDs": [10], "fromDictionary": true
+        }
+      ]
+    },
+    {
+      "name": "marvel-shows-by-exact-title",
+      "about": "MARVEL is studio-ruled: shows join CH101 by exact title only, case and punctuation ignored (What If...?, What If with an ellipsis character, What If; curly apostrophe; She Hulk without the hyphen). Echo joins, Echo Park and Echoes do not. Films titled Echo or Loki never join. The Avengers Collection (86311) is not claimed by MARVEL and builds its own dynamic channel.",
+      "availableStockChannelIDs": [101],
+      "movies": [
+        { "id": "av1", "title": "The Avengers", "enrichment": { "franchiseID": 86311, "franchiseName": "The Avengers Collection" } },
+        { "id": "av2", "title": "Avengers: Age of Ultron", "enrichment": { "franchiseID": 86311, "franchiseName": "The Avengers Collection" } },
+        { "id": "av3", "title": "Avengers: Infinity War", "enrichment": { "franchiseID": 86311, "franchiseName": "The Avengers Collection" } },
+        { "id": "f1", "title": "Echo" },
+        { "id": "f2", "title": "Loki", "enrichment": { "franchiseID": null } }
+      ],
+      "tvItems": [
+        { "id": "l1", "title": "Loki" },
+        { "id": "l2", "title": "Loki (2021)" },
+        { "id": "w1", "title": "What If...?" },
+        { "id": "w2", "title": "What If…?" },
+        { "id": "w3", "title": "What If" },
+        { "id": "s1", "title": "Agents of S.H.I.E.L.D." },
+        { "id": "s2", "title": "Marvel’s Agents of S.H.I.E.L.D" },
+        { "id": "h1", "title": "She Hulk Attorney at Law" },
+        { "id": "e1", "title": "Echo" },
+        { "id": "x1", "title": "Echo Park" },
+        { "id": "x2", "title": "Echoes" },
+        { "id": "x3", "title": "Loki and Friends" },
+        { "id": "x4", "title": "What If We Were Kings" }
+      ],
+      "expected": [
+        {
+          "name": "MARVEL", "stableID": "dict:MARVEL", "placement": { "type": "stock", "channelID": 101 },
+          "movies": [], "tvItems": ["l1", "l2", "w1", "w2", "w3", "s1", "s2", "h1", "e1"],
+          "mergedFranchiseIDs": [], "fromDictionary": true
+        },
+        {
+          "name": "THE AVENGERS", "stableID": "tmdb:86311", "placement": { "type": "dynamic" },
+          "movies": ["av1", "av2", "av3"], "tvItems": [],
+          "mergedFranchiseIDs": [86311], "fromDictionary": false
+        }
+      ]
+    },
+    {
+      "name": "transformers-bumblebee-rise-of-the-beasts",
+      "about": "Collection 8650 plus two films TMDB leaves outside it: Rise of the Beasts by the transformers token, Bumblebee by its listed film title (year suffix ignored). Bumblebee Man is not an exact title match.",
+      "availableStockChannelIDs": [],
+      "movies": [
+        { "id": "tf1", "title": "Transformers", "enrichment": { "franchiseID": 8650, "franchiseName": "Transformers Collection" } },
+        { "id": "tf2", "title": "Transformers: Revenge of the Fallen", "enrichment": { "franchiseID": 8650, "franchiseName": "Transformers Collection" } },
+        { "id": "tf3", "title": "Transformers: Dark of the Moon", "enrichment": { "franchiseID": 8650, "franchiseName": "Transformers Collection" } },
+        { "id": "tf4", "title": "Transformers: Rise of the Beasts", "enrichment": { "franchiseID": null } },
+        { "id": "tf5", "title": "Bumblebee (2018)" },
+        { "id": "x1", "title": "Bumblebee Man" }
+      ],
+      "tvItems": [],
+      "expected": [
+        {
+          "name": "TRANSFORMERS", "stableID": "dict:TRANSFORMERS", "placement": { "type": "dynamic" },
+          "movies": ["tf1", "tf2", "tf3", "tf4", "tf5"], "tvItems": [],
+          "mergedFranchiseIDs": [8650], "fromDictionary": true
+        }
+      ]
+    },
+    {
+      "name": "star-trek-merges-three-collections",
+      "about": "151 (Original Series films), 115570 (Next Generation films) and 115575 (Alternate Reality) merge into one STAR TREK channel. TNG episodes and Lower Decks join by listed title. Star Search does not carry the token.",
+      "availableStockChannelIDs": [100, 101, 102, 103, 104, 105, 106],
+      "movies": [
+        { "id": "tos1", "title": "Star Trek: The Motion Picture", "enrichment": { "franchiseID": 151, "franchiseName": "Star Trek: The Original Series Collection" } },
+        { "id": "tos2", "title": "Star Trek II: The Wrath of Khan", "enrichment": { "franchiseID": 151, "franchiseName": "Star Trek: The Original Series Collection" } },
+        { "id": "tng1", "title": "Star Trek: First Contact", "enrichment": { "franchiseID": 115570, "franchiseName": "Star Trek: The Next Generation Collection" } },
+        { "id": "tng2", "title": "Star Trek: Insurrection", "enrichment": { "franchiseID": 115570, "franchiseName": "Star Trek: The Next Generation Collection" } },
+        { "id": "kel1", "title": "Star Trek (2009)", "enrichment": { "franchiseID": 115575, "franchiseName": "Star Trek: Alternate Reality Collection" } }
+      ],
+      "tvItems": [
+        { "id": "tng-e1", "title": "Star Trek: The Next Generation", "episodeTitle": "The Best of Both Worlds (1)" },
+        { "id": "tng-e2", "title": "Star Trek: The Next Generation", "episodeTitle": "The Best of Both Worlds (2)" },
+        { "id": "ld", "title": "Star Trek: Lower Decks" },
+        { "id": "x1", "title": "Star Search" }
+      ],
+      "expected": [
+        {
+          "name": "STAR TREK", "stableID": "dict:STAR TREK", "placement": { "type": "dynamic" },
+          "movies": ["tos1", "tos2", "tng1", "tng2", "kel1"], "tvItems": ["tng-e1", "tng-e2", "ld"],
+          "mergedFranchiseIDs": [151, 115570, 115575], "fromDictionary": true
+        }
+      ]
+    },
+    {
+      "name": "rocky-auto-found-takes-no-title-only-films",
+      "about": "Rocky has no dictionary entry, so it is found purely by collection id (1575) and never joins films by title: Rocky Balboa (not enriched) and Rocky IV (enriched, no collection) stay out even though both say Rocky.",
+      "availableStockChannelIDs": [100, 101, 102, 103, 104, 105, 106],
+      "movies": [
+        { "id": "r1", "title": "Rocky", "enrichment": { "franchiseID": 1575, "franchiseName": "Rocky Collection" } },
+        { "id": "r2", "title": "Rocky II", "enrichment": { "franchiseID": 1575, "franchiseName": "Rocky Collection" } },
+        { "id": "r3", "title": "Rocky III", "enrichment": { "franchiseID": 1575, "franchiseName": "Rocky Collection" } },
+        { "id": "r4", "title": "Rocky Balboa" },
+        { "id": "r5", "title": "Rocky IV", "enrichment": { "franchiseID": null } }
+      ],
+      "tvItems": [],
+      "expected": [
+        {
+          "name": "ROCKY", "stableID": "tmdb:1575", "placement": { "type": "dynamic" },
+          "movies": ["r1", "r2", "r3"], "tvItems": [],
+          "mergedFranchiseIDs": [1575], "fromDictionary": false
+        }
+      ]
+    },
+    {
+      "name": "two-film-franchises-do-not-build",
+      "about": "Two films is under the three-film gate, for an auto-found franchise (Creed) and a dictionary one with no stock channel (The Matrix) alike.",
+      "availableStockChannelIDs": [100, 101, 102, 103, 104, 105, 106],
+      "movies": [
+        { "id": "cr1", "title": "Creed", "enrichment": { "franchiseID": 553717, "franchiseName": "Creed Collection" } },
+        { "id": "cr2", "title": "Creed II", "enrichment": { "franchiseID": 553717, "franchiseName": "Creed Collection" } },
+        { "id": "mx1", "title": "The Matrix", "enrichment": { "franchiseID": 2344, "franchiseName": "The Matrix Collection" } },
+        { "id": "mx2", "title": "The Matrix Reloaded", "enrichment": { "franchiseID": 2344, "franchiseName": "The Matrix Collection" } }
+      ],
+      "tvItems": [],
+      "expected": []
+    },
+    {
+      "name": "auto-found-tv-joins-by-name-lowest-collection-first",
+      "about": "TV with no dictionary match joins a found franchise whose name it contains. A show that matches two found names goes to the lower collection id (Predator 399 before Alien 8091).",
+      "availableStockChannelIDs": [],
+      "movies": [
+        { "id": "al1", "title": "Alien", "enrichment": { "franchiseID": 8091, "franchiseName": "Alien Collection" } },
+        { "id": "al2", "title": "Aliens", "enrichment": { "franchiseID": 8091, "franchiseName": "Alien Collection" } },
+        { "id": "al3", "title": "Alien 3", "enrichment": { "franchiseID": 8091, "franchiseName": "Alien Collection" } },
+        { "id": "p1", "title": "Predator", "enrichment": { "franchiseID": 399, "franchiseName": "Predator Collection" } },
+        { "id": "p2", "title": "Predator 2", "enrichment": { "franchiseID": 399, "franchiseName": "Predator Collection" } },
+        { "id": "p3", "title": "Prey", "enrichment": { "franchiseID": 399, "franchiseName": "Predator Collection" } }
+      ],
+      "tvItems": [
+        { "id": "ae", "title": "Alien: Earth" },
+        { "id": "pk", "title": "Predator: Killer of Killers" },
+        { "id": "ap", "title": "Alien Predator Showdown" },
+        { "id": "x1", "title": "Aliens in the Attic" }
+      ],
+      "expected": [
+        {
+          "name": "ALIEN", "stableID": "tmdb:8091", "placement": { "type": "dynamic" },
+          "movies": ["al1", "al2", "al3"], "tvItems": ["ae"],
+          "mergedFranchiseIDs": [8091], "fromDictionary": false
+        },
+        {
+          "name": "PREDATOR", "stableID": "tmdb:399", "placement": { "type": "dynamic" },
+          "movies": ["p1", "p2", "p3"], "tvItems": ["pk", "ap"],
+          "mergedFranchiseIDs": [399], "fromDictionary": false
+        }
+      ]
+    },
+    {
+      "name": "mixed-library-ordering-and-gates",
+      "about": "Stock folds come first by channel and are not gated on film count (one Harry Potter plus one Fantastic Beasts film fold onto CH102; LOTR plus The Hobbit onto CH104 with Rings of Power). JAMES BOND is dynamic with three films. One Jurassic film with CH103 absent builds nothing. A found collection whose films carry no franchiseName cannot be named and builds nothing.",
+      "availableStockChannelIDs": [102, 104],
+      "movies": [
+        { "id": "b1", "title": "Dr. No", "enrichment": { "franchiseID": 645, "franchiseName": "James Bond Collection" } },
+        { "id": "hp1", "title": "Harry Potter and the Philosopher's Stone", "enrichment": { "franchiseID": 1241, "franchiseName": "Harry Potter Collection" } },
+        { "id": "lotr1", "title": "The Fellowship of the Ring", "enrichment": { "franchiseID": 119, "franchiseName": "The Lord of the Rings Collection" } },
+        { "id": "b2", "title": "Goldfinger", "enrichment": { "franchiseID": 645, "franchiseName": "James Bond Collection" } },
+        { "id": "fb1", "title": "Fantastic Beasts and Where to Find Them", "enrichment": { "franchiseID": 435259, "franchiseName": "Fantastic Beasts Collection" } },
+        { "id": "hob1", "title": "The Hobbit: An Unexpected Journey", "enrichment": { "franchiseID": 121938, "franchiseName": "The Hobbit Collection" } },
+        { "id": "b3", "title": "Skyfall", "enrichment": { "franchiseID": 645, "franchiseName": "James Bond Collection" } },
+        { "id": "jp1", "title": "Jurassic Park", "enrichment": { "franchiseID": 328, "franchiseName": "Jurassic Park Collection" } },
+        { "id": "u1", "title": "Unnamed One", "enrichment": { "franchiseID": 77777 } },
+        { "id": "u2", "title": "Unnamed Two", "enrichment": { "franchiseID": 77777 } },
+        { "id": "u3", "title": "Unnamed Three", "enrichment": { "franchiseID": 77777 } }
+      ],
+      "tvItems": [
+        { "id": "rop", "title": "The Lord of the Rings: The Rings of Power" }
+      ],
+      "expected": [
+        {
+          "name": "HARRY POTTER", "stableID": "dict:HARRY POTTER", "placement": { "type": "stock", "channelID": 102 },
+          "movies": ["hp1", "fb1"], "tvItems": [],
+          "mergedFranchiseIDs": [1241, 435259], "fromDictionary": true
+        },
+        {
+          "name": "LORD OF THE RINGS", "stableID": "dict:LORD OF THE RINGS", "placement": { "type": "stock", "channelID": 104 },
+          "movies": ["lotr1", "hob1"], "tvItems": ["rop"],
+          "mergedFranchiseIDs": [119, 121938], "fromDictionary": true
+        },
+        {
+          "name": "JAMES BOND", "stableID": "dict:JAMES BOND", "placement": { "type": "dynamic" },
+          "movies": ["b1", "b2", "b3"], "tvItems": [],
+          "mergedFranchiseIDs": [645], "fromDictionary": true
+        }
+      ]
+    },
+    {
+      "name": "same-name-collections-merge",
+      "about": "Two different collections that clean to the same name are ONE channel (franchiseMergeKey). Films stay in input order; the channel is named after, and keyed by, the lowest collection id (tmdb:91361); both ids are listed. Before the merge rule these were two HALLOWEEN channels.",
+      "availableStockChannelIDs": [],
+      "movies": [
+        { "id": "h1", "title": "Halloween", "enrichment": { "franchiseID": 91361, "franchiseName": "Halloween Collection" } },
+        { "id": "z1", "title": "Halloween (2007)", "enrichment": { "franchiseID": 126209, "franchiseName": "Halloween collection" } },
+        { "id": "h2", "title": "Halloween II", "enrichment": { "franchiseID": 91361, "franchiseName": "Halloween Collection" } },
+        { "id": "z2", "title": "Halloween II (2009)", "enrichment": { "franchiseID": 126209, "franchiseName": "Halloween collection" } },
+        { "id": "h3", "title": "Halloween III: Season of the Witch", "enrichment": { "franchiseID": 91361, "franchiseName": "Halloween Collection" } },
+        { "id": "z3", "title": "Halloween III", "enrichment": { "franchiseID": 126209, "franchiseName": "Halloween collection" } }
+      ],
+      "tvItems": [],
+      "expected": [
+        {
+          "name": "HALLOWEEN", "stableID": "tmdb:91361", "placement": { "type": "dynamic" },
+          "movies": ["h1", "z1", "h2", "z2", "h3", "z3"], "tvItems": [],
+          "mergedFranchiseIDs": [91361, 126209], "fromDictionary": false
+        }
+      ]
+    },
+    {
+      "name": "explicit-title-beats-another-franchises-token",
+      "about": "Inline definitions and a one-film gate. Shared Title is listed under BETA, so ALPHA's shared token cannot take it; A Shared Thing has only the token and goes to ALPHA.",
+      "definitions": [
+        { "canonicalName": "ALPHA", "nameMatchTokens": ["shared"] },
+        { "canonicalName": "BETA", "filmTitles": ["Shared Title"] }
+      ],
+      "minimumFilms": 1,
+      "availableStockChannelIDs": [],
+      "movies": [
+        { "id": "x", "title": "Shared Title" },
+        { "id": "y", "title": "A Shared Thing" }
+      ],
+      "tvItems": [],
+      "expected": [
+        {
+          "name": "ALPHA", "stableID": "dict:ALPHA", "placement": { "type": "dynamic" },
+          "movies": ["y"], "tvItems": [],
+          "mergedFranchiseIDs": [], "fromDictionary": true
+        },
+        {
+          "name": "BETA", "stableID": "dict:BETA", "placement": { "type": "dynamic" },
+          "movies": ["x"], "tvItems": [],
+          "mergedFranchiseIDs": [], "fromDictionary": true
+        }
+      ]
+    },
+    {
+      "name": "split-collections-merge-by-name",
+      "about": "The general rule, from the owner's library (2026-10-13). American Pie (2806) and American Pie (Spin-off) (298820) are one channel: Collection and a trailing parenthetical are dropped before names are compared. The Addams Family (Animated) (750822, two films) merges with Addams Family (11716, one film) across a leading The, and only together pass the three-film gate; the merged name drops the parenthetical and comes from the lowest id. Pokemon and Pokemon: Best Wishes! are different names and stay apart (the second has two films and builds nothing). The Addams Family show joins the merged channel by name.",
+      "availableStockChannelIDs": [],
+      "movies": [
+        { "id": "ap1", "title": "American Pie (1999)", "enrichment": { "franchiseID": 2806, "franchiseName": "American Pie Collection" } },
+        { "id": "aps1", "title": "American Pie Presents: Band Camp (2005)", "enrichment": { "franchiseID": 298820, "franchiseName": "American Pie (Spin-off) Collection" } },
+        { "id": "ap2", "title": "American Pie 2 (2001)", "enrichment": { "franchiseID": 2806, "franchiseName": "American Pie Collection" } },
+        { "id": "aps2", "title": "American Pie Presents: The Naked Mile (2006)", "enrichment": { "franchiseID": 298820, "franchiseName": "American Pie (Spin-off) Collection" } },
+        { "id": "aa1", "title": "The Addams Family (2019)", "enrichment": { "franchiseID": 750822, "franchiseName": "The Addams Family (Animated) Collection" } },
+        { "id": "af1", "title": "Addams Family Values (1993)", "enrichment": { "franchiseID": 11716, "franchiseName": "Addams Family Collection" } },
+        { "id": "aa2", "title": "The Addams Family 2 (2021)", "enrichment": { "franchiseID": 750822, "franchiseName": "The Addams Family (Animated) Collection" } },
+        { "id": "pk1", "title": "Pokemon: The First Movie", "enrichment": { "franchiseID": 34055, "franchiseName": "Pokemon Collection" } },
+        { "id": "pk2", "title": "Pokemon: The Movie 2000", "enrichment": { "franchiseID": 34055, "franchiseName": "Pokemon Collection" } },
+        { "id": "pk3", "title": "Pokemon 3: The Movie", "enrichment": { "franchiseID": 34055, "franchiseName": "Pokemon Collection" } },
+        { "id": "bw1", "title": "Pokemon the Movie: White", "enrichment": { "franchiseID": 661028, "franchiseName": "Pokemon: Best Wishes! Collection" } },
+        { "id": "bw2", "title": "Pokemon the Movie: Black", "enrichment": { "franchiseID": 661028, "franchiseName": "Pokemon: Best Wishes! Collection" } }
+      ],
+      "tvItems": [
+        { "id": "t1", "title": "The Addams Family", "episodeTitle": "Pilot" }
+      ],
+      "expected": [
+        {
+          "name": "ADDAMS FAMILY", "stableID": "tmdb:11716", "placement": { "type": "dynamic" },
+          "movies": ["aa1", "af1", "aa2"], "tvItems": ["t1"],
+          "mergedFranchiseIDs": [11716, 750822], "fromDictionary": false
+        },
+        {
+          "name": "AMERICAN PIE", "stableID": "tmdb:2806", "placement": { "type": "dynamic" },
+          "movies": ["ap1", "aps1", "ap2", "aps2"], "tvItems": [],
+          "mergedFranchiseIDs": [2806, 298820], "fromDictionary": false
+        },
+        {
+          "name": "POKEMON", "stableID": "tmdb:34055", "placement": { "type": "dynamic" },
+          "movies": ["pk1", "pk2", "pk3"], "tvItems": [],
+          "mergedFranchiseIDs": [34055], "fromDictionary": false
+        }
+      ]
+    },
+    {
+      "name": "spider-man-merges-five-collections",
+      "about": "Dictionary SPIDER-MAN, ids verified live 2026-10-13: Raimi trilogy (556), The Amazing Spider-Man (125574), MCU (531241), Spider-Verse (573436) and the 1977-80 TV films (225941) are one dynamic channel even with CH101 in the lineup; it never folds into MARVEL. Shows join by the spider-man token (The Amazing Spider-Man 1977 series, Spider-Man: The Animated Series) or by listed title (Spidey and His Amazing Friends). Spider Riders has no token. Iron Man, an MCU film in its own collection, is untouched and alone builds nothing.",
+      "availableStockChannelIDs": [100, 101, 102, 103, 104, 105, 106],
+      "movies": [
+        { "id": "sm1", "title": "Spider-Man (2002)", "enrichment": { "franchiseID": 556, "franchiseName": "Spider-Man Collection" } },
+        { "id": "mcu1", "title": "Spider-Man: Homecoming (2017)", "enrichment": { "franchiseID": 531241, "franchiseName": "Spider-Man (MCU) Collection" } },
+        { "id": "asm1", "title": "The Amazing Spider-Man (2012)", "enrichment": { "franchiseID": 125574, "franchiseName": "The Amazing Spider-Man Collection" } },
+        { "id": "sv1", "title": "Spider-Man: Into the Spider-Verse (2018)", "enrichment": { "franchiseID": 573436, "franchiseName": "Spider-Man: Spider-Verse Collection" } },
+        { "id": "tv77", "title": "Spider-Man Strikes Back (1978)", "enrichment": { "franchiseID": 225941, "franchiseName": "Spider-Man (TV) Collection" } },
+        { "id": "mcu2", "title": "Spider-Man: No Way Home (2021)", "enrichment": { "franchiseID": 531241, "franchiseName": "Spider-Man (MCU) Collection" } },
+        { "id": "im1", "title": "Iron Man (2008)", "enrichment": { "franchiseID": 131292, "franchiseName": "Iron Man Collection" } }
+      ],
+      "tvItems": [
+        { "id": "st1", "title": "The Amazing Spider-Man (1977)", "episodeTitle": "Pilot" },
+        { "id": "st2", "title": "Spider-Man: The Animated Series", "episodeTitle": "Night of the Lizard" },
+        { "id": "st3", "title": "Spidey and His Amazing Friends", "episodeTitle": "Pilot" },
+        { "id": "x1", "title": "Spider Riders", "episodeTitle": "Pilot" }
+      ],
+      "expected": [
+        {
+          "name": "SPIDER-MAN", "stableID": "dict:SPIDER-MAN", "placement": { "type": "dynamic" },
+          "movies": ["sm1", "mcu1", "asm1", "sv1", "tv77", "mcu2"], "tvItems": ["st1", "st2", "st3"],
+          "mergedFranchiseIDs": [556, 125574, 225941, 531241, 573436], "fromDictionary": true
+        }
+      ]
+    }
+  ],
+  "titleKeys": [
+    { "title": "What If...?", "key": "what if" },
+    { "title": "What If…?", "key": "what if" },
+    { "title": "Ms. Marvel", "key": "ms marvel" },
+    { "title": "Agents of S.H.I.E.L.D. (2013)", "key": "agents of s h i e l d" },
+    { "title": "Marvel's Daredevil", "key": "marvels daredevil" },
+    { "title": "Marvel’s Daredevil", "key": "marvels daredevil" },
+    { "title": "She-Hulk: Attorney at Law", "key": "she hulk attorney at law" },
+    { "title": "Echo Park", "key": "echo park" },
+    { "title": "Amélie (2001)", "key": "amélie" }
+  ],
+  "filmMatches": [
+    { "title": "Rogue One: A Star Wars Story", "franchise": "STAR WARS" },
+    { "title": "Bumblebee (2018)", "franchise": "TRANSFORMERS" },
+    { "title": "Mission: Impossible - Fallout", "franchise": "MISSION IMPOSSIBLE" },
+    { "title": "The Bourne Identity", "franchise": "JASON BOURNE" },
+    { "title": "Echo", "franchise": null },
+    { "title": "Loki", "franchise": null },
+    { "title": "Parabellum", "franchise": null },
+    { "title": "Starsky & Hutch", "franchise": null },
+    { "title": "The Matrixx", "franchise": null },
+    { "title": "Spider-Man: Lotus (2023)", "franchise": "SPIDER-MAN" }
+  ],
+  "mergeKeys": [
+    { "name": "Spider-Man (MCU) Collection", "key": "spider man" },
+    { "name": "Spider-Man Collection", "key": "spider man" },
+    { "name": "American Pie (Spin-off) Collection", "key": "american pie" },
+    { "name": "The Addams Family (Animated) Collection", "key": "addams family" },
+    { "name": "Teenage Mutant Ninja Turtles (Remake) (2014) Collection", "key": "teenage mutant ninja turtles" },
+    { "name": "The Amazing Spider-Man Collection", "key": "amazing spider man" },
+    { "name": "(500) Days of Summer Collection", "key": "500 days of summer" },
+    { "name": "Pokémon: Best Wishes! Collection", "key": "pokémon best wishes" },
+    { "name": "Theodore Rex", "key": "theodore rex" }
+  ],
+  "collectionFolds": [
+    {
+      "about": "Three Harry Potter members map the server collection onto CH102.",
+      "availableStockChannelIDs": [102],
+      "items": [
+        { "id": "a", "title": "Harry Potter 1", "enrichment": { "franchiseID": 1241 } },
+        { "id": "b", "title": "Harry Potter 2", "enrichment": { "franchiseID": 1241 } },
+        { "id": "c", "title": "Harry Potter 3", "enrichment": { "franchiseID": 1241 } }
+      ],
+      "stockChannelID": 102
+    },
+    {
+      "about": "An unmapped collection maps to nothing.",
+      "availableStockChannelIDs": [102],
+      "items": [
+        { "id": "a", "title": "Whatever 1", "enrichment": { "franchiseID": 55555 } },
+        { "id": "b", "title": "Whatever 2", "enrichment": { "franchiseID": 55555 } }
+      ],
+      "stockChannelID": null
+    },
+    {
+      "about": "One member is not enough.",
+      "availableStockChannelIDs": [102],
+      "items": [
+        { "id": "a", "title": "Harry Potter 1", "enrichment": { "franchiseID": 1241 } },
+        { "id": "b", "title": "Something Else" }
+      ],
+      "stockChannelID": null
+    },
+    {
+      "about": "Two stock channels both qualify: the lower one wins.",
+      "availableStockChannelIDs": [100, 102],
+      "items": [
+        { "id": "a", "title": "Harry Potter 1", "enrichment": { "franchiseID": 1241 } },
+        { "id": "b", "title": "Harry Potter 2", "enrichment": { "franchiseID": 1241 } },
+        { "id": "c", "title": "Star Wars", "enrichment": { "franchiseID": 10 } },
+        { "id": "d", "title": "The Empire Strikes Back", "enrichment": { "franchiseID": 10 } }
+      ],
+      "stockChannelID": 100
+    }
+  ]
+}

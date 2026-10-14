@@ -5,8 +5,30 @@ import Observation
 /// without touching MainActor-isolated EnrichmentService state.
 private actor OMDBRateLimitFlag {
     var limited: Bool = false
-    func mark() { limited = true }
+    var quota: Bool = false
+    /// Stop asking for this load. `quota` means OMDb said the day's limit is gone.
+    func mark(quota: Bool = false) {
+        limited = true
+        if quota { self.quota = true }
+    }
     func isLimited() -> Bool { limited }
+    func wasQuota() -> Bool { quota }
+}
+
+/// One TMDB id's worth of library items, as the enrichment pass sees them.
+struct OMDBWorkItem {
+    let tmdbID: String
+    var imdbID: String?
+    let mediaType: String
+    /// The server's genres for the title, merged across its items.
+    var genres: [String]
+}
+
+/// An OMDb lookup: the IMDb id to ask about and the TMDB row its answer merges into.
+struct OMDBLookup {
+    let tmdbID: String
+    let imdbID: String
+    let existing: MediaEnrichment
 }
 
 @Observable
@@ -38,13 +60,71 @@ class EnrichmentService {
         return cache[tmdbID]
     }
 
+    /// Fixture seam: puts ready-made rows in the in-memory cache without Supabase or
+    /// TMDB. Used by the `-uiTestFranchiseFixture` demo so the franchise fields can be
+    /// exercised on a simulator before the shared table carries them. Nothing is written
+    /// back to Supabase from here.
+    func seedCache(_ entries: [MediaEnrichment]) {
+        for entry in entries {
+            cache[entry.tmdbID] = entry
+        }
+    }
+
+    /// What keeps enrichment off, in the order the skip log names it. TMDB needs either
+    /// a key (dev builds, direct) or the site proxy (App Store builds). Supabase is
+    /// required either way: the shared cache is the point, and without it every Apple TV
+    /// would fetch the same titles from TMDB on every scan.
+    nonisolated static func missingConfiguration(
+        tmdbAPIKey: String,
+        tmdbProxyURL: String,
+        supabaseURL: String,
+        supabaseAnonKey: String
+    ) -> [String] {
+        var missing: [String] = []
+        if tmdbAPIKey.isEmpty && tmdbProxyURL.isEmpty { missing.append("tmdb proxy/key") }
+        if supabaseURL.isEmpty { missing.append("supabase url") }
+        if supabaseAnonKey.isEmpty { missing.append("anon key") }
+        return missing
+    }
+
+    /// The titles worth an OMDb lookup: a TMDB row with no IMDb rating yet, a usable
+    /// IMDb id (the server's, else the one TMDB gave), and a gate that admits the row's
+    /// media type plus its TMDB keywords, TMDB genres or server genres.
+    nonisolated static func omdbCandidates(
+        work: [OMDBWorkItem],
+        enrichments: [String: MediaEnrichment],
+        gates: [OMDBGate]
+    ) -> [OMDBLookup] {
+        guard !gates.isEmpty else { return [] }
+        var out: [OMDBLookup] = []
+        for w in work {
+            guard let e = enrichments[w.tmdbID], e.imdbRating == nil else { continue }
+            guard let imdbID = w.imdbID ?? e.imdbID, OMDBService.isValidIMDbID(imdbID) else { continue }
+            guard OMDBQuota.isCandidate(
+                mediaType: e.mediaType, keywords: e.keywords, genres: e.tmdbGenres + w.genres, gates: gates
+            ) else { continue }
+            out.append(OMDBLookup(tmdbID: w.tmdbID, imdbID: imdbID, existing: e))
+        }
+        return out
+    }
+
     /// Enrich all items in the library. Runs in background, updates progress.
-    func enrichItems(_ items: [PlexMediaItem]) async {
-        guard !TMDBConfig.tmdbAPIKey.isEmpty,
-              !TMDBConfig.supabaseURL.isEmpty else {
-            print("[Enrichment] Skipping: API keys not configured")
+    ///
+    /// `omdbGates` decides which titles are worth an OMDb lookup (see `OMDBGate`). The
+    /// library load passes the gates from the channel config it just loaded; nil reads
+    /// them from the bundled channels.json.
+    func enrichItems(_ items: [PlexMediaItem], omdbGates: [OMDBGate]? = nil) async {
+        let missing = Self.missingConfiguration(
+            tmdbAPIKey: TMDBConfig.tmdbAPIKey,
+            tmdbProxyURL: TMDBConfig.tmdbProxyURL,
+            supabaseURL: TMDBConfig.supabaseURL,
+            supabaseAnonKey: TMDBConfig.supabaseAnonKey
+        )
+        guard missing.isEmpty else {
+            print("[Enrichment] Skipping: missing \(missing.joined(separator: ", "))")
             return
         }
+        print("[Enrichment] TMDB via \(tmdb.usesProxy ? "site proxy" : "direct key")")
 
         isEnriching = true
         statusMessage = "Preparing..."
@@ -53,25 +133,35 @@ class EnrichmentService {
         // Step 1: Deduplicate TMDB IDs
         // TV episodes share a show-level TMDB ID, so group by ID
         // Track an IMDb ID per TMDB ID when available (first one wins)
-        struct WorkItem { let tmdbID: String; let imdbID: String?; let mediaType: String }
-        var workItemsByTMDB: [String: WorkItem] = [:]
+        var workItemsByTMDB: [String: OMDBWorkItem] = [:]
         for item in items {
             guard let tmdbID = item.tmdbID else { continue }
             let mediaType = item.type == .episode ? "tv" : "movie"
-            if let existing = workItemsByTMDB[tmdbID] {
+            if var existing = workItemsByTMDB[tmdbID] {
                 // Fill in missing IMDb ID if a later item has one
                 if existing.imdbID == nil, let imdb = item.imdbID {
-                    workItemsByTMDB[tmdbID] = WorkItem(tmdbID: tmdbID, imdbID: imdb, mediaType: existing.mediaType)
+                    existing.imdbID = imdb
                 }
+                for g in item.genres where !existing.genres.contains(g) {
+                    existing.genres.append(g)
+                }
+                workItemsByTMDB[tmdbID] = existing
             } else {
-                workItemsByTMDB[tmdbID] = WorkItem(tmdbID: tmdbID, imdbID: item.imdbID, mediaType: mediaType)
+                workItemsByTMDB[tmdbID] = OMDBWorkItem(
+                    tmdbID: tmdbID, imdbID: item.imdbID, mediaType: mediaType, genres: item.genres
+                )
             }
         }
 
         let total = workItemsByTMDB.count
-        let omdbEnabled = !TMDBConfig.omdbAPIKey.isEmpty
+        let backoff = OMDBBackoff()
+        let omdbBlocked = backoff.isBlocked()
+        let omdbEnabled = omdb.isConfigured && !omdbBlocked
         let withIMDB = workItemsByTMDB.values.filter { $0.imdbID != nil }.count
-        print("[Enrichment] \(total) unique TMDB IDs from \(items.count) items, \(withIMDB) with IMDb IDs, OMDb \(omdbEnabled ? "enabled" : "disabled")")
+        let omdbState = omdbBlocked
+            ? "paused until UTC midnight (daily limit)"
+            : (omdb.isConfigured ? "via \(omdb.usesProxy ? "site proxy" : "direct key")" : "disabled")
+        print("[Enrichment] \(total) unique TMDB IDs from \(items.count) items, \(withIMDB) with IMDb IDs, OMDb \(omdbState)")
 
         guard total > 0 else {
             statusMessage = "No TMDB IDs found"
@@ -99,197 +189,154 @@ class EnrichmentService {
             print("[Enrichment] Supabase cache check failed: \(error)")
         }
 
-        // Step 3: Identify what needs fetching
-        // Three buckets:
-        //   needsBoth: no TMDB cache row at all
-        //   needsOMDBOnly: has TMDB cache row, has imdbID, but no imdbRating yet
-        let cachedByID = Dictionary(cached.map { ($0.tmdbID, $0) }, uniquingKeysWith: { first, _ in first })
+        // Step 3: TMDB for every id with no cache row. OMDb is decided afterwards, once
+        // the keywords that say whether a title could land on a gated channel are known.
+        let cachedIDs = Set(cached.map(\.tmdbID))
+        let needsTMDB = workItemsByTMDB.values.filter { !cachedIDs.contains($0.tmdbID) }
 
-        var needsBoth: [WorkItem] = []
-        var needsOMDBOnly: [(tmdbID: String, imdbID: String, existing: MediaEnrichment)] = []
-
-        for (tmdbID, work) in workItemsByTMDB {
-            if let existing = cachedByID[tmdbID] {
-                if omdbEnabled, existing.imdbRating == nil, let imdbID = work.imdbID ?? existing.imdbID {
-                    needsOMDBOnly.append((tmdbID, imdbID, existing))
-                }
-            } else {
-                needsBoth.append(work)
-            }
-        }
-
-        totalToEnrich = needsBoth.count + needsOMDBOnly.count
+        totalToEnrich = needsTMDB.count
         enrichedCount = 0
 
-        if totalToEnrich == 0 {
-            print("[Enrichment] All items already fully cached")
-            statusMessage = ""
-            progress = 1
-            isEnriching = false
-            return
-        }
-
-        print("[Enrichment] Fetching \(needsBoth.count) new (TMDB+OMDb) + \(needsOMDBOnly.count) OMDb-only")
-        statusMessage = "Fetching metadata 0/\(totalToEnrich)"
-
-        var newEnrichments: [MediaEnrichment] = []
+        var newByID: [String: MediaEnrichment] = [:]
         let rateLimitFlag = OMDBRateLimitFlag()
         let tmdbService = tmdb
         let omdbService = omdb
-
-        // Step 4a: Fetch brand new items (TMDB + OMDb in parallel per item)
-        // Concurrency capped at 10 (OMDb is the slower/tighter-limited of the two)
         let maxConcurrency = 10
-        let needsBothList = needsBoth
 
-        await withTaskGroup(of: MediaEnrichment?.self) { group in
-            var index = 0
-
-            func launch(_ work: WorkItem, flag: OMDBRateLimitFlag) -> Void {
-                group.addTask {
-                    // Fetch TMDB first (required)
-                    let tmdbResult: MediaEnrichment
-                    do {
-                        tmdbResult = try await tmdbService.fetchEnrichment(
-                            tmdbID: work.tmdbID,
-                            imdbID: work.imdbID,
-                            mediaType: work.mediaType
-                        )
-                    } catch TMDBService.TMDBError.rateLimited {
-                        print("[Enrichment] TMDB rate limited on \(work.tmdbID)")
-                        return nil
-                    } catch {
-                        print("[Enrichment] TMDB failed \(work.tmdbID): \(error)")
-                        return nil
-                    }
-
-                    // Fetch OMDb if available and enabled
-                    guard omdbEnabled, let imdbID = work.imdbID else { return tmdbResult }
-                    if await flag.isLimited() { return tmdbResult }
-                    do {
-                        let omdbResult = try await omdbService.fetch(imdbID: imdbID)
-                        return tmdbResult.merging(omdb: omdbResult)
-                    } catch OMDBService.OMDBError.rateLimited {
-                        print("[Enrichment] OMDb rate limit hit, disabling OMDb for rest of session")
-                        await flag.mark()
-                        return tmdbResult
-                    } catch OMDBService.OMDBError.notFound {
-                        return tmdbResult
-                    } catch OMDBService.OMDBError.httpError(let code) {
-                        // 401/403 = bad key, 429 = rate-limited, 5xx = server down — disable for the session
-                        if code == 401 || code == 403 || code == 429 || code >= 500 {
-                            print("[Enrichment] OMDb disabled for session (HTTP \(code))")
-                            await flag.mark()
-                        }
-                        return tmdbResult
-                    } catch {
-                        print("[Enrichment] OMDb failed \(imdbID): \(error)")
-                        return tmdbResult
-                    }
-                }
-            }
-
-            // Seed initial batch
-            while index < maxConcurrency && index < needsBothList.count {
-                launch(needsBothList[index], flag: rateLimitFlag)
-                index += 1
-            }
-
-            // Drain + refill (throttle UI updates to every 10 items to prevent SwiftUI lag)
-            var pendingCount = 0
-            for await result in group {
-                if let enrichment = result {
-                    newEnrichments.append(enrichment)
-                    cache[enrichment.tmdbID] = enrichment
-                }
-                pendingCount += 1
-
-                if pendingCount >= 5 || (enrichedCount + pendingCount) >= totalToEnrich {
-                    enrichedCount += pendingCount
-                    progress = Double(enrichedCount) / Double(totalToEnrich)
-                    statusMessage = "Fetching metadata \(enrichedCount)/\(totalToEnrich)"
-                    pendingCount = 0
-                }
-
-                if index < needsBothList.count {
-                    launch(needsBothList[index], flag: rateLimitFlag)
-                    index += 1
-                }
-            }
-            // Flush any remaining
-            if pendingCount > 0 {
-                enrichedCount += pendingCount
-                progress = Double(enrichedCount) / Double(totalToEnrich)
-                statusMessage = "Fetching metadata \(enrichedCount)/\(totalToEnrich)"
-            }
-        }
-
-        // Step 4b: Fetch OMDb-only (items that already have TMDB cached)
-        let needsOMDBList = needsOMDBOnly
-        let stillHealthy = await !rateLimitFlag.isLimited()
-        if omdbEnabled && !needsOMDBList.isEmpty && stillHealthy {
+        if !needsTMDB.isEmpty {
+            print("[Enrichment] Fetching \(needsTMDB.count) new from TMDB")
+            statusMessage = "Fetching metadata 0/\(totalToEnrich)"
             await withTaskGroup(of: MediaEnrichment?.self) { group in
                 var index = 0
 
-                func launch(_ work: (tmdbID: String, imdbID: String, existing: MediaEnrichment), flag: OMDBRateLimitFlag) -> Void {
-                    let existing = work.existing
-                    let imdbID = work.imdbID
+                func launch(_ work: OMDBWorkItem) {
                     group.addTask {
-                        if await flag.isLimited() { return nil }
                         do {
-                            let omdbResult = try await omdbService.fetch(imdbID: imdbID)
-                            return existing.merging(omdb: omdbResult)
-                        } catch OMDBService.OMDBError.rateLimited {
-                            print("[Enrichment] OMDb rate limit hit during backfill, stopping")
-                            await flag.mark()
-                            return nil
-                        } catch OMDBService.OMDBError.notFound {
-                            return nil
-                        } catch OMDBService.OMDBError.httpError(let code) {
-                            if code == 401 || code == 403 || code == 429 || code >= 500 {
-                                print("[Enrichment] OMDb backfill disabled for session (HTTP \(code))")
-                                await flag.mark()
-                            }
+                            return try await tmdbService.fetchEnrichment(
+                                tmdbID: work.tmdbID,
+                                imdbID: work.imdbID,
+                                mediaType: work.mediaType
+                            )
+                        } catch TMDBService.TMDBError.rateLimited {
+                            print("[Enrichment] TMDB rate limited on \(work.tmdbID)")
                             return nil
                         } catch {
-                            print("[Enrichment] OMDb backfill failed \(imdbID): \(error)")
+                            print("[Enrichment] TMDB failed \(work.tmdbID): \(error)")
                             return nil
                         }
                     }
                 }
 
-                while index < maxConcurrency && index < needsOMDBList.count {
-                    launch(needsOMDBList[index], flag: rateLimitFlag)
+                while index < maxConcurrency && index < needsTMDB.count {
+                    launch(needsTMDB[index])
                     index += 1
                 }
 
+                // Drain + refill (throttle UI updates to every 5 items to prevent SwiftUI lag)
                 var pendingCount = 0
                 for await result in group {
                     if let enrichment = result {
-                        newEnrichments.append(enrichment)
+                        newByID[enrichment.tmdbID] = enrichment
                         cache[enrichment.tmdbID] = enrichment
                     }
                     pendingCount += 1
-
                     if pendingCount >= 5 || (enrichedCount + pendingCount) >= totalToEnrich {
                         enrichedCount += pendingCount
-                        progress = Double(enrichedCount) / Double(totalToEnrich)
+                        progress = Double(enrichedCount) / Double(max(totalToEnrich, 1))
                         statusMessage = "Fetching metadata \(enrichedCount)/\(totalToEnrich)"
                         pendingCount = 0
                     }
-
-                    if index < needsOMDBList.count {
-                        launch(needsOMDBList[index], flag: rateLimitFlag)
+                    if index < needsTMDB.count {
+                        launch(needsTMDB[index])
                         index += 1
                     }
                 }
                 if pendingCount > 0 {
                     enrichedCount += pendingCount
-                    progress = Double(enrichedCount) / Double(totalToEnrich)
+                    progress = Double(enrichedCount) / Double(max(totalToEnrich, 1))
                     statusMessage = "Fetching metadata \(enrichedCount)/\(totalToEnrich)"
                 }
             }
         }
+
+        // Step 4: OMDb, only for titles that could land on an IMDb-gated channel, at most
+        // OMDBQuota.perLoadLimit per load, in random order.
+        if omdbEnabled {
+            let gates = omdbGates ?? OMDBGate.bundledGates()
+            let candidates = Self.omdbCandidates(
+                work: Array(workItemsByTMDB.values), enrichments: cache, gates: gates
+            )
+            let picked = OMDBQuota.pick(candidates)
+            print("[Enrichment] OMDb: \(gates.count) gated channels, \(candidates.count) candidates, looking up \(picked.count)")
+
+            if !picked.isEmpty {
+                totalToEnrich += picked.count
+                let omdbConcurrency = 5
+                await withTaskGroup(of: MediaEnrichment?.self) { group in
+                    var index = 0
+
+                    func launch(_ work: OMDBLookup) {
+                        group.addTask {
+                            if await rateLimitFlag.isLimited() { return nil }
+                            do {
+                                let result = try await omdbService.fetch(imdbID: work.imdbID)
+                                return work.existing.merging(omdb: result)
+                            } catch OMDBService.OMDBError.rateLimited {
+                                await rateLimitFlag.mark(quota: true)
+                                return nil
+                            } catch OMDBService.OMDBError.notFound {
+                                return nil
+                            } catch OMDBService.OMDBError.httpError(let code) {
+                                // 401/403 = bad key, 5xx = relay or OMDb down: stop for this load.
+                                if code == 401 || code == 403 || code >= 500 {
+                                    print("[Enrichment] OMDb disabled for this load (HTTP \(code))")
+                                    await rateLimitFlag.mark()
+                                }
+                                return nil
+                            } catch {
+                                return nil
+                            }
+                        }
+                    }
+
+                    while index < omdbConcurrency && index < picked.count {
+                        launch(picked[index])
+                        index += 1
+                    }
+
+                    var pendingCount = 0
+                    for await result in group {
+                        if let enrichment = result {
+                            newByID[enrichment.tmdbID] = enrichment
+                            cache[enrichment.tmdbID] = enrichment
+                        }
+                        pendingCount += 1
+                        if pendingCount >= 5 || (enrichedCount + pendingCount) >= totalToEnrich {
+                            enrichedCount += pendingCount
+                            progress = Double(enrichedCount) / Double(max(totalToEnrich, 1))
+                            statusMessage = "Fetching metadata \(enrichedCount)/\(totalToEnrich)"
+                            pendingCount = 0
+                        }
+                        if index < picked.count {
+                            launch(picked[index])
+                            index += 1
+                        }
+                    }
+                    if pendingCount > 0 {
+                        enrichedCount += pendingCount
+                        progress = Double(enrichedCount) / Double(max(totalToEnrich, 1))
+                        statusMessage = "Fetching metadata \(enrichedCount)/\(totalToEnrich)"
+                    }
+                }
+            }
+        }
+
+        if await rateLimitFlag.wasQuota() {
+            backoff.markRateLimited()
+            print("[Enrichment] OMDb daily limit reached; no more OMDb lookups until UTC midnight")
+        }
+
+        let newEnrichments = Array(newByID.values)
 
         // Step 5: Persist to Supabase
         if !newEnrichments.isEmpty {

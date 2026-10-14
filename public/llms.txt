@@ -1,0 +1,48 @@
+# Nostalgex
+
+> Nostalgex is a free, open source (MIT) app that turns your own Plex, Jellyfin or Emby media library into 131 live TV channels in 14 bundles, with a retro channel guide. It runs natively on Apple TV (tvOS 18 or later) and in a web browser through the free web tuner. It needs no paid service and nothing installed on your media server. It does not host or supply any media; everything plays from your own server.
+
+Nostalgex is made by Chad Mueller (Muell Haus Inc.). It is not affiliated with Plex, Jellyfin, Emby or Apple, and it is a different product from NostalgiaTV.
+
+## Get it
+
+- [Nostalgex on the App Store (Apple TV)](https://apps.apple.com/app/nostalgex/id6762563534): free, tvOS 18 or later
+- [Web tuner](https://www.nostalgex.app/web-tuner): free, runs in a browser; Jellyfin and Emby need an https address, Plex works as is
+
+## Server guides
+
+- [Nostalgex for Plex](https://www.nostalgex.app/plex): sign in with a code at plex.tv/link
+- [Nostalgex for Jellyfin](https://www.nostalgex.app/jellyfin): Quick Connect or username and password
+- [Nostalgex for Emby](https://www.nostalgex.app/emby): username and password; on the web tuner, Emby connects through the Jellyfin option
+
+## Help
+
+- [Support: setup, https and CORS, how channels pick your library](https://www.nostalgex.app/support)
+- [Privacy policy](https://www.nostalgex.app/privacy)
+- [Source code on GitHub](https://github.com/chadMueller/Nostalgex)
+
+## Channels
+
+- [Channel Guide](https://www.nostalgex.app/channels): all 131 channels in 14 bundles
+
+### Bundles
+
+- [Nostalgex](https://www.nostalgex.app/channels/nostalgex): The 80s and 90s. All retro, all the time (19 channels)
+- [Kidz Zone](https://www.nostalgex.app/channels/kids): Disney, Nickelodeon, Pixar, and more (15 channels)
+- [Prime Time](https://www.nostalgex.app/channels/essentials): Everyday favorites and feel good viewing (15 channels)
+- [Marquee](https://www.nostalgex.app/channels/premium): Premium channels (11 channels)
+- [Adventureland](https://www.nostalgex.app/channels/adventureland): Epic quests, disasters, and adrenaline (9 channels)
+- [Overtime](https://www.nostalgex.app/channels/sports): Movies, shows, and docs (3 channels)
+- [Case Files](https://www.nostalgex.app/channels/truecrime): True crime, thrillers & mystery (5 channels)
+- [Decades](https://www.nostalgex.app/channels/decades): Movies and shows sorted by decade (7 channels)
+- [Franchises](https://www.nostalgex.app/channels/franchises): Movie franchise marathons (7 channels)
+- [Arthouse](https://www.nostalgex.app/channels/arthouse): Criterion, foreign films, midnight movies, and cult classics (4 channels)
+- [Networks](https://www.nostalgex.app/channels/streamers): Channels by streaming service and studio (11 channels)
+- [Tis the Season](https://www.nostalgex.app/channels/tis-the-season): Christmas and holiday channels (7 channels)
+- [Scream](https://www.nostalgex.app/channels/seasonal): Horror, all year's worth, front and centre every October (4 channels)
+- [High Rotation](https://www.nostalgex.app/channels/high-rotation): Music videos by genre (14 channels)
+
+## Blog
+
+- [Nostalgex blog](https://www.nostalgex.app/blog)
+- [90s slasher movies for a Halloween marathon](https://www.nostalgex.app/blog/90s-slasher-movies-halloween-marathon)

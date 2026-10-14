@@ -41,6 +41,7 @@ jobs:
               - '404.html'
               - 'styles.css'
               - 'channels.json'
+              - 'franchises.json'
               - 'api/**'
               - 'content/**'
               - 'docs/**'
@@ -51,6 +52,8 @@ jobs:
             tvos:
               - '.github/workflows/ci.yml'
               - 'Nostalgex/**'
+              - 'franchises.json'
+              - 'scripts/franchise-golden.json'
             config:
               - '.github/workflows/ci.yml'
               - 'package.json'
@@ -63,6 +66,10 @@ jobs:
               - 'scripts/nostalgex-daily-manifest.js'
               - 'scripts/nostalgex-filter-smoke.mjs'
               - 'scripts/nostalgex-schedule-order-smoke.mjs'
+              - 'franchises.json'
+              - 'scripts/franchise-golden.json'
+              - 'scripts/nostalgex-franchise-builder.js'
+              - 'scripts/nostalgex-franchise-smoke.mjs'
 
   channel-engine:
     name: Channel engine (rule parity, schedule order, docs)
@@ -85,6 +92,8 @@ jobs:
       #                        were silently missing on web while Swift enforced them)
       #   test:schedule      - web daily-manifest ordering still matches the tvOS
       #                        SchedulePoolOrdering, so both surfaces air the same program
+      #   test:franchises    - web franchise grouping reproduces scripts/franchise-golden.json,
+      #                        the same vectors FranchiseGoldenTests checks on tvOS
       #   channels:doc:check - CHANNELS.md is regenerated from channels.json
       #                        (it had drifted 8 config versions)
       - name: Run channel engine checks

@@ -1,0 +1,449 @@
+/* Channel guide: /channels and /channels/<bundle-id>.
+ *
+ * Linked only by the pages scripts/build-bundles.mjs generates, and every
+ * selector is scoped under .page-channels (one global stylesheet plus one
+ * page scoped sheet per page, the house rule). styles.css owns the shared
+ * chrome, the container widths, the nav and the footer; nothing here reaches
+ * outside the guide.
+ *
+ * The colours are read from the tokens styles.css already defines, with a
+ * fallback for each so the guide still renders if a token is ever renamed.
+ * Each bundle row sets --guide-accent inline from BUNDLE_STYLE.
+ */
+
+.page-channels .channels-main {
+  padding-top: clamp(96px, 12vh, 144px);
+  padding-bottom: clamp(64px, 10vh, 128px);
+}
+
+/* Breadcrumb */
+
+.page-channels .channels-breadcrumb {
+  margin-bottom: 24px;
+}
+
+.page-channels .channels-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.page-channels .channels-crumb + .channels-crumb::before {
+  content: "\203A";
+  margin-right: 10px;
+  opacity: 0.6;
+}
+
+.page-channels .channels-crumb a {
+  color: inherit;
+}
+
+/* Page head */
+
+.page-channels .channels-head {
+  max-width: 760px;
+  margin-bottom: clamp(40px, 6vh, 72px);
+}
+
+.page-channels .channels-head h1 {
+  font-size: clamp(32px, 4.6vw, 54px);
+  line-height: 1.04;
+  margin: 0 0 20px;
+}
+
+.page-channels .channels-dek {
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.6;
+  margin: 0;
+  opacity: 0.88;
+}
+
+/* The guide: one row per bundle */
+
+.page-channels .channels-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.page-channels .guide-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 24px;
+  align-items: start;
+  padding: 20px 20px 20px 24px;
+  border: 1px solid rgba(128, 128, 128, 0.26);
+  border-left: 6px solid var(--guide-accent, #ffe500);
+  border-radius: 10px;
+}
+
+.page-channels .guide-row-head {
+  min-width: 0;
+}
+
+.page-channels .guide-row-name {
+  font-size: clamp(20px, 2.1vw, 27px);
+  line-height: 1.1;
+  margin: 0 0 6px;
+}
+
+/* The accent colours are picked to glow on the dark theme: yellow, cream and
+ * acid pink against near black. On the light theme (the :root base in
+ * styles.css) they fall apart as text, so the accent stays on the borders,
+ * which are decorative, and text keeps the ink colour. Dark theme opts the
+ * text back in below. */
+
+.page-channels .guide-row-name a {
+  color: inherit;
+  text-decoration: none;
+}
+
+[data-theme="dark"].page-channels .guide-row-name a,
+[data-theme="dark"] .page-channels .guide-row-name a {
+  color: var(--guide-accent, #ffe500);
+}
+
+.page-channels .guide-row-name a:hover,
+.page-channels .guide-row-name a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.page-channels .guide-row-count {
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  opacity: 0.68;
+}
+
+.page-channels .guide-row-blurb {
+  font-size: 15px;
+  line-height: 1.55;
+  margin: 0;
+  opacity: 0.85;
+}
+
+/* The channel strip. It scrolls sideways on a wide screen, so it carries
+ * tabindex="0" and an aria-label: a scrollable region a mouse can drag has to
+ * be reachable and scrollable from the keyboard too. Below 640px it stops
+ * scrolling and stacks, where the tabindex is harmless. */
+
+.page-channels .guide-row-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+  max-height: 232px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.page-channels .guide-row-strip:focus-visible {
+  outline: 2px solid var(--guide-accent, #ffe500);
+  outline-offset: 4px;
+}
+
+.page-channels .guide-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(128, 128, 128, 0.22);
+  border-left: 3px solid var(--guide-accent, #ffe500);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.page-channels .guide-cell-num {
+  flex: none;
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  /* Not tinted with the accent. At 11px the darker accents (the true crime and
+   * decades reds) land around 4:1 on the dark theme, under the 4.5:1 that small
+   * text needs. The cell's left border carries the colour instead. */
+  opacity: 0.68;
+}
+
+.page-channels .guide-cell-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.page-channels .guide-cell--more {
+  border-left-style: dashed;
+  font-style: italic;
+  opacity: 0.72;
+}
+
+/* Bundle page */
+
+.page-channels .bundle-intro {
+  max-width: 68ch;
+  margin-bottom: clamp(40px, 6vh, 64px);
+}
+
+.page-channels .bundle-intro p {
+  font-size: clamp(16px, 1.4vw, 18px);
+  line-height: 1.7;
+  margin: 0 0 20px;
+}
+
+.page-channels .bundle-intro h2,
+.page-channels .bundle-intro h3 {
+  margin: 36px 0 14px;
+}
+
+.page-channels .bundle-intro ul,
+.page-channels .bundle-intro ol {
+  padding-left: 22px;
+  margin: 0 0 20px;
+  line-height: 1.7;
+}
+
+.page-channels .bundle-channels,
+.page-channels .bundle-faq,
+.page-channels .bundle-cta,
+.page-channels .bundle-more {
+  margin-bottom: clamp(40px, 6vh, 64px);
+}
+
+.page-channels .bundle-channels h2,
+.page-channels .bundle-faq h2,
+.page-channels .bundle-cta h2,
+.page-channels .bundle-more h2,
+.page-channels .channels-cta h2 {
+  font-size: clamp(22px, 2.4vw, 30px);
+  margin: 0 0 20px;
+}
+
+.page-channels .bundle-channel-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page-channels .bundle-channel {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(128, 128, 128, 0.22);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.page-channels .bundle-channel-num {
+  flex: none;
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  opacity: 0.7;
+}
+
+.page-channels .bundle-channel-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.page-channels .bundle-channel--more {
+  font-style: italic;
+  opacity: 0.72;
+  border-style: dashed;
+}
+
+.page-channels .bundle-disclaimer {
+  margin: 20px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 0.7;
+  max-width: 72ch;
+}
+
+.page-channels .bundle-faq-item {
+  padding: 18px 0;
+  border-top: 1px solid rgba(128, 128, 128, 0.22);
+}
+
+.page-channels .bundle-faq-item:last-child {
+  border-bottom: 1px solid rgba(128, 128, 128, 0.22);
+}
+
+.page-channels .bundle-faq-item h3 {
+  font-size: clamp(17px, 1.6vw, 20px);
+  margin: 0 0 8px;
+}
+
+.page-channels .bundle-faq-item p {
+  margin: 0;
+  line-height: 1.65;
+  opacity: 0.88;
+  max-width: 68ch;
+}
+
+.page-channels .bundle-cta p,
+.page-channels .channels-cta p {
+  font-size: clamp(16px, 1.4vw, 18px);
+  line-height: 1.7;
+  margin: 0;
+  max-width: 68ch;
+}
+
+.page-channels .bundle-more-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.page-channels .bundle-more-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(128, 128, 128, 0.22);
+  border-radius: 6px;
+}
+
+.page-channels .bundle-more-count {
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.page-channels .channels-cta {
+  padding-top: clamp(32px, 5vh, 56px);
+  border-top: 1px solid rgba(128, 128, 128, 0.26);
+}
+
+/* Phones: the guide stops being a grid of rows and becomes a plain stacked
+ * list of bundles, each with its channels underneath. No horizontal scroll,
+ * no clipped strip. */
+
+@media (max-width: 640px) {
+  .page-channels .guide-row {
+    display: block;
+    padding: 16px 16px 16px 18px;
+  }
+
+  .page-channels .guide-row-head {
+    margin-bottom: 14px;
+  }
+
+  .page-channels .guide-row-strip {
+    display: block;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .page-channels .guide-cell {
+    border: 0;
+    border-left: 3px solid var(--guide-accent, #ffe500);
+    border-radius: 0;
+    padding: 7px 0 7px 10px;
+    margin-bottom: 4px;
+  }
+
+  .page-channels .guide-cell--more {
+    border-left-style: dashed;
+  }
+
+  .page-channels .bundle-channel-list,
+  .page-channels .bundle-more-list {
+    display: block;
+  }
+
+  .page-channels .bundle-channel,
+  .page-channels .bundle-more-list li {
+    margin-bottom: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-channels .guide-row-strip {
+    scroll-behavior: auto;
+  }
+}
+
+/* Page media
+   -------------------------------------------------------------------------
+   The hero sits under the H1 and is usually the LCP element, so it ships its
+   own width and height and loads eagerly. aspect-ratio keeps the box correct
+   while it decodes. */
+.page-channels .channels-cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  margin: 26px 0 8px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 5px 5px 0 var(--cyan);
+  background: var(--paper-deep);
+  object-fit: cover;
+}
+.page-channels .page-figure {
+  margin: 28px 0;
+}
+.page-channels .page-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+}
+.page-channels .page-figure figcaption,
+.page-channels .page-clip figcaption {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.page-channels .page-clip {
+  margin: 28px 0;
+}
+.page-channels .page-clip-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--paper-deep);
+}
+@media (max-width: 640px) {
+  .page-channels .channels-cover {
+    box-shadow: 3px 3px 0 var(--cyan);
+    margin-top: 18px;
+  }
+}
+
+/* The bundle name and channel count, under the H1. The heading itself says what
+   the page is about, so this line carries the app's own vocabulary. */
+.page-channels .channels-dek--bundle {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}

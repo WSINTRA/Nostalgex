@@ -20,9 +20,38 @@ node scripts/channel-keyword-tuner/index.mjs
 
 # Run a single channel
 node scripts/channel-keyword-tuner/index.mjs --channel 56
+
+# Check a regeneration without touching the shipped files, on a TMDB
+# snapshot you can rerun against
+node scripts/channel-keyword-tuner/index.mjs --cache /tmp/tmdb-cache.json --out /tmp/regen
 ```
 
-Output: `scripts/channel-keyword-tuner/report.md`
+Output: `channels-memberships.json` at the repo root (the manifest the app and
+web tuner read) and `scripts/channel-keyword-tuner/report.md`. With `--out`,
+both go to that folder instead. `--cache` keeps every TMDB response in one
+JSON file (no API key in it) and reuses it, so two runs see the same data;
+TMDB recommendations shift week to week, so without it two runs a month apart
+never match.
+
+## The genre gate
+
+Every recommendation, similar and collection claim has to fit the channel's
+genre rule before it lands in the manifest. Exemplars and `handCurated` titles
+are never gated. The rule comes from `channels.json` plus optional fields on
+the channel's entry in `exemplars.json` (`genre-gate.mjs`, tested by
+`npm run test:tuner-gate`):
+
+- `rules.genres.include` (channels.json): the title needs at least one.
+- `rules.genres.requireAll` (channels.json): the title needs every one. SCI-FI
+  uses it to keep horror-only titles off.
+- `gateRequireAll: false` (exemplars.json): skip `requireAll` for that
+  channel's claims. ROM COMS and GIRLS NIGHT set it.
+- `genreRescueKeywords` (exemplars.json): keep a title that misses `include`
+  when its TMDB keywords carry one of these. MUSICALS uses `musical`,
+  `song and dance` and `broadway`. A rescue never overrides `requireAll`.
+
+The app and the web filter never read these exemplars.json fields; they only
+shape what the generator writes.
 
 ## Workflow
 

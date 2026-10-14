@@ -11,6 +11,16 @@ enum LibrarySource: String, Hashable, Codable {
     case musicVideo
 }
 
+struct PlexPartPlaybackInfo: Codable, Hashable {
+    let key: String
+    let container: String?
+    let videoCodec: String?
+    let audioCodec: String?
+    let bitDepth: Int?
+    let doviProfile: Int?
+    var durationSeconds: Double? = nil
+}
+
 struct PlexMediaItem: Identifiable, Hashable {
     let id: String         // ratingKey
     let title: String
@@ -57,6 +67,16 @@ struct PlexMediaItem: Identifiable, Hashable {
     var doviProfile: Int? = nil
     var videoWidth: Int? = nil
     var videoHeight: Int? = nil
+    var mediaIndex: Int = 0
+    var partIndex: Int = 0
+    var playbackParts: [PlexPartPlaybackInfo]? = nil
+    var exactDurationSeconds: Double? = nil
+    /// Episodes only: the server-local id of the show (Plex `grandparentRatingKey`,
+    /// Jellyfin and Emby `SeriesId`). A collection of shows lists the shows, not their
+    /// episodes, so this is what lets the collection scan expand a show into the
+    /// episodes the library load already holds. Optional so older snapshots still
+    /// decode; nil until the next full library scan.
+    var showKey: String? = nil
 }
 
 extension PlexMediaItem {
@@ -64,23 +84,47 @@ extension PlexMediaItem {
     // Used to play disc 2, disc 3, etc. of a multi-part movie without
     // creating a full new scheduled entry.
     func withPartKey(_ key: String) -> PlexMediaItem {
-        PlexMediaItem(
+        let part = playbackParts?.first { $0.key == key }
+        return PlexMediaItem(
             id: id, title: title, artist: artist, episodeTitle: episodeTitle,
             seTag: seTag, summary: summary, year: year,
             originallyAvailableAt: originallyAvailableAt,
             contentRating: contentRating, duration: duration,
             ratingKey: ratingKey, partKey: key,
-            container: container, videoCodec: videoCodec, audioCodec: audioCodec,
+            container: part?.container ?? container, videoCodec: part?.videoCodec ?? videoCodec, audioCodec: part?.audioCodec ?? audioCodec,
             videoProfile: videoProfile, bitrate: bitrate, genres: genres,
             rating: rating, userRating: userRating, type: type,
             thumb: thumb, art: art, viewCount: viewCount, addedAt: addedAt,
             studio: studio, tmdbID: tmdbID, imdbID: imdbID,
             librarySource: librarySource, serverID: serverID,
-            additionalPartKeys: nil,
-            videoBitDepth: videoBitDepth, doviProfile: doviProfile,
-            videoWidth: videoWidth, videoHeight: videoHeight
+            additionalPartKeys: additionalPartKeys,
+            videoBitDepth: part == nil ? videoBitDepth : part?.bitDepth, doviProfile: part == nil ? doviProfile : part?.doviProfile,
+            videoWidth: videoWidth, videoHeight: videoHeight,
+            mediaIndex: mediaIndex, partIndex: (additionalPartKeys?.firstIndex(of: key).map { $0 + 1 }) ?? partIndex,
+            playbackParts: playbackParts, exactDurationSeconds: exactDurationSeconds,
+            showKey: showKey
         )
     }
+
+    /// Translate the schedule's whole-film offset only when the server knows every part length.
+    func playbackPosition(at seconds: Int) -> (item: PlexMediaItem, baseSeconds: Double, offsetSeconds: Int) {
+        guard let parts = playbackParts, parts.count > 1,
+              parts.allSatisfy({ ($0.durationSeconds ?? 0).isFinite && ($0.durationSeconds ?? 0) > 0 })
+        else { return (self, 0, max(0, seconds)) }
+        var base: Double = 0
+        for (index, part) in parts.enumerated() {
+            let duration = part.durationSeconds!
+            if Double(seconds) < base + duration || index == parts.count - 1 {
+                var selected = withPartKey(part.key)
+                selected.partIndex = index
+                let offset = min(max(0, Double(seconds) - base), max(0, duration - 1))
+                return (selected, base, Int(offset))
+            }
+            base += duration
+        }
+        return (self, 0, max(0, seconds))
+    }
+
 }
 
 extension MediaType: Codable {}
@@ -92,7 +136,8 @@ extension PlexMediaItem: Codable {
         case videoProfile, bitrate, genres, rating, userRating, type, thumb, art
         case viewCount, addedAt, studio, tmdbID, imdbID, librarySource, serverID
         case additionalPartKeys
-        case videoBitDepth, doviProfile, videoWidth, videoHeight
+        case videoBitDepth, doviProfile, videoWidth, videoHeight, mediaIndex, partIndex, playbackParts, exactDurationSeconds
+        case showKey
     }
 
     init(from decoder: Decoder) throws {
@@ -132,6 +177,11 @@ extension PlexMediaItem: Codable {
         doviProfile = try c.decodeIfPresent(Int.self, forKey: .doviProfile)
         videoWidth = try c.decodeIfPresent(Int.self, forKey: .videoWidth)
         videoHeight = try c.decodeIfPresent(Int.self, forKey: .videoHeight)
+        mediaIndex = try c.decodeIfPresent(Int.self, forKey: .mediaIndex) ?? 0
+        partIndex = try c.decodeIfPresent(Int.self, forKey: .partIndex) ?? 0
+        playbackParts = try c.decodeIfPresent([PlexPartPlaybackInfo].self, forKey: .playbackParts)
+        exactDurationSeconds = try c.decodeIfPresent(Double.self, forKey: .exactDurationSeconds)
+        showKey = try c.decodeIfPresent(String.self, forKey: .showKey)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -171,5 +221,10 @@ extension PlexMediaItem: Codable {
         try c.encodeIfPresent(doviProfile, forKey: .doviProfile)
         try c.encodeIfPresent(videoWidth, forKey: .videoWidth)
         try c.encodeIfPresent(videoHeight, forKey: .videoHeight)
+        try c.encode(mediaIndex, forKey: .mediaIndex)
+        try c.encode(partIndex, forKey: .partIndex)
+        try c.encodeIfPresent(playbackParts, forKey: .playbackParts)
+        try c.encodeIfPresent(exactDurationSeconds, forKey: .exactDurationSeconds)
+        try c.encodeIfPresent(showKey, forKey: .showKey)
     }
 }

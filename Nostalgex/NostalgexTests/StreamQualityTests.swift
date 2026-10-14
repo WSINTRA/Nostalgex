@@ -46,18 +46,21 @@ final class StreamQualityTests: XCTestCase {
 
     // MARK: - Quality tiers
 
-    /// Auto must reach 4K so users on fast connections aren't capped, relying on
-    /// adaptive HLS rather than a low ceiling to protect slow ones.
-    func testAutoReaches4KAndAdapts() {
+    /// Auto must reach 4K so users on fast connections aren't capped; slow ones are
+    /// protected by the app's own starvation ladder, not by a low ceiling.
+    func testAutoReaches4K() {
         XCTAssertEqual(StreamQuality.auto.width, 3840)
         XCTAssertEqual(StreamQuality.auto.height, 2160)
         XCTAssertEqual(StreamQuality.auto.maxBitrateKbps, 40_000)
-        XCTAssertTrue(StreamQuality.auto.allowsAutoAdjust)
     }
 
-    /// Maximum differs from auto only in refusing to degrade.
-    func testMaximumPinsQuality() {
-        XCTAssertFalse(StreamQuality.maximum.allowsAutoAdjust)
+    /// Plex's adaptive mode (`autoAdjustQuality=1`) is never requested: measured 2026-10-06,
+    /// it turned every both-streams-re-encoded film into 3-second segments that slowed to
+    /// one per 6 seconds after the eighth, and tvOS 26 gave up at 24 seconds (-15628).
+    func testNoQualityEverAsksPlexToAdaptMidStream() {
+        for q in StreamQuality.allCases {
+            XCTAssertFalse(q.allowsAutoAdjust, "\(q) must not request autoAdjustQuality=1")
+        }
         XCTAssertEqual(StreamQuality.maximum.width, StreamQuality.auto.width)
     }
 

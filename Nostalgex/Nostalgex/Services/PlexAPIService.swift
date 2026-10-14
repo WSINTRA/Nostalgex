@@ -7,6 +7,9 @@ struct PlexAPIService: MediaBackend {
     /// images, and lookups can be routed back to the correct server when multiple are
     /// connected. Empty for the demo/no-server case.
     var serverID: String = ""
+    /// Carries playback reports (timeline, scrobble, Continue Watching cleanup). Tests
+    /// replace it with a recorder.
+    var reportTransport: any ReportTransport = URLSessionReportTransport.shared
 
     /// URLSession with timeout configured for Plex API calls
     private static let session: URLSession = {
@@ -429,10 +432,18 @@ struct PlexAPIService: MediaBackend {
             imdbID: show.imdbID,
             librarySource: .tv,
             serverID: serverID.isEmpty ? nil : serverID,
+            additionalPartKeys: {
+                let extra = (media?.Part ?? []).dropFirst().compactMap { $0.key }
+                return extra.isEmpty ? nil : Array(extra)
+            }(),
             videoBitDepth: media?.videoStream?.bitDepth,
             doviProfile: media?.videoStream?.DOVIProfile,
             videoWidth: media?.width,
-            videoHeight: media?.height
+            videoHeight: media?.height,
+            mediaIndex: ep.bestMediaIndex ?? 0,
+            playbackParts: media?.playbackParts,
+            exactDurationSeconds: ep.duration.map { Double($0) / 1000 },
+            showKey: show.ratingKey
         )
     }
 
@@ -448,7 +459,7 @@ struct PlexAPIService: MediaBackend {
         }
     }
 
-    private func parseMovieItem(_ item: PlexRawItem, isMusicSection: Bool) -> PlexMediaItem? {
+    func parseMovieItem(_ item: PlexRawItem, isMusicSection: Bool) -> PlexMediaItem? {
         let durationMin = (item.duration ?? 0) / 60000
         guard durationMin > 0 else { return nil }
         var genres = (item.Genre ?? []).map(\.tag)
@@ -463,11 +474,19 @@ struct PlexAPIService: MediaBackend {
         let isMusicVideo = isMusicSection
             || (durationMin <= 10 && genres.contains { $0.lowercased().contains("music") })
         let media = item.bestMedia
-        let parsed = MusicTitleParser.parse(item.title)
-        let artist = [item.parentTitle, item.grandparentTitle]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first(where: { !$0.isEmpty })
-            ?? parsed.artist
+        // "Artist - Song" parsing is for music videos only. Run on films it turned
+        // "Star Wars: Episode I - The Phantom Menace" into "The Phantom Menace",
+        // "Breaking Dawn - Part 1" into "Part 1" and "Spider-Man" into "Man", which
+        // also hid those titles from title-matched channels and collection checks.
+        let parsed: (artist: String?, song: String) = isMusicVideo
+            ? MusicTitleParser.parse(item.title)
+            : (nil, item.title)
+        let artist = isMusicVideo
+            ? ([item.parentTitle, item.grandparentTitle]
+                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .first(where: { !$0.isEmpty })
+                ?? parsed.artist)
+            : nil
         let displayTitle = parsed.song
         return PlexMediaItem(
             id: Self.compositeID(serverID: serverID, ratingKey: item.ratingKey),
@@ -507,7 +526,10 @@ struct PlexAPIService: MediaBackend {
             videoBitDepth: media?.videoStream?.bitDepth,
             doviProfile: media?.videoStream?.DOVIProfile,
             videoWidth: media?.width,
-            videoHeight: media?.height
+            videoHeight: media?.height,
+            mediaIndex: item.bestMediaIndex ?? 0,
+            playbackParts: media?.playbackParts,
+            exactDurationSeconds: item.duration.map { Double($0) / 1000 }
         )
     }
 
@@ -697,8 +719,8 @@ struct PlexAPIService: MediaBackend {
         let offersHEVC = CodecSupport.offersHEVC(doviProfile: item.doviProfile, deviceCapable: hevcCapable)
         let items: [URLQueryItem] = [
             .init(name: "path",                      value: "/library/metadata/\(item.ratingKey)"),
-            .init(name: "mediaIndex",                value: "0"),
-            .init(name: "partIndex",                 value: "0"),
+            .init(name: "mediaIndex",                value: String(item.mediaIndex)),
+            .init(name: "partIndex",                 value: String(item.partIndex)),
             .init(name: "protocol",                  value: "hls"),
             .init(name: "session",                   value: sessionID),
             .init(name: "offset",                    value: String(offsetSeconds)),
@@ -767,8 +789,56 @@ struct PlexAPIService: MediaBackend {
     func resolveTranscodePlayback(for item: PlexMediaItem, offsetSeconds: Int) async -> (resolution: PlaybackResolution, startsAtOffset: Bool)? {
         let sessionID = UUID().uuidString
         guard let url = transcodeURL(for: item, sessionID: sessionID, offsetSeconds: max(0, offsetSeconds)) else { return nil }
-        await prepareTranscodeSession(startURL: url)
+        let decision = await prepareTranscodeSession(startURL: url)
+        if Self.isDolbyVisionRefusal(decision),
+           let remux = Self.dolbyVisionRemuxURL(from: url) {
+            // The server will not re-encode this file but will copy it into fMP4 for a
+            // client it treats as Generic; see dolbyVisionRemuxURL. Ask once that way.
+            let second = await prepareTranscodeSession(startURL: remux)
+            if second.code.hasPrefix("1") {
+                print("[Plex90] DECISION: Dolby Vision remux accepted for \"\(item.title)\"")
+                return (PlaybackResolution(url: remux, playSessionId: sessionID, isDirectPlay: false), offsetSeconds > 0)
+            }
+            PlaybackDiagnostics.record(outcome: "server refused", title: item.title, detail: "decision \(decision.code): \(decision.text); remux retry \(second.code): \(second.text)")
+        } else if decision.code.hasPrefix("2") {
+            PlaybackDiagnostics.record(outcome: "server refused", title: item.title, detail: "decision \(decision.code): \(decision.text)")
+        }
         return (PlaybackResolution(url: url, playSessionId: sessionID, isDirectPlay: false), offsetSeconds > 0)
+    }
+
+    struct TranscodeDecision: Sendable, Equatable {
+        let code: String
+        let text: String
+        static let unknown = TranscodeDecision(code: "?", text: "")
+    }
+
+    /// Plex's transcoder cannot tone-map Dolby Vision profile 5 (no HDR10 base layer),
+    /// so a decision 2003 naming DoVi means every re-encode request will be refused.
+    static func isDolbyVisionRefusal(_ d: TranscodeDecision) -> Bool {
+        d.code == "2003" && d.text.localizedCaseInsensitiveContains("dovi")
+    }
+
+    /// The same request, resolved against the server's Generic profile with one hls/mp4
+    /// target that admits HEVC.
+    ///
+    /// Measured 2026-10-07 against Chad's server with a 4K DV profile 5 MKV: with
+    /// `X-Plex-Platform=tvOS` the server applies its built-in tvOS profile, picks mpegts
+    /// for HLS, finds "no remuxable profile" for HEVC there and tries to transcode, which
+    /// DV5 cannot survive (2003). Plex's own Apple TV app resolves to the Generic profile
+    /// and gets `container=mp4, video=copy hevc DOVI 5, audio=copy eac3`: an fMP4 HLS
+    /// remux carrying the dvh1 Dolby Vision record and VIDEO-RANGE=PQ, which Apple TV 4K
+    /// decodes natively. Sending Platform=Generic with an hls/mp4 target gets us the same.
+    /// Only used after a DoVi refusal; the everyday request is unchanged.
+    static func dolbyVisionRemuxURL(from startURL: URL) -> URL? {
+        guard var components = URLComponents(url: startURL, resolvingAgainstBaseURL: false) else { return nil }
+        var items = (components.queryItems ?? []).filter { $0.name != "X-Plex-Platform" && $0.name != "X-Plex-Client-Profile-Extra" }
+        let audio = CodecSupport.transcodeAudioCodecs.sorted().joined(separator: ",")
+        let profile = "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mp4&videoCodec=h264,hevc&audioCodec=\(audio))"
+            + "+add-limitation(scope=videoTranscodeTarget&scopeName=hevc&scopeType=videoCodec&context=all&protocol=hls&type=upperBound&name=video.bitDepth&value=10)"
+        items.append(.init(name: "X-Plex-Platform", value: "Generic"))
+        items.append(.init(name: "X-Plex-Client-Profile-Extra", value: profile))
+        components.queryItems = items
+        return components.url
     }
 
     /// The `decision` call Plex's own players make before `start.m3u8`, with the same
@@ -777,8 +847,9 @@ struct PlexAPIService: MediaBackend {
     /// nearly always. Measured against a real server: plain start 400 on three fresh
     /// clients in a row, decision-then-start 200 every time, including right after a stop.
     /// Never throws: a failed decision still falls through to start.m3u8.
-    func prepareTranscodeSession(startURL: URL) async {
-        guard let decisionURL = Self.decisionURL(from: startURL) else { return }
+    @discardableResult
+    func prepareTranscodeSession(startURL: URL) async -> TranscodeDecision {
+        guard let decisionURL = Self.decisionURL(from: startURL) else { return .unknown }
         var request = URLRequest(url: decisionURL)
         request.timeoutInterval = 15
         do {
@@ -788,8 +859,10 @@ struct PlexAPIService: MediaBackend {
             let code = Self.attribute("transcodeDecisionCode", in: body) ?? Self.attribute("generalDecisionCode", in: body) ?? "?"
             let text = Self.attribute("transcodeDecisionText", in: body) ?? Self.attribute("generalDecisionText", in: body) ?? ""
             print("[Plex90] DECISION: HTTP \(status) code=\(code) \(text)")
+            return TranscodeDecision(code: code, text: text)
         } catch {
             print("[Plex90] DECISION: failed (\(error.localizedDescription)), starting anyway")
+            return .unknown
         }
     }
 
@@ -1084,41 +1157,50 @@ struct PlexAPIService: MediaBackend {
 
     // MARK: - Session reporting (Now Playing + Scrobble)
 
-    /// Report current playback position to Plex so Now Playing, On Deck, and watch history stay accurate.
-    func reportTimeline(ratingKey: String, key: String, state: String, timeMs: Int, durationMs: Int, sessionID: String) async {
-        guard var components = URLComponents(string: "\(serverURL)/:/timeline") else { return }
+    /// Builds the Continue Watching cleanup and scrobble requests. Shares this service's
+    /// server, token and transport.
+    var watchStateGuard: PlexWatchStateGuard {
+        PlexWatchStateGuard(serverURL: serverURL, headers: baseHeaders, transport: reportTransport)
+    }
+
+    /// Position-free Now Playing report (from PR #18, w6trp). No `time` or `duration`, so
+    /// Plex lists the session in Now Playing at offset 0 and writes no resume point: the
+    /// item never reaches Continue Watching. `stopped` takes it out of Now Playing. Both
+    /// measured on a real server 2026-10-13. Kept separate from the scrobble so no default
+    /// can add a position to it.
+    func heartbeatRequest(ratingKey: String, state: String, sessionID: String) -> URLRequest? {
+        guard ["playing", "paused", "buffering", "stopped"].contains(state),
+              !ratingKey.isEmpty, ratingKey.allSatisfy(\.isNumber), !sessionID.isEmpty,
+              var components = URLComponents(string: serverURL + "/:/timeline") else { return nil }
         components.queryItems = [
-            .init(name: "ratingKey",                value: ratingKey),
-            .init(name: "key",                      value: key),
-            .init(name: "state",                    value: state),
-            .init(name: "time",                     value: "\(timeMs)"),
-            .init(name: "duration",                 value: "\(durationMs)"),
-            .init(name: "X-Plex-Session-Identifier", value: sessionID),
+            .init(name: "ratingKey", value: ratingKey),
+            .init(name: "key", value: "/library/metadata/\(ratingKey)"),
+            .init(name: "state", value: state)
         ]
-        guard let url = components.url else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "PUT"
-        baseHeaders.forEach { req.setValue($1, forHTTPHeaderField: $0) }
-        _ = try? await Self.session.data(for: req)
+        guard let url = components.url else { return nil }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.timeoutInterval = 10
+        baseHeaders.forEach { request.setValue($1, forHTTPHeaderField: $0) }
+        request.setValue(sessionID, forHTTPHeaderField: "X-Plex-Session-Identifier")
+        return request
+    }
+
+    /// True when Plex answered 2xx. A failure only slows the next pulses (`PulseBackoff`).
+    @discardableResult
+    func reportHeartbeat(ratingKey: String, state: String, sessionID: String) async -> Bool {
+        guard let request = heartbeatRequest(ratingKey: ratingKey, state: state, sessionID: sessionID),
+              let status = await reportTransport.send(request)?.status else { return false }
+        return (200..<300).contains(status)
     }
 
     /// Mark an item as watched in Plex (scrobble). Fires once per session when the hybrid
     /// watch rule passes (entry gate ≤ 15% + active time ≥ 75% of runtime).
     func scrobble(ratingKey: String) async {
-        guard var components = URLComponents(string: "\(serverURL)/:/scrobble") else { return }
-        components.queryItems = [
-            .init(name: "key",        value: "/library/metadata/\(ratingKey)"),
-            .init(name: "identifier", value: "com.plexapp.plugins.library"),
-        ]
-        guard let url = components.url else { return }
-        var req = URLRequest(url: url)
-        baseHeaders.forEach { req.setValue($1, forHTTPHeaderField: $0) }
-        do {
-            let (_, response) = try await Self.session.data(for: req)
-            if let http = response as? HTTPURLResponse {
-                print("[Plex90] Scrobble \(ratingKey): HTTP \(http.statusCode)")
-            }
-        } catch {
+        guard let req = watchStateGuard.scrobbleRequest(ratingKey: ratingKey) else { return }
+        if let status = await reportTransport.send(req)?.status {
+            print("[Plex90] Scrobble \(ratingKey): HTTP \(status)")
+        } else {
             print("[Plex90] Scrobble \(ratingKey) failed silently")
         }
     }
@@ -1271,14 +1353,19 @@ struct PlexRawItem: Decodable {
     /// Highest-quality version: max bitrate, tie-broken on vertical resolution. Falls back to
     /// the first version when none report a bitrate, so libraries without that metadata behave
     /// exactly as before.
-    var bestMedia: PlexMedia? {
+    var bestMediaIndex: Int? {
         guard let medias = Media, !medias.isEmpty else { return nil }
-        guard medias.contains(where: { $0.bitrate != nil }) else { return medias.first }
-        return medias.max { a, b in
-            let ba = a.bitrate ?? Int.min, bb = b.bitrate ?? Int.min
+        guard medias.contains(where: { $0.bitrate != nil }) else { return 0 }
+        return medias.indices.max { a, b in
+            let ba = medias[a].bitrate ?? Int.min, bb = medias[b].bitrate ?? Int.min
             if ba != bb { return ba < bb }
-            return PlexRawItem.resolutionHeight(a.videoResolution) < PlexRawItem.resolutionHeight(b.videoResolution)
+            return PlexRawItem.resolutionHeight(medias[a].videoResolution) < PlexRawItem.resolutionHeight(medias[b].videoResolution)
         }
+    }
+
+    var bestMedia: PlexMedia? {
+        guard let index = bestMediaIndex else { return nil }
+        return Media?[index]
     }
 
     /// Vertical resolution from a "WIDTHxHEIGHT" string (or a label like "4k"); 0 if unknown.
@@ -1303,6 +1390,8 @@ struct PlexRawItem: Decodable {
         let Part: [PlexPart]?
         struct PlexPart: Decodable {
             let key: String?
+            let container: String?
+            let duration: Int?
             let Stream: [PlexStream]?
         }
         struct PlexStream: Decodable {
@@ -1311,8 +1400,20 @@ struct PlexRawItem: Decodable {
             let bitDepth: Int?
             let DOVIProfile: Int?
         }
+        var playbackParts: [PlexPartPlaybackInfo] {
+            (Part ?? []).compactMap { part in
+                guard let key = part.key else { return nil }
+                let video = part.Stream?.first { $0.streamType == 1 }
+                let audio = part.Stream?.first { $0.streamType == 2 }
+                return PlexPartPlaybackInfo(key: key, container: part.container ?? container,
+                    videoCodec: video?.codec ?? videoCodec, audioCodec: audio?.codec ?? audioCodec,
+                    bitDepth: video?.bitDepth, doviProfile: video?.DOVIProfile,
+                    durationSeconds: part.duration.map { Double($0) / 1000 })
+            }
+        }
         var videoStream: PlexStream? {
             Part?.first?.Stream?.first { $0.streamType == 1 }
         }
     }
 }
+

@@ -1,6 +1,8 @@
 import { resolve } from 'path'
 import { readdirSync, mkdirSync, copyFileSync } from 'fs'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
+import { writeBlogToDist } from './scripts/build-blog.mjs'
+import { writeBundlesToDist } from './scripts/build-bundles.mjs'
 
 // The browser-loaded helper scripts (scripts/nostalgex-*.js|.cjs) are referenced
 // by plex-tuner.html with a plain <script src>. Vite can't bundle non-module scripts,
@@ -22,8 +24,56 @@ function copyBrowserScripts() {
   }
 }
 
+// Render content/blog/*.md into static pages at dist/blog/index.html and
+// dist/blog/<slug>.html. See scripts/build-blog.mjs for the full renderer;
+// this plugin just hooks it into the Vite build so the posts ship with the
+// rest of the site.
+function emitBlog() {
+  return {
+    name: 'nostalgex-blog',
+    async closeBundle() {
+      const distDir = resolve(__dirname, 'dist')
+      const posts = await writeBlogToDist(distDir)
+      // eslint-disable-next-line no-console
+      console.log(`blog: emitted ${posts.length} post${posts.length === 1 ? '' : 's'} to dist/blog/`)
+    },
+  }
+}
+
+// Render the channel guide into dist/channels.html and
+// dist/channels/<bundle-id>.html from channels.json plus content/bundles/*.md.
+// Same arrangement as emitBlog above: real files, so no rewrites, and nothing
+// added to rollupOptions.input. See scripts/build-bundles.mjs.
+function emitBundles() {
+  return {
+    name: 'nostalgex-bundles',
+    async closeBundle() {
+      const distDir = resolve(__dirname, 'dist')
+      const summary = await writeBundlesToDist(distDir)
+      // eslint-disable-next-line no-console
+      console.log(
+        `channels: emitted the hub + ${summary.bundles} bundle page${summary.bundles === 1 ? '' : 's'} ` +
+          `(${summary.indexed} indexed, ${summary.held} held) to dist/channels/`,
+      )
+      if (summary.skipped.length) {
+        // eslint-disable-next-line no-console
+        console.warn(`channels: no content file yet for ${summary.skipped.join(', ')}`)
+      }
+    },
+  }
+}
+
+// plex-tuner.html reads VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY and
+// VITE_TMDB_RELAY_URL through Vite's %VITE_...% HTML replacement (see .env.example).
+// The Supabase pair is meant to be set; left unset, the placeholders stay in the page
+// and TMDB enrichment turns itself off. The relay override is for local testing only,
+// so it defaults to empty rather than warning on every build. process.env outranks
+// .env files in Vite, so it is only filled in when no env file sets it.
+const fileEnv = { ...loadEnv('development', __dirname, 'VITE_'), ...loadEnv('production', __dirname, 'VITE_') }
+if (!('VITE_TMDB_RELAY_URL' in fileEnv)) process.env.VITE_TMDB_RELAY_URL = ''
+
 export default defineConfig({
-  plugins: [copyBrowserScripts()],
+  plugins: [copyBrowserScripts(), emitBlog(), emitBundles()],
   build: {
     rollupOptions: {
       input: {

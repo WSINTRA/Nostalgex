@@ -1,14 +1,81 @@
 {
   "entries": [
     {
-      "version": "1.0.23",
-      "date": "SEP 2026",
-      "title": "Rewatchables on every server",
+      "version": "1.0.26",
+      "date": "OCT 2026",
+      "released": false,
+      "title": "Franchises, iCloud sync, tips, and big libraries that stay put",
       "bullets": [
-        "REWATCHABLES MOVIES and REWATCHABLES TV now fill from Jellyfin and Emby play counts, the same way they already did for Plex. A title needs 3 or more plays.",
+        "FRANCHISES finds the film series in your own library, from Star Wars to American Pie, and gives each one its own channel with its own switch in Settings.",
+        "Your Plex collections still become channels, now filed as FRANCHISES or OTHER COLLECTIONS. NOTABLE STARS is gone: actor and director sets move to OTHER COLLECTIONS, and series like John Wick and The Hunger Games are filed as franchises.",
+        "iCloud sync, off until you turn it on in Settings under CONNECTION. Every Apple TV on your Apple ID then shares the same lineup and settings, and a new TV takes the lineup you already have.",
+        "REPORT PLAYBACK shows what you are watching in Now Playing and counts a real watch, and never fills your Continue Watching row. Thanks to @w6trp for the Plex heartbeat it is built on.",
+        "Plex films with more than one version, or split across several files, play the right version and start in the right part. Thanks to @w6trp.",
+        "More channels fill up: titles are matched against TMDB and IMDb data, which fills channels that used to come up empty.",
+        "A tip jar in Settings: Popcorn, TV Dinner and Pizza Night, as many as you like. Nostalgex stays free and every tip unlocks nothing. Paid through your Apple account.",
+        "Very large libraries no longer crash right after the guide appears. The app now saves your library in small pieces in the background, so a library of several hundred thousand titles opens from the saved copy next time instead of scanning from scratch.",
+        "Plex films keep their full titles. A title cleaner meant for music videos was trimming every film with a dash in its name, so Star Wars: Episode I showed as The Phantom Menace and Spider-Man as Man, and those films were missing from channels that look for them by name.",
+        "Jellyfin: MP4 files saved with an .mkv name now play, and the backup stream works on new Jellyfin servers.",
+        "Settings is easier to find your way around: PLAYBACK holds picture, quality, subtitles and audio, and CONNECTION holds your servers and sync. A package shows BUILDING while its channels come in.",
+        "A small banner after a few long watches asks for a star rating. RATE takes you to the App Store and Back brings you right here. It asks once, and never again after you rate.",
+        "Channel line ups are tidier: whole film series no longer land on channels outside their genre, and real musicals stay on MUSICALS.",
+        "Thanks to @w6trp: saved playback diagnostics no longer keep server tokens, and music videos from two servers no longer get crossed."
+      ]
+    },
+    {
+      "version": "1.0.25",
+      "date": "OCT 2026",
+      "released": false,
+      "title": "Find your server without typing, and switching servers works",
+      "bullets": [
+        "Jellyfin and Emby: a FIND SERVERS ON MY NETWORK button on the connect screen. Press it and the app asks your network who is there, lists the servers that answer, and fills in the address when you pick one. It only runs when you press it, stays on your own network, and stores nothing.",
+        "Switching from Plex to Emby or Jellyfin works. If the app was still refreshing your Plex library in the background when you disconnected and signed into the other server, that refresh could finish late and overwrite the new library with the old one, so every channel tried to play Plex titles on Emby and nothing worked until you reinstalled. A scan now knows which sign-in it belongs to and throws its results away if that sign-in has ended.",
+        "If an old library did get mixed in, the app notices on launch, clears it and rescans instead of showing a guide where nothing plays.",
+        "Disconnecting now also clears today's schedules, so the next sign-in starts clean.",
+        "Settings is tidier. Connection sits near the top and now holds the report-playback switch. Subtitles are one setting instead of two switches: press it to go between Off, Foreign audio and Always. The QR codes are gone."
+      ]
+    },
+    {
+      "version": "1.0.24",
+      "date": "OCT 2026",
+      "released": false,
+      "title": "Emby libraries load, and the app tells you when something won't play",
+      "bullets": [
+        "Emby libraries load again. The app was asking Emby for its libraries using Jellyfin's spelling of the address, and Emby answers that with a 404, so the scan failed on the very first request no matter what your libraries were called or how big they were. Every Emby user hit this. Thanks to Jay for the report.",
+        "When a programme won't play, the app now says why instead of quietly jumping to the next one. You get a card on the channel for a few seconds: whether your server refused it, couldn't keep up, couldn't find the file, or whether it's the Apple TV that can't decode it. It's amber when your server is the thing to go and look at, red when it's the file.",
+        "Finding out which of those it is meant asking your server directly, because Apple TV doesn't tell an app the status code behind a failed stream. So on a failure the app makes one small request to the stream that just died and reads the real answer.",
+        "Jellyfin and Emby step the quality down before giving up. If a stream starts falling behind, the app now asks your server for a smaller one and keeps the programme going. Plex has done this for a while; the other two were skipping straight to the next title on a single stall.",
+        "Error messages name the server you actually connected to. Jellyfin and Emby users were being told to go and check Plex settings they don't have.",
+        "The guide's vertical wrap is steadier. Rolling off the bottom of the channel list now comes back to the top reliably at any list length. Up out of channel one still goes to Settings, as before."
+      ]
+    },
+    {
+      "version": "1.0.23",
+      "date": "OCT 2026",
+      "title": "Halloween, Christmas, eleven new channels, and a guide that keeps up",
+      "bullets": [
+        "Channel numbers have changed. Every package is now one unbroken run: NOSTALGEX 1 to 19, PRIME TIME 40 to 54, TIS THE SEASON 130 to 136, SCREAM 137 to 140. Music videos move to 200 and up. Packages used to have channels scattered across the lineup, and this leaves room for each one to grow without landing on another.",
+        "SCREAM arrives for October: FRIGHT NIGHT, SCREAM ADULTS, SCREAM KIDS and a new NOSTALGEX HORROR for 70s, 80s and 90s horror. The guide offers it rather than switching it on, nothing joins your lineup until you say yes, and saying no means it waits until next year. While it runs it sits at the top of the guide, with the kids channel first.",
+        "TIS THE SEASON is ready for December with seven channels. HOLIDAZE for everything, SANTA'S LIST for the kid-safe films, NAUGHTY LIST for the grown-up ones, NOSTALGEX CHRISTMAS for anything before 2000, HALLMARK for the TV movies, and two television channels: CHRISTMAS SPECIALS and KIDS CHRISTMAS TV, which find festive episodes of shows you already have by looking at the episode titles.",
+        "Both seasonal packages can be switched on any month of the year from Settings. The month only decides when the guide offers it and when it jumps to the top.",
+        "Four more channels elsewhere. HISTORY & BIO picks up the biopics and history films that only ever surfaced as new additions. DVD SHELF, Y2K COMEDY and Y2K SITCOMS cover 2000 to 2009, which the retro channels stopped short of. MILLENNIUM CARTOONS is now Y2K TOONS and sits with them on 19.",
+        "FRONT LINE is a war channel again. It was matching on words like battle and soldier without checking the genre, so Harry Potter, Pirates of the Caribbean and The Sound of Music were turning up between the war films.",
+        "HIGH ROTATION was asking for music videos from 1980 to 1999, and most libraries date them from whenever the file was made, so it was always empty. It now takes everything, and Y2K and CURRENT SPIN split the rest by era.",
+        "Music video channels fill in. Genres come from Deezer when the server has none, and the year is read from the filename instead of a server date that is usually just the day the file was added, so Y2K and CURRENT SPIN sort by the right decade.",
+        "Channels built into the app can no longer be replaced by collections found on your server. If you had collections turned on, a channel could be quietly taken over and show something unrelated.",
+        "Changing channels plays what the guide says. Tuning into a channel partway through a programme could start that programme from its first frame, or play the next one from the beginning. Jellyfin servers hit this on nearly every channel, because Jellyfin refuses a start time on a segment request. The app seeks on its own now, the way Jellyfin's own web player does.",
+        "Films where the server re-encodes both the video and the audio no longer lose the picture about 24 seconds in on tvOS 26. The app was asking Plex to adjust quality mid-stream, and that adaptive mode hands back segments slower than real time, which the Apple TV gives up on. Quality stepping is the app's own job now.",
+        "A stream the server cannot keep up with steps down to 1080p and carries on from where it was, instead of freezing on one frame or skipping to the next programme. A 4K file that transcodes slower than real time was doing both.",
+        "Dolby Vision films that Plex refuses to convert now play. When the server turns down the Dolby Vision colour space, the app asks once more for the same remux Plex's own Apple TV app gets.",
+        "The guide scrolls properly. Every channel's schedule was being rebuilt on the interface thread every thirty seconds, which froze scrolling for a moment each time, worst on Apple TV HD. That work now happens out of the way.",
+        "Jellyfin and Emby servers reached by hostname, VPN or Tailscale now connect over http. Only plain LAN addresses worked before, and everything else failed looking like the server was down. Typing just an IP finds port 8096, pasting the address from your browser cleans it up, and a failed connection says why.",
+        "Opening the app goes straight to your guide. If you were already signed in, the connect screen no longer appears first, and short waits show the logo instead of a progress bar with nothing to measure.",
+        "Settings now says how much of your library the app actually loaded, in titles, movies, episodes and shows. If that number looks far too small, that is worth telling us about, and it is a different problem from channels looking empty.",
+        "Settings also shows the last playback failure, under RESCAN LIBRARY. If something will not play, that line and the title count above it are what we need.",
+        "REWATCHABLES MOVIES and REWATCHABLES TV fill from Jellyfin and Emby play counts, the same way they already did for Plex. A title needs 3 or more plays.",
         "Playback reporting works for Jellyfin and Emby too. It is still off until you turn it on in Settings, and a watch here only counts on your own server.",
         "Audio follows the AirPlay speakers you already picked as the Apple TV's output.",
-        "From anywhere in the guide, Play goes full screen on what's already on. Menu jumps back to that channel. Settings is one press up in the package list."
+        "From anywhere in the guide, Play goes full screen on what's already on. Menu jumps back to that channel, and again to leave the app. Settings is one press up in the package list, which is now wider and easier to read."
       ]
     },
     {

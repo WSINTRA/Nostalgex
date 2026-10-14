@@ -1,8 +1,42 @@
 # Nostalgex
 
-Retro cable TV experience powered by your own media server. Nostalgex is a client for **Plex, Jellyfin, and Emby** -- it does not host or supply any media. Channels auto-populate from your library based on configurable rules (genre, studio, watch history, content ratings, etc.) and play on a deterministic daily schedule, so tuning in feels like live TV.
+A free, open source retro TV channel guide for your own Plex, Jellyfin or Emby server.
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Discord](https://img.shields.io/badge/Discord-join%20the%20server-5865F2?logo=discord&logoColor=white)](https://discord.gg/FgnZcr5bDT)
+
+![The Nostalgex channel guide on Apple TV, with CH 12 Action Adventure playing The Empire Strikes Back and a grid of channels and showtimes below](docs/images/nostalgex-guide.png)
+
+Nostalgex turns your library into 131 channels in 14 bundles, with a real channel guide. Channels fill themselves from your library based on rules (genre, studio, watch history, content ratings and more) and play on a fixed daily schedule, so tuning in feels like live TV. It's a client only. It doesn't host or supply any media.
+
+## Get it
+
+- **Apple TV:** [Nostalgex on the App Store](https://apps.apple.com/app/nostalgex/id6762563534). Free, tvOS 18 or later.
+- **Any browser:** [the web tuner](https://www.nostalgex.app/web-tuner). Free, nothing to install.
+- **Website:** [nostalgex.app](https://www.nostalgex.app)
+
+No ads, no account, no in-app purchases.
+
+## Works with
+
+- **Plex**
+- **Jellyfin**
+- **Emby** (on the web tuner, Emby connects through the Jellyfin option)
+
+The Apple TV app can connect to more than one server at a time.
 
 **Source of truth:** this repository (`chadMueller/Nostalgex`) contains the **public site**, **web tuner**, and **tvOS app** together. Read **[docs/REPOSITORY-LAYOUT.md](docs/REPOSITORY-LAYOUT.md)** for boundaries, deploy split, and how to avoid duplicating Nostalgex inside unrelated monorepos.
+
+## Maintained
+
+Nostalgex has been on the App Store since April 19, 2026, and gets updates every month. I'm one person, and I read every issue.
+
+Recent evidence, so you don't have to take my word for it:
+
+- **Releases:** 1.0.23 shipped to the App Store this week, and 1.0.24 is in the repo now. Full history is in the [App Store version history](https://apps.apple.com/app/nostalgex/id6762563534) and [`content/changelog.json`](content/changelog.json).
+- **Dev log:** [docs/DEVLOG.md](docs/DEVLOG.md) explains why things changed and what's still half done.
+- **Issues and outside PRs:** on Oct 8, 2026 I merged [#5](https://github.com/chadMueller/Nostalgex/pull/5) and [#7](https://github.com/chadMueller/Nostalgex/pull/7) from [@Gorbataras](https://github.com/Gorbataras) (Emby seek fix, and no more sound over a black picture on Jellyfin and Emby), and closed [#3](https://github.com/chadMueller/Nostalgex/issues/3), the wrong-start-time bug. #7 went from opened to merged in about two hours.
+- **Tests** run in CI on every push to `main` and on every pull request.
 
 ## Apps
 
@@ -33,7 +67,7 @@ Marketing page and the path into the tuner and the App Store. Served at `/` on V
 ## Shared Config
 
 ### `channels.json`
-Both apps read the same channel configuration (113 channels across 13 bundles). The tvOS app bundles a copy and can also fetch an updated one at runtime.
+Both apps read the same channel configuration (131 channels in 14 bundles). The tvOS app bundles a copy and can also fetch an updated one at runtime.
 
 See `CHANNELS.md` for a human-readable breakdown of each channel's rules and behavior.
 
@@ -80,7 +114,7 @@ Two optional extras, both off unless you turn them on:
 
 | What | How to enable | What it adds |
 |---|---|---|
-| TMDB / OMDb / Supabase metadata | Set `TMDB_API_KEY`, `OMDB_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` as environment variables in the Xcode scheme, or as `TMDBApiKey`, `OMDBApiKey`, `SupabaseURL`, `SupabaseAnonKey` in `Nostalgex/Info.plist`. Read in `Services/TMDBConfig.swift`. | Keyword and collection data for finer channel rules. Supabase is a cache keyed on TMDB ids; you can point it at your own project. |
+| TMDB / OMDb / Supabase metadata | Copy `Nostalgex/Secrets.example.xcconfig` to `Nostalgex/Secrets.xcconfig` and fill in `SUPABASE_URL` and `SUPABASE_ANON_KEY` (see `docs/REPOSITORY-LAYOUT.md`). TMDB needs no key in the app: it goes through the site's proxy, `api/tmdb.js`. For a direct TMDB or OMDb connection set `TMDB_API_KEY` or `OMDB_API_KEY` as environment variables in the Xcode scheme. Read in `Services/TMDBConfig.swift`. | Keyword and collection data for finer channel rules. Supabase is a cache keyed on TMDB ids; you can point it at your own project. |
 | TelemetryDeck | `TelemetryDeckAppID` in `Nostalgex/Info.plist`. Delete the key to turn it off. | Anonymous launch and playback counts. The App Store build has it on; your own build does not have to. |
 
 Never commit real keys. `.gitignore` already covers `.env`, `Secrets.plist` and `*.xcconfig` secrets.
@@ -92,10 +126,24 @@ The whole point of running your own server is knowing where your data goes, so h
 - **Your media server.** Direct from the Apple TV to your Plex, Jellyfin or Emby. Sign-in goes straight to the server. Nothing of mine sits in between, and no credentials are ever sent anywhere else.
 - **plex.tv** (Plex only). The PIN sign-in flow and server discovery. This is how every Plex client works.
 - **MusicBrainz.** Public metadata for the music video channels. No key, no account.
-- **TMDB, OMDb, Supabase.** Only if you build with keys, see above.
+- **TMDB, via nostalgex.app.** When Supabase values are present, the TMDB ids of titles in your library go to the site's proxy (`api/tmdb.js`, in this repo), which forwards them to TMDB with the site's key, keeps no log, and caches the answer at the edge. OMDb only if you build with a key. Off in your own build unless you add the Supabase values, see above.
+- **Supabase.** The shared enrichment cache, keyed on TMDB id. Same condition as above.
 - **TelemetryDeck.** Anonymous usage signals in the App Store build. No identifiers, no library contents, no server addresses. Off in your own build unless you keep the key.
 
-The website and web tuner at nostalgex.app load two page analytics scripts (Data Haus and statsngraphs). The privacy policy at `/privacy` covers all of this in plain language.
+The website and web tuner at nostalgex.app load one page analytics script (statsngraphs). The privacy policy at `/privacy` covers all of this in plain language.
+
+## Community and support
+
+- **Discord:** [join the server](https://discord.gg/FgnZcr5bDT) to ask questions, share your lineup, or hear about updates first.
+- **Bugs and feature requests:** [GitHub Issues](https://github.com/chadMueller/Nostalgex/issues). Include your server (Plex, Jellyfin or Emby), its version, and your Apple TV model.
+- **Email:** support@nostalgex.app
+- **Help pages:** [support](https://www.nostalgex.app/support) and [docs/FAQ.md](docs/FAQ.md).
+
+## Support the project
+
+Nostalgex is free and it's staying free. If it gives you a good Friday night, you can [buy me a coffee](https://buymeacoffee.com/chadmueller). It covers the Apple developer fee and keeps updates coming. The Sponsor button at the top of this repo goes to the same place.
+
+Helping costs nothing too: star the repo, rate the app on the App Store, or tell me about a channel that's always empty.
 
 ## Contributing
 
@@ -104,6 +152,7 @@ Issues and pull requests are welcome. A few things that make them land faster:
 - The easiest first PR is a rule change in `channels.json` (a title on the wrong channel, a channel that is always empty). `CHANNELS.md` explains every rule field.
 - Keep PRs small and about one thing.
 - Web changes: `npm test` must pass. tvOS changes: build for a real Apple TV, not just the simulator, because the simulator keychain and storage behave differently.
+- Not sure where to start? Ask in [Discord](https://discord.gg/FgnZcr5bDT) or open an issue first.
 - One person maintains this in their spare time. You will get a reply, but not always the same day.
 
 ## License

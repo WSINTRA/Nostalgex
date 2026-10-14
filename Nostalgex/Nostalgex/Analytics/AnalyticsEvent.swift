@@ -205,6 +205,12 @@ enum AnalyticsEvent: Sendable {
     /// The user tapped the "Rate Nostalgex" row (opens the App Store product page).
     case rateTapped
 
+    /// The rating nudge banner appeared on the guide (at most once per app version).
+    case ratingNudgeShown
+
+    /// The viewer chose RATE on the rating nudge banner (opens the product page).
+    case ratingNudgeTapped
+
     // MARK: Update emails
 
     /// The update-emails QR in Settings was on screen. Once per Settings visit, never
@@ -252,6 +258,8 @@ enum AnalyticsEvent: Sendable {
 
         case .settingChanged: return "setting.changed"
         case .rateTapped: return "rate.tapped"
+        case .ratingNudgeShown: return "rating_nudge.shown"
+        case .ratingNudgeTapped: return "rating_nudge.tapped"
         case .signupQRShown: return "signup.qr.shown"
         case .sessionEnded: return "app.session.ended"
         }
@@ -369,7 +377,7 @@ enum AnalyticsEvent: Sendable {
         case .settingChanged(let key, let value):
             return ["key": key, "value": value]
 
-        case .rateTapped:
+        case .rateTapped, .ratingNudgeShown, .ratingNudgeTapped:
             return [:]
 
         case .signupQRShown(let backend):

@@ -1,25 +1,41 @@
 {
   "name": "nostalgex",
   "version": "1.0.0",
-  "description": "Nostalgex \u2014 marketing site, web tuner, and shared channel-rule/schedule engine for the Plex/Jellyfin/Emby retro TV guide",
+  "description": "Nostalgex marketing site, web tuner, and shared channel rule and schedule engine for the Plex, Jellyfin and Emby retro TV guide",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "changelog:render": "node scripts/render-changelog.mjs",
+    "blog:render": "node scripts/build-blog.mjs",
+    "bundles:render": "node scripts/build-bundles.mjs",
+    "bundles:render:strict": "node scripts/build-bundles.mjs --strict",
     "channels:doc": "node scripts/render-channels-doc.mjs",
     "channels:doc:check": "node scripts/render-channels-doc.mjs --check",
     "test:filter": "node scripts/nostalgex-filter-smoke.mjs",
     "test:schedule": "node scripts/nostalgex-schedule-order-smoke.mjs",
     "test:subscribe": "node scripts/subscribe-smoke.mjs",
-    "test": "npm run test:filter && npm run test:schedule && npm run test:subscribe && npm run channels:doc:check",
-    "build": "npm run changelog:render && vite build",
+    "test:tmdb": "node scripts/tmdb-proxy-smoke.mjs",
+    "test:enrichment": "node scripts/nostalgex-enrichment-smoke.mjs",
+    "test:collections": "node scripts/nostalgex-collections-smoke.mjs",
+    "test:tuner-gate": "node scripts/channel-tuner-gate-smoke.mjs",
+    "test:web-player": "node scripts/web-tuner-player-smoke.mjs",
+    "test": "npm run test:filter && npm run test:schedule && npm run test:franchises && npm run test:watch-state && npm run test:jellyfin-urls && npm run test:subscribe && npm run test:tmdb && npm run test:enrichment && npm run test:collections && npm run test:tuner-gate && npm run test:web-player && npm run channels:doc:check && npm run changelog:check && npm run bundles:render:strict",
+    "build": "npm run changelog:render && npm run blog:render && npm run bundles:render && vite build",
     "preview": "vite preview",
     "snapshot": "node --env-file-if-exists=.env scripts/devtools/build-snapshot.mjs",
     "devtools": "node --env-file-if-exists=.env scripts/devtools/server.mjs",
-    "devtools:full": "npm run snapshot && npm run devtools"
+    "devtools:full": "npm run snapshot && npm run devtools",
+    "changelog:discord": "node scripts/post-changelog-discord.mjs",
+    "changelog:check": "node scripts/changelog-check.mjs",
+    "test:franchises": "node scripts/nostalgex-franchise-smoke.mjs",
+    "test:watch-state": "node scripts/nostalgex-watch-state-smoke.mjs",
+    "test:jellyfin-urls": "node scripts/nostalgex-jellyfin-urls-smoke.mjs",
+    "media:measure": "node scripts/measure-media.mjs"
   },
   "devDependencies": {
+    "gray-matter": "^4.0.3",
+    "marked": "^18.1.0",
     "vite": "^7.1.0"
   }
 }

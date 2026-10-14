@@ -211,8 +211,19 @@
       } else {
         subEl.style.display = '';
         const caption = progressCaption();
-        subEl.textContent = (state.detail || phaseHint(state.phase)).toUpperCase();
-        if (caption && (state.phase === 'scanningLibrary' || state.phase === 'enrichingMusic')) {
+        // Several phases fold the detail into the headline (SCANNING · TV SHOWS
+        // · 4362 EPS). Repeating it underneath read as a stutter on a phone, so
+        // the second line falls back to what the phase is actually doing.
+        const headlineText = headline(state.phase, state.detail);
+        const detail = state.detail || '';
+        subEl.textContent = (detail && !headlineText.toUpperCase().includes(detail.toUpperCase())
+          ? detail
+          : phaseHint(state.phase)).toUpperCase();
+        // The caption belongs to the progress bar. Printing it here as well put
+        // the same "SECTION 2 OF 4" line on screen twice, once above the rail
+        // and once below it. Only fall back to it when there is no bar.
+        if (caption && progressFraction() == null
+            && (state.phase === 'scanningLibrary' || state.phase === 'enrichingMusic')) {
           subEl.textContent = caption.toUpperCase();
         }
       }

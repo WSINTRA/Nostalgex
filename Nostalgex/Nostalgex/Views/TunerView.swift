@@ -80,8 +80,21 @@ struct TunerView: View {
                     onOpenSettings: { navigationPath.append(AppDestination.settings) }
                 )
                 .frame(maxHeight: .infinity)
+
+                // Rating nudge: below the guide rather than over it, so it never
+                // covers a channel row. The guide gives up the height while it shows.
+                if appState.isRatingNudgeVisible {
+                    RatingNudgeBanner()
+                        .padding(.horizontal, 60)
+                        .padding(.top, 16)
+                        .padding(.bottom, 40)
+                        .frame(maxWidth: .infinity)
+                        .background(Color(red: 0.05, green: 0.05, blue: 0.12))
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
         }
+        .animation(.easeInOut(duration: 0.25), value: appState.isRatingNudgeVisible)
         .background(Color.black)
         .ignoresSafeArea()
         .toolbar(.hidden, for: .navigationBar)
@@ -105,6 +118,13 @@ struct TunerView: View {
             // Rebuild immediately on return so the guide header + grid window stay aligned.
             if !isFullScreen {
                 buildAllSchedules()
+                // The rating nudge's only trigger. Waits until the guide has re-anchored
+                // focus on the live row (0.3s in ChannelGuideView), so the banner takes
+                // focus from a settled guide and hands it back to the same row.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    guard !appState.isFullScreen else { return }
+                    appState.ratingNudgeGuideDidReturn()
+                }
             }
         }
         .onChange(of: appState.currentItem) { _, _ in

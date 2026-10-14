@@ -3,26 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nostalgex for Apple TV - Channels for Plex, Jellyfin &amp; Emby</title>
-<meta name="description" content="Nostalgex is now on Apple TV. A native tvOS app that turns your Plex, Jellyfin, or Emby library into over a hundred retro channels with a real channel guide. Free.">
+<title>Nostalgex for Apple TV: Live Channels for Plex, Jellyfin, Emby</title>
+<meta name="description" content="Turn your Plex, Jellyfin or Emby library into 131 live channels with a retro TV guide. Free and open source on Apple TV, plus a free web tuner.">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://www.nostalgex.app/">
-<link rel="icon" type="image/png" href="./logo/favicon.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/logo/favicon-48.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
 <!-- Open Graph -->
-<meta property="og:title" content="Nostalgex for Apple TV - Channels for Plex, Jellyfin &amp; Emby">
-<meta property="og:description" content="A native tvOS app that turns your Plex, Jellyfin, or Emby library into over a hundred retro channels with a real channel guide. Free on the big screen.">
+<meta property="og:title" content="Nostalgex for Apple TV: Live Channels for Plex, Jellyfin, Emby">
+<meta property="og:description" content="Turn your Plex, Jellyfin or Emby library into 131 live channels with a retro TV guide. Free and open source on Apple TV, plus a free web tuner.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.nostalgex.app/">
 <meta property="og:site_name" content="Nostalgex">
-<meta property="og:image" content="https://www.nostalgex.app/og-image.png">
-<meta property="og:image:alt" content="Nostalgex retro TV logo">
+<meta property="og:image" content="https://www.nostalgex.app/og-image-1200.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Nostalgex channel guide: a grid of live channels built from your own library">
 
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Nostalgex for Apple TV - Channels for Plex, Jellyfin &amp; Emby">
-<meta name="twitter:description" content="A native tvOS app that turns your Plex, Jellyfin, or Emby library into over a hundred retro channels with a real channel guide. Free.">
-<meta name="twitter:image" content="https://www.nostalgex.app/og-image.png">
+<meta name="twitter:title" content="Nostalgex for Apple TV: Live Channels for Plex, Jellyfin, Emby">
+<meta name="twitter:description" content="Turn your Plex, Jellyfin or Emby library into 131 live channels with a retro TV guide. Free and open source on Apple TV, plus a free web tuner.">
+<meta name="twitter:image" content="https://www.nostalgex.app/og-image-1200.png">
 
 <script>
   /* Theme boot — runs before first paint so there's no flash on reload.
@@ -43,31 +46,124 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./styles.css">
-<script defer src="https://data-haus.vercel.app/track.js" data-site="f5b3399a2c57176a"></script>
+<link rel="preload" as="image" href="/screens/guide-hero-1280.webp" fetchpriority="high">
 <script defer data-site="nostalgex" src="https://statsngraphs.lol/s.js"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Nostalgex for Apple TV",
-  "url": "https://www.nostalgex.app/",
-  "applicationCategory": "MultimediaApplication",
-  "applicationSubCategory": "Plex, Jellyfin and Emby channel guide",
-  "operatingSystem": "tvOS 18.0 or later",
-  "description": "A native tvOS app that turns your Plex, Jellyfin, or Emby library into over a hundred retro channels with a real channel guide and a fresh daily schedule. Free, and it works with whichever of the three servers you already run.",
-  "image": "https://www.nostalgex.app/og-image.png",
-  "downloadUrl": "https://apps.apple.com/app/nostalgex/id6762563534",
-  "installUrl": "https://apps.apple.com/app/nostalgex/id6762563534",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "Muell Haus Inc.",
-    "url": "https://www.muellhaus.com/"
-  }
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.nostalgex.app/#org",
+      "name": "Muell Haus Inc.",
+      "url": "https://www.muellhaus.com/",
+      "logo": "https://www.nostalgex.app/logo/nostalgex-512.png"
+    },
+    {
+      "@type": "Person",
+      "@id": "https://www.nostalgex.app/#chad",
+      "name": "Chad Mueller",
+      "url": "https://github.com/chadMueller",
+      "worksFor": {
+        "@id": "https://www.nostalgex.app/#org"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.nostalgex.app/#website",
+      "name": "Nostalgex",
+      "url": "https://www.nostalgex.app/",
+      "publisher": {
+        "@id": "https://www.nostalgex.app/#org"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://www.nostalgex.app/#app",
+      "name": "Nostalgex",
+      "url": "https://www.nostalgex.app/",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "tvOS 18.0 or later",
+      "description": "A free, open source Apple TV app that turns your Plex, Jellyfin or Emby library into 131 live channels in 14 bundles, with a retro TV guide.",
+      "image": "https://www.nostalgex.app/og-image-1200.png",
+      "downloadUrl": "https://apps.apple.com/app/nostalgex/id6762563534",
+      "installUrl": "https://apps.apple.com/app/nostalgex/id6762563534",
+      "isAccessibleForFree": true,
+      "license": "https://opensource.org/licenses/MIT",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@id": "https://www.nostalgex.app/#chad"
+      },
+      "publisher": {
+        "@id": "https://www.nostalgex.app/#org"
+      },
+      "sameAs": [
+        "https://github.com/chadMueller/Nostalgex"
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://www.nostalgex.app/#webpage",
+      "url": "https://www.nostalgex.app/",
+      "name": "Nostalgex for Apple TV: Live Channels for Plex, Jellyfin, Emby",
+      "isPartOf": {
+        "@id": "https://www.nostalgex.app/#website"
+      },
+      "about": {
+        "@id": "https://www.nostalgex.app/#app"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://www.nostalgex.app/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Do I need a media server to use Nostalgex?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Nostalgex is a front end for a library you already have on Plex, Jellyfin, or Emby. If you run one of those, you're two minutes from channel surfing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I pick what plays on each channel?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No, and that's on purpose. Nostalgex reads your library and builds the channels and schedules itself. The surprise of \"oh, this is on\" is the product."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the web tuner really free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Open it in a browser, connect your server, and watch. It needs a server reachable over HTTPS, so a plain LAN setup is an Apple TV app job. That is where the full living-room experience lives anyway."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does my data go through Nostalgex servers?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Playback and sign-in happen directly between your device and your media server. We never see your credentials or your library."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Nostalgex open source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. The Apple TV app, the web tuner, this site and the channel rules are all on GitHub under the MIT license. It's the same code that ships to the App Store. Found a bug or a file that won't play? Open an issue there. Want your own channel lineup? Fork it."
+          }
+        }
+      ]
+    }
+  ]
 }
 </script>
 </head>
@@ -75,20 +171,38 @@
 
   <header class="nav" id="nav">
     <div class="nav-inner">
-      <a class="brand" href="#top" aria-label="Nostalgex home">
+      <a class="brand" href="#top" aria-label="Nostalgex, home">
         <span class="brand-word" role="img" aria-label="Nostalgex">N<svg class="brand-o" viewBox="0 0 126 111" aria-hidden="true"><defs><linearGradient id="brandSun" x1="0" y1="0" x2="1" y2="0.35"><stop offset="0.05" stop-color="#f838ac"/><stop offset="0.5" stop-color="#ff8a3d"/><stop offset="0.95" stop-color="#ffd91c"/></linearGradient></defs><rect x="6" y="6" width="114" height="99" rx="30" fill="url(#brandSun)" stroke="currentColor" stroke-width="11"/><path d="M12 43 H114" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.55"/><path d="M12 70 H114" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.55"/></svg>STALGEX</span>
       </a>
       <nav class="nav-links" aria-label="Main">
         <a href="#how">How it works</a>
         <a href="#guide">The guide</a>
         <a href="#lineup">Lineup</a>
-        <a href="#faq">FAQ</a>
-        <a href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener">GitHub</a>
         <button class="nav-link-btn" type="button" data-changelog-open>What's new</button>
       </nav>
       <div class="nav-actions">
-        <a class="btn btn-outline btn-sm" href="/web-tuner">Web app</a>
-        <a class="btn btn-ink btn-sm" href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener">Get the tvOS app</a>
+        <a class="btn btn-outline btn-sm btn-icon" href="/web-tuner" aria-label="Web app" title="Web app">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <span class="btn-icon-text">Web app</span>
+        </a>
+        <a class="btn btn-ink btn-sm btn-icon" href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener" aria-label="Get the tvOS app" title="Get the tvOS app">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M17.05 12.54c-.03-2.89 2.36-4.28 2.47-4.35-1.35-1.97-3.44-2.24-4.18-2.27-1.78-.18-3.47 1.05-4.37 1.05-.9 0-2.29-1.02-3.77-.99-1.94.03-3.73 1.13-4.72 2.86-2.02 3.5-.52 8.67 1.45 11.51.96 1.39 2.1 2.95 3.6 2.9 1.45-.06 1.99-.93 3.74-.93s2.24.93 3.77.9c1.56-.03 2.54-1.41 3.49-2.81 1.1-1.61 1.55-3.17 1.58-3.25-.04-.02-3.03-1.16-3.06-4.62zM14.16 4.06c.8-.97 1.34-2.31 1.19-3.65-1.15.05-2.55.77-3.37 1.73-.74.86-1.39 2.23-1.22 3.54 1.29.1 2.6-.65 3.4-1.62z"/></svg>
+          <span class="btn-icon-text">Get the tvOS app</span>
+        </a>
+        <div class="nav-social" aria-label="Nostalgex elsewhere">
+          <a class="social-icon" href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+          <a class="social-icon" href="https://discord.gg/FgnZcr5bDT" target="_blank" rel="noopener" aria-label="Discord" title="Discord">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.07.07 0 0 0-.075.035c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.035A19.736 19.736 0 0 0 3.68 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127c-.598.35-1.22.645-1.873.893a.076.076 0 0 0-.04.106c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.673-3.549-13.662a.06.06 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.955 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg>
+          </a>
+          <a class="social-icon" href="https://instagram.com/nostalgex_" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="0.9" fill="currentColor" stroke="none"/></svg>
+          </a>
+          <a class="social-icon" href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener" aria-label="Buy me a coffee" title="Buy me a coffee">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h12v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z"/><path d="M16 9h2a2 2 0 0 1 0 4h-2"/><path d="M7 3v2M11 3v2"/></svg>
+          </a>
+        </div>
         <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="true" aria-label="Switch to day mode" title="Switch to day mode">
           <svg class="tt-icon tt-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <circle cx="12" cy="12" r="4.2"/>
@@ -98,8 +212,34 @@
             <path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.3 8.3 0 1 0 10.5 10.5z"/>
           </svg>
         </button>
+        <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">
+          <svg class="nt-icon nt-burger" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          <svg class="nt-icon nt-close" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+        </button>
       </div>
     </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <nav class="mobile-menu-links" aria-label="Mobile">
+      <a href="#how">How it works</a>
+      <a href="#guide">The guide</a>
+      <a href="#lineup">Lineup</a>
+      <button type="button" data-changelog-open>What's new</button>
+    </nav>
+    <div class="mobile-menu-social" aria-label="Nostalgex elsewhere">
+    <a class="social-icon" href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+    <a class="social-icon" href="https://discord.gg/FgnZcr5bDT" target="_blank" rel="noopener" aria-label="Discord" title="Discord">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.07.07 0 0 0-.075.035c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.035A19.736 19.736 0 0 0 3.68 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127c-.598.35-1.22.645-1.873.893a.076.076 0 0 0-.04.106c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.673-3.549-13.662a.06.06 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.955 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg>
+    </a>
+    <a class="social-icon" href="https://instagram.com/nostalgex_" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="0.9" fill="currentColor" stroke="none"/></svg>
+    </a>
+    <a class="social-icon" href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener" aria-label="Buy me a coffee" title="Buy me a coffee">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h12v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z"/><path d="M16 9h2a2 2 0 0 1 0 4h-2"/><path d="M7 3v2M11 3v2"/></svg>
+    </a>
+    </div>
+  </div>
   </header>
 
   <main id="top">
@@ -107,7 +247,7 @@
     <!-- ============ HERO ============ -->
     <section class="hero">
       <div class="hero-grid">
-        <div class="hero-copy reveal">
+        <div class="hero-copy">
           <h1>
             <span class="h1-line">Your library.</span>
             <span class="h1-line">Now it's
@@ -118,7 +258,7 @@
               </span>
             </span>
           </h1>
-          <p class="hero-sub">Nostalgex turns your Plex, Jellyfin, or Emby collection into live TV channels with a real channel guide. Flip around. Land on something. Watch it like it's Friday night in 1996.</p>
+          <p class="hero-sub">Nostalgex is a free, open source Apple TV app that turns your Plex, Jellyfin or Emby library into 131 live channels in 14 bundles, with a retro TV guide. Flip around, land on something, and watch it like it's Friday night in 1996.</p>
           <div class="cta-block">
             <svg class="doodle doodle-arrow" viewBox="0 0 120 70" aria-hidden="true">
               <path d="M112 8 C86 34 58 46 18 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
@@ -132,13 +272,16 @@
               <a class="btn btn-paper btn-lg" href="/web-tuner">Try the web tuner, free</a>
             </div>
           </div>
-          <p class="hero-note">Plex, Jellyfin, and Emby. All three, right on Apple TV. Free and <a href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener">open source</a>.</p>
+          <p class="hero-note"><a href="/plex">Plex</a>, <a href="/jellyfin">Jellyfin</a>, and <a href="/emby">Emby</a>. All three, right on Apple TV. Free and <a href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener">open source</a>.</p>
         </div>
 
-        <div class="hero-shot reveal delay-1">
+        <div class="hero-shot">
           <figure class="shot shot-tilt-r">
-            <span class="sticker sticker-ch" aria-hidden="true">CH 03</span>
-            <img src="/screens/guide-hero.webp" alt="The Nostalgex channel guide on Apple TV: Black Sheep airing on channel 3, with a full lineup of channels below" width="3840" height="2160">
+            <video class="hero-video" muted loop playsinline disablepictureinpicture disableremoteplayback preload="none" data-autoplay poster="/screens/guide-hero-1280.webp" width="1920" height="1080" aria-label="The Nostalgex channel guide on Apple TV: Black Sheep airing on channel 3, with a full lineup of channels below">
+              <source src="/screens/nostalgex-hero-1600.webm" type="video/webm" media="(min-width: 1024px)">
+              <source src="/screens/nostalgex-hero-1280.mp4" type="video/mp4" media="(min-width: 1024px)">
+              <source src="/screens/nostalgex-hero-480p.mp4" type="video/mp4">
+            </video>
           </figure>
         </div>
       </div>
@@ -185,7 +328,7 @@
             </ul>
           </div>
           <figure class="shot shot-flat reveal delay-1">
-            <img src="/screens/lineup.webp" alt="The Nostalgex guide grid: The Brave Little Toaster airing on Action Adventure, with Retro Toons, Teen Movies, and Family Hour in the lineup" width="3840" height="2160" loading="lazy">
+            <img src="/screens/lineup-1920.webp" srcset="/screens/lineup-1280.webp 1280w, /screens/lineup-1920.webp 1920w, /screens/lineup.webp 3840w" sizes="(min-width: 1100px) 640px, 92vw" alt="The Nostalgex guide grid: The Brave Little Toaster airing on Action Adventure, with Retro Toons, Teen Movies, and Family Hour in the lineup" width="3840" height="2160" loading="lazy" decoding="async">
           </figure>
         </div>
       </div>
@@ -220,19 +363,19 @@
     <section class="section section-lineup" id="lineup">
       <div class="container">
         <div class="section-head reveal">
-          <h2>The full lineup. All <span class="underline-pink"><span data-lineup-bundles>13</span> bundles</span>.</h2>
-          <p class="lineup-sub">Over a hundred channels, sorted into bundles like the back of a cable bill. Every one builds itself from your library.</p>
+          <h2>The full lineup. All <span class="underline-pink"><span data-lineup-bundles>14</span> bundles</span>.</h2>
+          <p class="lineup-sub">131 channels, sorted into bundles like the back of a cable bill. Every one builds itself from your library.</p>
         </div>
         <div class="lineup-card reveal">
           <div class="lineup-card-head">
             <span>Nostalgex channel lineup</span>
-            <span><span data-lineup-channels>121</span> channels</span>
+            <span><span data-lineup-channels>131</span> channels</span>
           </div>
     <!-- LINEUP:START (auto-generated from channels.json — run scripts/render-lineup.mjs) -->
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">NOSTALGEX</span>
-        <span class="lineup__group-count">18 CHANNELS</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/nostalgex">NOSTALGEX</a>
+        <span class="lineup__group-count">19 CHANNELS</span>
       </div>
       <div class="lineup__grid">
         <div class="lineup__item" style="border-color:#FFE500;"><span class="lineup__num" style="color:#FFE500;">1</span><span class="lineup__name">REWATCHABLES MOVIES</span></div>
@@ -251,26 +394,15 @@
         <div class="lineup__item" style="border-color:#F39C12;"><span class="lineup__num" style="color:#F39C12;">14</span><span class="lineup__name">BUDDIES</span></div>
         <div class="lineup__item" style="border-color:#00BFFF;"><span class="lineup__num" style="color:#00BFFF;">15</span><span class="lineup__name">CARTOON NETWORK</span></div>
         <div class="lineup__item" style="border-color:#C0392B;"><span class="lineup__num" style="color:#C0392B;">16</span><span class="lineup__name">DVD SHELF</span></div>
-        <div class="lineup__item" style="border-color:#E67E22;"><span class="lineup__num" style="color:#E67E22;">17</span><span class="lineup__name">MILLENNIAL COMEDY</span></div>
-        <div class="lineup__item" style="border-color:#F1C40F;"><span class="lineup__num" style="color:#F1C40F;">18</span><span class="lineup__name">MILLENNIAL SITCOMS</span></div>
+        <div class="lineup__item" style="border-color:#E67E22;"><span class="lineup__num" style="color:#E67E22;">17</span><span class="lineup__name">Y2K COMEDY</span></div>
+        <div class="lineup__item" style="border-color:#F1C40F;"><span class="lineup__num" style="color:#F1C40F;">18</span><span class="lineup__name">Y2K SITCOMS</span></div>
+        <div class="lineup__item" style="border-color:#1ABC9C;"><span class="lineup__num" style="color:#1ABC9C;">19</span><span class="lineup__name">Y2K TOONS</span></div>
       </div>
     </div>
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">SCREAM</span>
-        <span class="lineup__group-count">4 CHANNELS</span>
-      </div>
-      <div class="lineup__grid">
-        <div class="lineup__item" style="border-color:#8E44AD;"><span class="lineup__num" style="color:#8E44AD;">19</span><span class="lineup__name">NOSTALGEX HORROR</span></div>
-        <div class="lineup__item" style="border-color:#8B0000;"><span class="lineup__num" style="color:#8B0000;">77</span><span class="lineup__name">FRIGHT NIGHT</span></div>
-        <div class="lineup__item" style="border-color:#FF8C00;"><span class="lineup__num" style="color:#FF8C00;">131</span><span class="lineup__name">SCREAM KIDS</span></div>
-        <div class="lineup__item" style="border-color:#8B0000;"><span class="lineup__num" style="color:#8B0000;">132</span><span class="lineup__name">SCREAM ADULTS</span></div>
-      </div>
-    </div>
-    <div class="lineup__group fade-in">
-      <div class="lineup__group-head">
-        <span class="lineup__group-name">KIDZ ZONE</span>
-        <span class="lineup__group-count">16 CHANNELS</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/kids">KIDZ ZONE</a>
+        <span class="lineup__group-count">15 CHANNELS</span>
       </div>
       <div class="lineup__grid">
         <div class="lineup__item" style="border-color:#00C4FF;"><span class="lineup__num" style="color:#00C4FF;">20</span><span class="lineup__name">FAMILY HOUR</span></div>
@@ -286,14 +418,13 @@
         <div class="lineup__item" style="border-color:#E74C8B;"><span class="lineup__num" style="color:#E74C8B;">30</span><span class="lineup__name">TEEN DRAMA</span></div>
         <div class="lineup__item" style="border-color:#FF7043;"><span class="lineup__num" style="color:#FF7043;">31</span><span class="lineup__name">FAMILY TV</span></div>
         <div class="lineup__item" style="border-color:#E50914;"><span class="lineup__num" style="color:#E50914;">32</span><span class="lineup__name">NETFLIX KIDS</span></div>
-        <div class="lineup__item" style="border-color:#1ABC9C;"><span class="lineup__num" style="color:#1ABC9C;">33</span><span class="lineup__name">MILLENNIUM CARTOONS</span></div>
-        <div class="lineup__item" style="border-color:#2ECC71;"><span class="lineup__num" style="color:#2ECC71;">34</span><span class="lineup__name">DREAMWORKS</span></div>
-        <div class="lineup__item" style="border-color:#FF9F1C;"><span class="lineup__num" style="color:#FF9F1C;">35</span><span class="lineup__name">TOON TOWN</span></div>
+        <div class="lineup__item" style="border-color:#2ECC71;"><span class="lineup__num" style="color:#2ECC71;">33</span><span class="lineup__name">DREAMWORKS</span></div>
+        <div class="lineup__item" style="border-color:#FF9F1C;"><span class="lineup__num" style="color:#FF9F1C;">34</span><span class="lineup__name">TOON TOWN</span></div>
       </div>
     </div>
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">PRIME TIME</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/essentials">PRIME TIME</a>
         <span class="lineup__group-count">15 CHANNELS</span>
       </div>
       <div class="lineup__grid">
@@ -305,38 +436,38 @@
         <div class="lineup__item" style="border-color:#2E86C1;"><span class="lineup__num" style="color:#2E86C1;">45</span><span class="lineup__name">DOCS</span></div>
         <div class="lineup__item" style="border-color:#F1C40F;"><span class="lineup__num" style="color:#F1C40F;">46</span><span class="lineup__name">LOL</span></div>
         <div class="lineup__item" style="border-color:#4A6741;"><span class="lineup__num" style="color:#4A6741;">47</span><span class="lineup__name">MAN CAVE</span></div>
-        <div class="lineup__item" style="border-color:#F39C12;"><span class="lineup__num" style="color:#F39C12;">48</span><span class="lineup__name">BLOCKBUSTER</span></div>
-        <div class="lineup__item" style="border-color:#00E5FF;"><span class="lineup__num" style="color:#00E5FF;">49</span><span class="lineup__name">FRESH</span></div>
+        <div class="lineup__item" style="border-color:#00E5FF;"><span class="lineup__num" style="color:#00E5FF;">48</span><span class="lineup__name">FRESH</span></div>
+        <div class="lineup__item" style="border-color:#F39C12;"><span class="lineup__num" style="color:#F39C12;">49</span><span class="lineup__name">BLOCKBUSTER</span></div>
         <div class="lineup__item" style="border-color:#5A3E8A;"><span class="lineup__num" style="color:#5A3E8A;">50</span><span class="lineup__name">DRAMA TV</span></div>
         <div class="lineup__item" style="border-color:#FF6B35;"><span class="lineup__num" style="color:#FF6B35;">51</span><span class="lineup__name">RECORD STORE</span></div>
-        <div class="lineup__item" style="border-color:#F72585;"><span class="lineup__num" style="color:#F72585;">53</span><span class="lineup__name">PREMIERES</span></div>
-        <div class="lineup__item" style="border-color:#A0522D;"><span class="lineup__num" style="color:#A0522D;">83</span><span class="lineup__name">HISTORY &amp; BIO</span></div>
-        <div class="lineup__item" style="border-color:#E84393;"><span class="lineup__num" style="color:#E84393;">84</span><span class="lineup__name">R RATED COMEDY</span></div>
+        <div class="lineup__item" style="border-color:#A0522D;"><span class="lineup__num" style="color:#A0522D;">52</span><span class="lineup__name">HISTORY &amp; BIO</span></div>
+        <div class="lineup__item" style="border-color:#E84393;"><span class="lineup__num" style="color:#E84393;">53</span><span class="lineup__name">R RATED COMEDY</span></div>
+        <div class="lineup__item" style="border-color:#F72585;"><span class="lineup__num" style="color:#F72585;">54</span><span class="lineup__name">PREMIERES</span></div>
       </div>
     </div>
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">MARQUEE</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/premium">MARQUEE</a>
         <span class="lineup__group-count">11 CHANNELS</span>
       </div>
       <div class="lineup__grid">
-        <div class="lineup__item" style="border-color:#5DADE2;"><span class="lineup__num" style="color:#5DADE2;">59</span><span class="lineup__name">SKETCH COMEDY</span></div>
-        <div class="lineup__item" style="border-color:#FF3D6E;"><span class="lineup__num" style="color:#FF3D6E;">60</span><span class="lineup__name">ANIME</span></div>
-        <div class="lineup__item" style="border-color:#C2185B;"><span class="lineup__num" style="color:#C2185B;">61</span><span class="lineup__name">MUSICALS</span></div>
-        <div class="lineup__item" style="border-color:#FFB300;"><span class="lineup__num" style="color:#FFB300;">62</span><span class="lineup__name">GAME SHOWS</span></div>
-        <div class="lineup__item" style="border-color:#8E44AD;"><span class="lineup__num" style="color:#8E44AD;">63</span><span class="lineup__name">ADULT CARTOONS</span></div>
-        <div class="lineup__item" style="border-color:#E74C8B;"><span class="lineup__num" style="color:#E74C8B;">64</span><span class="lineup__name">DATE NIGHT</span></div>
-        <div class="lineup__item" style="border-color:#F5B041;"><span class="lineup__num" style="color:#F5B041;">65</span><span class="lineup__name">STAND-UP</span></div>
-        <div class="lineup__item" style="border-color:#C9A84C;"><span class="lineup__num" style="color:#C9A84C;">66</span><span class="lineup__name">BIOPICS</span></div>
-        <div class="lineup__item" style="border-color:#FFD700;"><span class="lineup__num" style="color:#FFD700;">67</span><span class="lineup__name">ALL TIME GREATS</span></div>
-        <div class="lineup__item" style="border-color:#F56040;"><span class="lineup__num" style="color:#F56040;">68</span><span class="lineup__name">CERTIFIED GOLD</span></div>
-        <div class="lineup__item" style="border-color:#FFD700;"><span class="lineup__num" style="color:#FFD700;">69</span><span class="lineup__name">OSCAR WINNERS</span></div>
+        <div class="lineup__item" style="border-color:#FF3D6E;"><span class="lineup__num" style="color:#FF3D6E;">59</span><span class="lineup__name">ANIME</span></div>
+        <div class="lineup__item" style="border-color:#C2185B;"><span class="lineup__num" style="color:#C2185B;">60</span><span class="lineup__name">MUSICALS</span></div>
+        <div class="lineup__item" style="border-color:#FFB300;"><span class="lineup__num" style="color:#FFB300;">61</span><span class="lineup__name">GAME SHOWS</span></div>
+        <div class="lineup__item" style="border-color:#8E44AD;"><span class="lineup__num" style="color:#8E44AD;">62</span><span class="lineup__name">ADULT CARTOONS</span></div>
+        <div class="lineup__item" style="border-color:#E74C8B;"><span class="lineup__num" style="color:#E74C8B;">63</span><span class="lineup__name">DATE NIGHT</span></div>
+        <div class="lineup__item" style="border-color:#F5B041;"><span class="lineup__num" style="color:#F5B041;">64</span><span class="lineup__name">STAND-UP</span></div>
+        <div class="lineup__item" style="border-color:#C9A84C;"><span class="lineup__num" style="color:#C9A84C;">65</span><span class="lineup__name">BIOPICS</span></div>
+        <div class="lineup__item" style="border-color:#FFD700;"><span class="lineup__num" style="color:#FFD700;">66</span><span class="lineup__name">ALL TIME GREATS</span></div>
+        <div class="lineup__item" style="border-color:#F56040;"><span class="lineup__num" style="color:#F56040;">67</span><span class="lineup__name">CERTIFIED GOLD</span></div>
+        <div class="lineup__item" style="border-color:#FFD700;"><span class="lineup__num" style="color:#FFD700;">68</span><span class="lineup__name">OSCAR WINNERS</span></div>
+        <div class="lineup__item" style="border-color:#5DADE2;"><span class="lineup__num" style="color:#5DADE2;">69</span><span class="lineup__name">SKETCH COMEDY</span></div>
       </div>
     </div>
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">ADVENTURELAND</span>
-        <span class="lineup__group-count">10 CHANNELS</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/adventureland">ADVENTURELAND</a>
+        <span class="lineup__group-count">9 CHANNELS</span>
       </div>
       <div class="lineup__grid">
         <div class="lineup__item" style="border-color:#D4A017;"><span class="lineup__num" style="color:#D4A017;">70</span><span class="lineup__name">EPIC ADVENTURES</span></div>
@@ -346,14 +477,13 @@
         <div class="lineup__item" style="border-color:#8E44AD;"><span class="lineup__num" style="color:#8E44AD;">74</span><span class="lineup__name">FANTASY</span></div>
         <div class="lineup__item" style="border-color:#B9770E;"><span class="lineup__num" style="color:#B9770E;">75</span><span class="lineup__name">WESTERNS</span></div>
         <div class="lineup__item" style="border-color:#5D6D7E;"><span class="lineup__num" style="color:#5D6D7E;">76</span><span class="lineup__name">FRONT LINE</span></div>
-        <div class="lineup__item" style="border-color:#8B0000;"><span class="lineup__num" style="color:#8B0000;">77</span><span class="lineup__name">FRIGHT NIGHT</span></div>
-        <div class="lineup__item" style="border-color:#E74C3C;"><span class="lineup__num" style="color:#E74C3C;">78</span><span class="lineup__name">SUPERHERO MOVIES</span></div>
-        <div class="lineup__item" style="border-color:#34495E;"><span class="lineup__num" style="color:#34495E;">79</span><span class="lineup__name">SPY GAMES</span></div>
+        <div class="lineup__item" style="border-color:#E74C3C;"><span class="lineup__num" style="color:#E74C3C;">77</span><span class="lineup__name">SUPERHERO MOVIES</span></div>
+        <div class="lineup__item" style="border-color:#34495E;"><span class="lineup__num" style="color:#34495E;">78</span><span class="lineup__name">SPY GAMES</span></div>
       </div>
     </div>
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">OVERTIME</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/sports">OVERTIME</a>
         <span class="lineup__group-count">3 CHANNELS</span>
       </div>
       <div class="lineup__grid">
@@ -364,7 +494,7 @@
     </div>
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">CASE FILES</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/truecrime">CASE FILES</a>
         <span class="lineup__group-count">5 CHANNELS</span>
       </div>
       <div class="lineup__grid">
@@ -377,7 +507,7 @@
     </div>
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">DECADES</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/decades">DECADES</a>
         <span class="lineup__group-count">7 CHANNELS</span>
       </div>
       <div class="lineup__grid">
@@ -392,7 +522,7 @@
     </div>
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">FRANCHISES</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/franchises">FRANCHISES</a>
         <span class="lineup__group-count">7 CHANNELS</span>
       </div>
       <div class="lineup__grid">
@@ -407,64 +537,82 @@
     </div>
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">NETWORKS</span>
-        <span class="lineup__group-count">11 CHANNELS</span>
-      </div>
-      <div class="lineup__grid">
-        <div class="lineup__item" style="border-color:#C0392B;"><span class="lineup__num" style="color:#C0392B;">119</span><span class="lineup__name">MIRAMAX</span></div>
-        <div class="lineup__item" style="border-color:#8B5CF6;"><span class="lineup__num" style="color:#8B5CF6;">120</span><span class="lineup__name">HBO</span></div>
-        <div class="lineup__item" style="border-color:#5AC8FA;"><span class="lineup__num" style="color:#5AC8FA;">121</span><span class="lineup__name">APPLE TV+</span></div>
-        <div class="lineup__item" style="border-color:#E50914;"><span class="lineup__num" style="color:#E50914;">122</span><span class="lineup__name">NETFLIX</span></div>
-        <div class="lineup__item" style="border-color:#0064FF;"><span class="lineup__num" style="color:#0064FF;">123</span><span class="lineup__name">PARAMOUNT+</span></div>
-        <div class="lineup__item" style="border-color:#00A8E1;"><span class="lineup__num" style="color:#00A8E1;">124</span><span class="lineup__name">AMAZON</span></div>
-        <div class="lineup__item" style="border-color:#1CE783;"><span class="lineup__num" style="color:#1CE783;">125</span><span class="lineup__name">HULU</span></div>
-        <div class="lineup__item" style="border-color:#374151;"><span class="lineup__num" style="color:#374151;">126</span><span class="lineup__name">SONY</span></div>
-        <div class="lineup__item" style="border-color:#B8860B;"><span class="lineup__num" style="color:#B8860B;">127</span><span class="lineup__name">WARNER BROS</span></div>
-        <div class="lineup__item" style="border-color:#00A651;"><span class="lineup__num" style="color:#00A651;">128</span><span class="lineup__name">UNIVERSAL</span></div>
-        <div class="lineup__item" style="border-color:#C8A951;"><span class="lineup__num" style="color:#C8A951;">129</span><span class="lineup__name">20TH CENTURY</span></div>
-      </div>
-    </div>
-    <div class="lineup__group fade-in">
-      <div class="lineup__group-head">
-        <span class="lineup__group-name">TIS THE SEASON</span>
-        <span class="lineup__group-count">1 CHANNELS</span>
-      </div>
-      <div class="lineup__grid">
-        <div class="lineup__item" style="border-color:#C41E3A;"><span class="lineup__num" style="color:#C41E3A;">130</span><span class="lineup__name">HOLIDAZE</span></div>
-      </div>
-    </div>
-    <div class="lineup__group fade-in">
-      <div class="lineup__group-head">
-        <span class="lineup__group-name">ARTHOUSE</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/arthouse">ARTHOUSE</a>
         <span class="lineup__group-count">4 CHANNELS</span>
       </div>
       <div class="lineup__grid">
-        <div class="lineup__item" style="border-color:#F5E6C8;"><span class="lineup__num" style="color:#F5E6C8;">140</span><span class="lineup__name">CRITERION</span></div>
-        <div class="lineup__item" style="border-color:#2C3E50;"><span class="lineup__num" style="color:#2C3E50;">141</span><span class="lineup__name">FOREIGN FILMS</span></div>
-        <div class="lineup__item" style="border-color:#1A0A2E;"><span class="lineup__num" style="color:#1A0A2E;">142</span><span class="lineup__name">MIDNIGHT</span></div>
-        <div class="lineup__item" style="border-color:#6C1C8A;"><span class="lineup__num" style="color:#6C1C8A;">143</span><span class="lineup__name">CULT CLASSICS</span></div>
+        <div class="lineup__item" style="border-color:#F5E6C8;"><span class="lineup__num" style="color:#F5E6C8;">107</span><span class="lineup__name">CRITERION</span></div>
+        <div class="lineup__item" style="border-color:#2C3E50;"><span class="lineup__num" style="color:#2C3E50;">108</span><span class="lineup__name">FOREIGN FILMS</span></div>
+        <div class="lineup__item" style="border-color:#1A0A2E;"><span class="lineup__num" style="color:#1A0A2E;">109</span><span class="lineup__name">MIDNIGHT</span></div>
+        <div class="lineup__item" style="border-color:#6C1C8A;"><span class="lineup__num" style="color:#6C1C8A;">110</span><span class="lineup__name">CULT CLASSICS</span></div>
       </div>
     </div>
     <div class="lineup__group fade-in">
       <div class="lineup__group-head">
-        <span class="lineup__group-name">HIGH ROTATION</span>
+        <a class="lineup__group-name lineup__group-link" href="/channels/streamers">NETWORKS</a>
+        <span class="lineup__group-count">11 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#8B5CF6;"><span class="lineup__num" style="color:#8B5CF6;">119</span><span class="lineup__name">HBO</span></div>
+        <div class="lineup__item" style="border-color:#5AC8FA;"><span class="lineup__num" style="color:#5AC8FA;">120</span><span class="lineup__name">APPLE TV+</span></div>
+        <div class="lineup__item" style="border-color:#E50914;"><span class="lineup__num" style="color:#E50914;">121</span><span class="lineup__name">NETFLIX</span></div>
+        <div class="lineup__item" style="border-color:#0064FF;"><span class="lineup__num" style="color:#0064FF;">122</span><span class="lineup__name">PARAMOUNT+</span></div>
+        <div class="lineup__item" style="border-color:#00A8E1;"><span class="lineup__num" style="color:#00A8E1;">123</span><span class="lineup__name">AMAZON</span></div>
+        <div class="lineup__item" style="border-color:#1CE783;"><span class="lineup__num" style="color:#1CE783;">124</span><span class="lineup__name">HULU</span></div>
+        <div class="lineup__item" style="border-color:#374151;"><span class="lineup__num" style="color:#374151;">125</span><span class="lineup__name">SONY</span></div>
+        <div class="lineup__item" style="border-color:#B8860B;"><span class="lineup__num" style="color:#B8860B;">126</span><span class="lineup__name">WARNER BROS</span></div>
+        <div class="lineup__item" style="border-color:#00A651;"><span class="lineup__num" style="color:#00A651;">127</span><span class="lineup__name">UNIVERSAL</span></div>
+        <div class="lineup__item" style="border-color:#C8A951;"><span class="lineup__num" style="color:#C8A951;">128</span><span class="lineup__name">20TH CENTURY</span></div>
+        <div class="lineup__item" style="border-color:#C0392B;"><span class="lineup__num" style="color:#C0392B;">129</span><span class="lineup__name">MIRAMAX</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <a class="lineup__group-name lineup__group-link" href="/channels/tis-the-season">TIS THE SEASON</a>
+        <span class="lineup__group-count">7 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#C41E3A;"><span class="lineup__num" style="color:#C41E3A;">130</span><span class="lineup__name">HOLIDAZE</span></div>
+        <div class="lineup__item" style="border-color:#2ECC71;"><span class="lineup__num" style="color:#2ECC71;">131</span><span class="lineup__name">SANTA'S LIST</span></div>
+        <div class="lineup__item" style="border-color:#C0392B;"><span class="lineup__num" style="color:#C0392B;">132</span><span class="lineup__name">NAUGHTY LIST</span></div>
+        <div class="lineup__item" style="border-color:#E74C3C;"><span class="lineup__num" style="color:#E74C3C;">133</span><span class="lineup__name">NOSTALGEX CHRISTMAS</span></div>
+        <div class="lineup__item" style="border-color:#D98880;"><span class="lineup__num" style="color:#D98880;">134</span><span class="lineup__name">HALLMARK</span></div>
+        <div class="lineup__item" style="border-color:#27AE60;"><span class="lineup__num" style="color:#27AE60;">135</span><span class="lineup__name">CHRISTMAS SPECIALS</span></div>
+        <div class="lineup__item" style="border-color:#58D68D;"><span class="lineup__num" style="color:#58D68D;">136</span><span class="lineup__name">KIDS CHRISTMAS TV</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <a class="lineup__group-name lineup__group-link" href="/channels/seasonal">SCREAM</a>
+        <span class="lineup__group-count">4 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#FF8C00;"><span class="lineup__num" style="color:#FF8C00;">137</span><span class="lineup__name">SCREAM KIDS</span></div>
+        <div class="lineup__item" style="border-color:#8B0000;"><span class="lineup__num" style="color:#8B0000;">138</span><span class="lineup__name">FRIGHT NIGHT</span></div>
+        <div class="lineup__item" style="border-color:#8B0000;"><span class="lineup__num" style="color:#8B0000;">139</span><span class="lineup__name">SCREAM ADULTS</span></div>
+        <div class="lineup__item" style="border-color:#8E44AD;"><span class="lineup__num" style="color:#8E44AD;">140</span><span class="lineup__name">NOSTALGEX HORROR</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <a class="lineup__group-name lineup__group-link" href="/channels/high-rotation">HIGH ROTATION</a>
         <span class="lineup__group-count">14 CHANNELS</span>
       </div>
       <div class="lineup__grid">
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">150</span><span class="lineup__name">HIGH ROTATION</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">151</span><span class="lineup__name">POP</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">152</span><span class="lineup__name">ROCK'N</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">153</span><span class="lineup__name">COUNTRY SWAGGER</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">154</span><span class="lineup__name">BALLIN</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">155</span><span class="lineup__name">RAP GODS</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">156</span><span class="lineup__name">ALT ROCK</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">157</span><span class="lineup__name">SLOW JAMS</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">159</span><span class="lineup__name">Y2K</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">160</span><span class="lineup__name">CURRENT SPIN</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">161</span><span class="lineup__name">DANCE FLOOR</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">162</span><span class="lineup__name">CALIENTE</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">163</span><span class="lineup__name">HEADBANGERS</span></div>
-        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">164</span><span class="lineup__name">GET DOWN</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">200</span><span class="lineup__name">HIGH ROTATION</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">201</span><span class="lineup__name">POP</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">202</span><span class="lineup__name">ROCK'N</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">203</span><span class="lineup__name">COUNTRY SWAGGER</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">204</span><span class="lineup__name">BALLIN</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">205</span><span class="lineup__name">RAP GODS</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">206</span><span class="lineup__name">ALT ROCK</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">207</span><span class="lineup__name">SLOW JAMS</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">208</span><span class="lineup__name">Y2K</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">209</span><span class="lineup__name">CURRENT SPIN</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">210</span><span class="lineup__name">DANCE FLOOR</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">211</span><span class="lineup__name">CALIENTE</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">212</span><span class="lineup__name">HEADBANGERS</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">213</span><span class="lineup__name">GET DOWN</span></div>
       </div>
     </div>
     <!-- LINEUP:END (auto-generated) -->
@@ -500,7 +648,7 @@
         <div class="surf-grid">
           <figure class="shot shot-tilt-l reveal">
             <span class="sticker sticker-pink" aria-hidden="true">FLIP IT</span>
-            <img src="/screens/player.webp" alt="Watching Black Sheep fullscreen in Nostalgex, flipping through channels with the on-screen channel row" width="3840" height="2160" loading="lazy">
+            <img src="/screens/player-1920.webp" srcset="/screens/player-1280.webp 1280w, /screens/player-1920.webp 1920w, /screens/player.webp 3840w" sizes="(min-width: 1100px) 640px, 92vw" alt="Watching Black Sheep fullscreen in Nostalgex, flipping through channels with the on-screen channel row" width="3840" height="2160" loading="lazy" decoding="async">
           </figure>
           <div class="surf-copy reveal delay-1">
             <h2>Flip up. Flip down. Land on something great.</h2>
@@ -515,7 +663,7 @@
     <section class="section section-features" id="features">
       <div class="container">
         <div class="section-head reveal">
-          <h2>Built for watching, not browsing.</h2>
+          <h2>Something's always on.</h2>
         </div>
         <div class="feature-grid reveal">
           <article class="feature">
@@ -540,7 +688,7 @@
           </article>
           <article class="feature">
             <h3>Works with your server</h3>
-            <p>Point it at the server you already run and it builds the lineup from what is in there. The web tuner handles all three too, as long as your server answers over HTTPS. A plain LAN server needs the Apple TV app. More on <a href="/jellyfin">Nostalgex for Jellyfin</a> and <a href="/emby">Nostalgex for Emby</a>.</p>
+            <p>Point it at the server you already run and it builds the lineup from what is in there. The web tuner handles all three too, as long as your server answers over HTTPS. A plain LAN server needs the Apple TV app. More on <a href="/plex">Nostalgex for Plex</a>, <a href="/jellyfin">Nostalgex for Jellyfin</a>, and <a href="/emby">Nostalgex for Emby</a>.</p>
           </article>
         </div>
       </div>
@@ -568,12 +716,12 @@
     <section class="section section-faq" id="faq">
       <div class="container container-narrow">
         <div class="section-head reveal">
-          <h2>Quick answers.</h2>
+          <h2>Nostalgex questions, answered.</h2>
         </div>
         <div class="faq-list reveal">
           <details>
             <summary>Do I need a media server to use Nostalgex?<span class="faq-marker" aria-hidden="true"></span></summary>
-            <p>Yes. Nostalgex is a front end for a library you already have on Plex, Jellyfin, or Emby. If you run one of those, you're two minutes from channel surfing.</p>
+            <p>Yes. Nostalgex is a front end for a library you already have on <a href="/plex">Plex</a>, <a href="/jellyfin">Jellyfin</a>, or <a href="/emby">Emby</a>. If you run one of those, you're two minutes from channel surfing.</p>
           </details>
           <details>
             <summary>Do I pick what plays on each channel?<span class="faq-marker" aria-hidden="true"></span></summary>
@@ -603,13 +751,13 @@
         </div>
         <ul class="server-strip reveal">
           <li class="server-chip">
-            <a href="/plex"><svg class="server-mark" viewBox="0 0 24 24" fill="#EBAF00" aria-hidden="true"><path d="M3.987 8.409c-.96 0-1.587.28-2.12.933v-.72H0v8.88s.038.018.127.037c.138.03.821.187 1.331-.249.441-.377.542-.814.542-1.318v-1.283c.533.573 1.147.813 2 .813 1.84 0 3.253-1.493 3.253-3.48 0-2.12-1.36-3.613-3.266-3.613Zm16.748 5.595.406.591c.391.614.894.906 1.492.908.621-.012 1.064-.562 1.226-.755 0 0-.307-.27-.686-.72-.517-.614-1.214-1.755-1.24-1.803l-1.198 1.779Zm-3.205-1.955c0-2.08-1.52-3.64-3.52-3.64s-3.467 1.587-3.467 3.573a3.48 3.48 0 0 0 3.507 3.52c1.413 0 2.626-.84 3.253-2.293h-2.04l-.093.093c-.427.4-.72.533-1.227.533-.787 0-1.373-.506-1.453-1.266h4.986c.04-.214.054-.307.054-.52Zm-7.671-.219c0 .769.11 1.701.868 2.722l.056.069c-.306.526-.742.88-1.248.88-.399 0-.814-.211-1.138-.579a2.177 2.177 0 0 1-.538-1.441V6.409H9.86l-.001 5.421Zm9.283 3.46h-2.39l2.247-3.332-2.247-3.335h2.39l2.248 3.335-2.248 3.332Zm1.593-1.286Zm-17.162-.342c-.933 0-1.68-.773-1.68-1.72s.76-1.666 1.68-1.666c.92 0 1.68.733 1.68 1.68 0 .946-.733 1.706-1.68 1.706Zm18.361-1.974L24 8.622h-2.391l-.87 1.293 1.195 1.773Zm-9.404-.466c.16-.706.72-1.133 1.493-1.133.773 0 1.373.467 1.507 1.133h-3Z"/></svg><span><span class="server-chip-name">Plex</span><span class="server-chip-note">Sign in with a code from plex.tv</span></span></a>
+            <a href="/plex"><svg class="server-mark" viewBox="0 0 24 24" fill="#EBAF00" aria-hidden="true"><path d="M3.987 8.409c-.96 0-1.587.28-2.12.933v-.72H0v8.88s.038.018.127.037c.138.03.821.187 1.331-.249.441-.377.542-.814.542-1.318v-1.283c.533.573 1.147.813 2 .813 1.84 0 3.253-1.493 3.253-3.48 0-2.12-1.36-3.613-3.266-3.613Zm16.748 5.595.406.591c.391.614.894.906 1.492.908.621-.012 1.064-.562 1.226-.755 0 0-.307-.27-.686-.72-.517-.614-1.214-1.755-1.24-1.803l-1.198 1.779Zm-3.205-1.955c0-2.08-1.52-3.64-3.52-3.64s-3.467 1.587-3.467 3.573a3.48 3.48 0 0 0 3.507 3.52c1.413 0 2.626-.84 3.253-2.293h-2.04l-.093.093c-.427.4-.72.533-1.227.533-.787 0-1.373-.506-1.453-1.266h4.986c.04-.214.054-.307.054-.52Zm-7.671-.219c0 .769.11 1.701.868 2.722l.056.069c-.306.526-.742.88-1.248.88-.399 0-.814-.211-1.138-.579a2.177 2.177 0 0 1-.538-1.441V6.409H9.86l-.001 5.421Zm9.283 3.46h-2.39l2.247-3.332-2.247-3.335h2.39l2.248 3.335-2.248 3.332Zm1.593-1.286Zm-17.162-.342c-.933 0-1.68-.773-1.68-1.72s.76-1.666 1.68-1.666c.92 0 1.68.733 1.68 1.68 0 .946-.733 1.706-1.68 1.706Zm18.361-1.974L24 8.622h-2.391l-.87 1.293 1.195 1.773Zm-9.404-.466c.16-.706.72-1.133 1.493-1.133.773 0 1.373.467 1.507 1.133h-3Z"/></svg><span><span class="server-chip-name">Nostalgex for Plex</span><span class="server-chip-note">Sign in with a code from plex.tv</span></span></a>
           </li>
           <li class="server-chip">
-            <a href="/jellyfin"><svg class="server-mark" viewBox="0 0 24 24" fill="#00A4DC" aria-hidden="true"><path d="M12 .002C8.826.002-1.398 18.537.16 21.666c1.56 3.129 22.14 3.094 23.682 0C25.384 18.573 15.177 0 12 0zm7.76 18.949c-1.008 2.028-14.493 2.05-15.514 0C3.224 16.9 9.92 4.755 12.003 4.755c2.081 0 8.77 12.166 7.759 14.196zM12 9.198c-1.054 0-4.446 6.15-3.93 7.189.518 1.04 7.348 1.027 7.86 0 .511-1.027-2.874-7.19-3.93-7.19z"/></svg><span><span class="server-chip-name">Jellyfin</span><span class="server-chip-note">Quick Connect supported</span></span></a>
+            <a href="/jellyfin"><svg class="server-mark" viewBox="0 0 24 24" fill="#00A4DC" aria-hidden="true"><path d="M12 .002C8.826.002-1.398 18.537.16 21.666c1.56 3.129 22.14 3.094 23.682 0C25.384 18.573 15.177 0 12 0zm7.76 18.949c-1.008 2.028-14.493 2.05-15.514 0C3.224 16.9 9.92 4.755 12.003 4.755c2.081 0 8.77 12.166 7.759 14.196zM12 9.198c-1.054 0-4.446 6.15-3.93 7.189.518 1.04 7.348 1.027 7.86 0 .511-1.027-2.874-7.19-3.93-7.19z"/></svg><span><span class="server-chip-name">Nostalgex for Jellyfin</span><span class="server-chip-note">Quick Connect supported</span></span></a>
           </li>
           <li class="server-chip">
-            <a href="/emby"><svg class="server-mark" viewBox="0 0 24 24" fill="#52B54B" aria-hidden="true"><path d="M11.041 0c-.007 0-1.456 1.43-3.219 3.176L4.615 6.352l.512.513.512.512-2.819 2.791L0 12.961l1.83 1.848c1.006 1.016 2.438 2.46 3.182 3.209l1.351 1.359.508-.496c.28-.273.515-.498.524-.498.008 0 1.266 1.264 2.794 2.808L12.97 24l.187-.182c.23-.225 5.007-4.95 5.717-5.656l.52-.516-.502-.513c-.276-.282-.5-.52-.496-.53.003-.009 1.264-1.26 2.802-2.783 1.538-1.522 2.8-2.776 2.803-2.785.005-.012-3.617-3.684-6.107-6.193L17.65 4.6l-.505.505c-.279.278-.517.501-.53.497-.013-.005-1.27-1.267-2.793-2.805A449.655 449.655 0 0011.041 0zM9.223 7.367c.091.038 7.951 4.608 7.957 4.627.003.013-1.781 1.056-3.965 2.32a999.898 999.898 0 01-3.996 2.307c-.019.006-.026-1.266-.026-4.629 0-3.7.007-4.634.03-4.625Z"/></svg><span><span class="server-chip-name">Emby</span><span class="server-chip-note">Username and password sign-in</span></span></a>
+            <a href="/emby"><svg class="server-mark" viewBox="0 0 24 24" fill="#52B54B" aria-hidden="true"><path d="M11.041 0c-.007 0-1.456 1.43-3.219 3.176L4.615 6.352l.512.513.512.512-2.819 2.791L0 12.961l1.83 1.848c1.006 1.016 2.438 2.46 3.182 3.209l1.351 1.359.508-.496c.28-.273.515-.498.524-.498.008 0 1.266 1.264 2.794 2.808L12.97 24l.187-.182c.23-.225 5.007-4.95 5.717-5.656l.52-.516-.502-.513c-.276-.282-.5-.52-.496-.53.003-.009 1.264-1.26 2.802-2.783 1.538-1.522 2.8-2.776 2.803-2.785.005-.012-3.617-3.684-6.107-6.193L17.65 4.6l-.505.505c-.279.278-.517.501-.53.497-.013-.005-1.27-1.267-2.793-2.805A449.655 449.655 0 0011.041 0zM9.223 7.367c.091.038 7.951 4.608 7.957 4.627.003.013-1.781 1.056-3.965 2.32a999.898 999.898 0 01-3.996 2.307c-.019.006-.026-1.266-.026-4.629 0-3.7.007-4.634.03-4.625Z"/></svg><span><span class="server-chip-name">Nostalgex for Emby</span><span class="server-chip-note">Username and password sign-in</span></span></a>
           </li>
         </ul>
       </div>
@@ -643,11 +791,12 @@
         <a href="/plex">Plex</a>
         <a href="/jellyfin">Jellyfin</a>
         <a href="/emby">Emby</a>
+        <a href="/channels">Channel Guide</a>
+        <a href="/blog">Blog</a>
         <a href="/support">Support</a>
         <a href="/privacy">Privacy</a>
         <a href="#faq">FAQ</a>
         <button class="nav-link-btn footer-link-btn" type="button" data-changelog-open>What's new</button>
-        <a href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener">GitHub</a>
         <a href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener">Buy me a coffee</a>
       </nav>
       <div class="footer-signup">
@@ -674,13 +823,31 @@
     <div class="changelog-body">
     <!-- CHANGELOG:START (auto-generated) -->
     <div class="changelog__entry changelog__entry--latest">
-      <div class="changelog__meta"><span class="changelog__version">1.0.23</span><span class="changelog__date">SEP 2026</span></div>
-      <h3>Rewatchables on every server</h3>
+      <div class="changelog__meta"><span class="changelog__version">1.0.23</span><span class="changelog__date">OCT 2026</span></div>
+      <h3>Halloween, Christmas, eleven new channels, and a guide that keeps up</h3>
       <ul>
-        <li>REWATCHABLES MOVIES and REWATCHABLES TV now fill from Jellyfin and Emby play counts, the same way they already did for Plex. A title needs 3 or more plays.</li>
+        <li>Channel numbers have changed. Every package is now one unbroken run: NOSTALGEX 1 to 19, PRIME TIME 40 to 54, TIS THE SEASON 130 to 136, SCREAM 137 to 140. Music videos move to 200 and up. Packages used to have channels scattered across the lineup, and this leaves room for each one to grow without landing on another.</li>
+        <li>SCREAM arrives for October: FRIGHT NIGHT, SCREAM ADULTS, SCREAM KIDS and a new NOSTALGEX HORROR for 70s, 80s and 90s horror. The guide offers it rather than switching it on, nothing joins your lineup until you say yes, and saying no means it waits until next year. While it runs it sits at the top of the guide, with the kids channel first.</li>
+        <li>TIS THE SEASON is ready for December with seven channels. HOLIDAZE for everything, SANTA'S LIST for the kid-safe films, NAUGHTY LIST for the grown-up ones, NOSTALGEX CHRISTMAS for anything before 2000, HALLMARK for the TV movies, and two television channels: CHRISTMAS SPECIALS and KIDS CHRISTMAS TV, which find festive episodes of shows you already have by looking at the episode titles.</li>
+        <li>Both seasonal packages can be switched on any month of the year from Settings. The month only decides when the guide offers it and when it jumps to the top.</li>
+        <li>Four more channels elsewhere. HISTORY & BIO picks up the biopics and history films that only ever surfaced as new additions. DVD SHELF, Y2K COMEDY and Y2K SITCOMS cover 2000 to 2009, which the retro channels stopped short of. MILLENNIUM CARTOONS is now Y2K TOONS and sits with them on 19.</li>
+        <li>FRONT LINE is a war channel again. It was matching on words like battle and soldier without checking the genre, so Harry Potter, Pirates of the Caribbean and The Sound of Music were turning up between the war films.</li>
+        <li>HIGH ROTATION was asking for music videos from 1980 to 1999, and most libraries date them from whenever the file was made, so it was always empty. It now takes everything, and Y2K and CURRENT SPIN split the rest by era.</li>
+        <li>Music video channels fill in. Genres come from Deezer when the server has none, and the year is read from the filename instead of a server date that is usually just the day the file was added, so Y2K and CURRENT SPIN sort by the right decade.</li>
+        <li>Channels built into the app can no longer be replaced by collections found on your server. If you had collections turned on, a channel could be quietly taken over and show something unrelated.</li>
+        <li>Changing channels plays what the guide says. Tuning into a channel partway through a programme could start that programme from its first frame, or play the next one from the beginning. Jellyfin servers hit this on nearly every channel, because Jellyfin refuses a start time on a segment request. The app seeks on its own now, the way Jellyfin's own web player does.</li>
+        <li>Films where the server re-encodes both the video and the audio no longer lose the picture about 24 seconds in on tvOS 26. The app was asking Plex to adjust quality mid-stream, and that adaptive mode hands back segments slower than real time, which the Apple TV gives up on. Quality stepping is the app's own job now.</li>
+        <li>A stream the server cannot keep up with steps down to 1080p and carries on from where it was, instead of freezing on one frame or skipping to the next programme. A 4K file that transcodes slower than real time was doing both.</li>
+        <li>Dolby Vision films that Plex refuses to convert now play. When the server turns down the Dolby Vision colour space, the app asks once more for the same remux Plex's own Apple TV app gets.</li>
+        <li>The guide scrolls properly. Every channel's schedule was being rebuilt on the interface thread every thirty seconds, which froze scrolling for a moment each time, worst on Apple TV HD. That work now happens out of the way.</li>
+        <li>Jellyfin and Emby servers reached by hostname, VPN or Tailscale now connect over http. Only plain LAN addresses worked before, and everything else failed looking like the server was down. Typing just an IP finds port 8096, pasting the address from your browser cleans it up, and a failed connection says why.</li>
+        <li>Opening the app goes straight to your guide. If you were already signed in, the connect screen no longer appears first, and short waits show the logo instead of a progress bar with nothing to measure.</li>
+        <li>Settings now says how much of your library the app actually loaded, in titles, movies, episodes and shows. If that number looks far too small, that is worth telling us about, and it is a different problem from channels looking empty.</li>
+        <li>Settings also shows the last playback failure, under RESCAN LIBRARY. If something will not play, that line and the title count above it are what we need.</li>
+        <li>REWATCHABLES MOVIES and REWATCHABLES TV fill from Jellyfin and Emby play counts, the same way they already did for Plex. A title needs 3 or more plays.</li>
         <li>Playback reporting works for Jellyfin and Emby too. It is still off until you turn it on in Settings, and a watch here only counts on your own server.</li>
         <li>Audio follows the AirPlay speakers you already picked as the Apple TV's output.</li>
-        <li>From anywhere in the guide, Play goes full screen on what's already on. Menu jumps back to that channel. Settings is one press up in the package list.</li>
+        <li>From anywhere in the guide, Play goes full screen on what's already on. Menu jumps back to that channel, and again to leave the app. Settings is one press up in the package list, which is now wider and easier to read.</li>
       </ul>
     </div>
     <div class="changelog__entry">

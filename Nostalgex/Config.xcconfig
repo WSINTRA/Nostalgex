@@ -1,0 +1,14 @@
+// Base configuration for the Nostalgex app target, Debug and Release.
+//
+// The defaults below keep every build green with no secrets on disk: the keys land
+// in Info.plist as empty strings and the enrichment layer stays off, logging which
+// piece is missing. Secrets.xcconfig (gitignored) overrides them when present. Copy
+// Secrets.example.xcconfig to Secrets.xcconfig to fill them in.
+//
+// A missing base configuration file is a hard xcodebuild error, which is why this
+// committed file sits in between and the include is optional.
+
+SUPABASE_URL =
+SUPABASE_ANON_KEY =
+
+#include? "Secrets.xcconfig"

@@ -1,0 +1,64 @@
+{
+  "identifier" : "NOSTALGEX-LOCAL",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "6830000001",
+      "localizations" : [
+        {
+          "description" : "A bowl of popcorn as a thank you. Unlocks nothing.",
+          "displayName" : "Popcorn",
+          "locale" : "en_CA"
+        }
+      ],
+      "productID" : "com.muellhaus.nostalgex.tip.small",
+      "referenceName" : "Popcorn",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "7.99",
+      "familyShareable" : false,
+      "internalID" : "6830000002",
+      "localizations" : [
+        {
+          "description" : "A TV dinner as a thank you. Unlocks nothing.",
+          "displayName" : "TV dinner",
+          "locale" : "en_CA"
+        }
+      ],
+      "productID" : "com.muellhaus.nostalgex.tip.big",
+      "referenceName" : "TV dinner",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "12.99",
+      "familyShareable" : false,
+      "internalID" : "6830000003",
+      "localizations" : [
+        {
+          "description" : "Pizza night as a thank you. Unlocks nothing.",
+          "displayName" : "Pizza night",
+          "locale" : "en_CA"
+        }
+      ],
+      "productID" : "com.muellhaus.nostalgex.tip.pizza",
+      "referenceName" : "Pizza night",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_locale" : "en_CA",
+    "_storefront" : "CAN"
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

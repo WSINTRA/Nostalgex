@@ -1,0 +1,17 @@
+{
+  "_note": "What the channel guide keeps out of search. Empty lists mean nothing is held: every bundle is indexed and every channel name is printed. Chad cleared all three on 2026-10-13, for the time being. To put a hold back, copy an entry from releasedBrands, releasedBundles or releasedChannels into the matching held list and rebuild. A held bundle still builds, at noindex, and drops out of sitemap.xml and llms.txt; a held channel name disappears from every indexed page, including the JSON-LD, and the channel list ends with a count instead. Counts stay true either way.",
+  "heldBundles": [],
+  "heldChannels": [],
+  "heldBrands": [],
+
+  "releasedBundles": ["franchises", "streamers", "kids", "arthouse"],
+  "releasedChannels": [15, 21, 22, 23, 24, 26, 27, 28, 32, 33, 68,
+                       100, 101, 102, 103, 104, 105, 106, 107,
+                       119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 134],
+  "releasedBrands": ["Disney", "Diz", "Dizney", "Nickelodeon", "Nick", "Pixar", "Minion",
+                     "DreamWorks", "Netflix", "Cartoon Network", "Criterion", "Hallmark",
+                     "Oscar", "HBO", "Apple TV+", "Paramount", "Amazon", "Hulu", "Sony",
+                     "Warner", "Universal", "20th Century", "Miramax", "Star Wars", "Marvel",
+                     "Harry Potter", "Jurassic Park", "Lord of the Rings", "Mission Impossible",
+                     "Bourne"]
+}

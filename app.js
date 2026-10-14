@@ -41,6 +41,41 @@
     onScroll();
   }
 
+  /* ---------- Mobile menu (hamburger) ----------
+     Nav links and the social icons hide out of the bar at 1024px; this is
+     where they live instead. */
+  var navToggle = document.getElementById("navToggle");
+  var mobileMenu = document.getElementById("mobileMenu");
+  if (nav && navToggle && mobileMenu) {
+    var closeMobileMenu = function () {
+      nav.removeAttribute("data-menu-open");
+      navToggle.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
+    };
+    var openMobileMenu = function () {
+      nav.setAttribute("data-menu-open", "true");
+      navToggle.setAttribute("aria-expanded", "true");
+      document.body.style.overflow = "hidden";
+    };
+    navToggle.addEventListener("click", function () {
+      if (nav.getAttribute("data-menu-open") === "true") closeMobileMenu();
+      else openMobileMenu();
+    });
+    mobileMenu.querySelectorAll("a, button").forEach(function (el) {
+      el.addEventListener("click", closeMobileMenu);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && nav.getAttribute("data-menu-open") === "true") closeMobileMenu();
+    });
+    document.addEventListener("click", function (e) {
+      if (nav.getAttribute("data-menu-open") !== "true") return;
+      if (!nav.contains(e.target)) closeMobileMenu();
+    });
+    window.addEventListener("resize", function () {
+      if (window.innerWidth > 1024 && nav.getAttribute("data-menu-open") === "true") closeMobileMenu();
+    });
+  }
+
   /* ---------- Lineup: generated groups become collapsible bundles ----------
      render-lineup.mjs emits flat .lineup__group blocks (head + grid). Rather
      than fork the generator into <details>, progressively enhance them here. */
@@ -50,32 +85,44 @@
     var grid = group.querySelector(".lineup__grid");
     if (!head || !grid) return;
 
-    var marker = document.createElement("span");
-    marker.className = "faq-marker";
-    marker.setAttribute("aria-hidden", "true");
+    // The bundle name is a link to that bundle's guide page, so the row itself
+    // must not be the button: a link inside a role="button" is invalid nesting
+    // and screen readers end up reading the link as part of the button's name.
+    // The chevron is the real control; clicking anywhere else in the row still
+    // toggles, which keeps the mouse behaviour people already have.
+    var marker = document.createElement("button");
+    marker.className = "faq-marker lineup__group-toggle";
+    marker.type = "button";
     head.appendChild(marker);
 
     var open = i === 0;
-    head.setAttribute("role", "button");
-    head.setAttribute("tabindex", "0");
+    if (!grid.id) grid.id = "lineup-grid-" + (i + 1);
+    marker.setAttribute("aria-controls", grid.id);
+
+    var name = group.querySelector(".lineup__group-name");
+    var label = name ? name.textContent.trim() : "this bundle";
 
     function apply() {
       group.classList.toggle("is-open", open);
-      head.setAttribute("aria-expanded", String(open));
+      marker.setAttribute("aria-expanded", String(open));
+      marker.setAttribute("aria-label", (open ? "Collapse " : "Expand ") + label + " channels");
       grid.hidden = !open;
     }
     apply();
 
-    head.addEventListener("click", function () {
+    function toggle() {
       open = !open;
       apply();
+    }
+
+    marker.addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggle();
     });
-    head.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
-        e.preventDefault();
-        open = !open;
-        apply();
-      }
+    head.addEventListener("click", function (e) {
+      // Let the guide link and the chevron handle their own clicks.
+      if (e.target.closest("a") || e.target.closest(".lineup__group-toggle")) return;
+      toggle();
     });
   });
 
@@ -105,6 +152,51 @@
     revealEls.forEach(function (el) { io.observe(el); });
   } else {
     revealEls.forEach(function (el) { el.classList.add("is-visible"); });
+  }
+
+  /* ---------- Hero video: start after load, never for reduced motion ----------
+     The <video> ships with preload="none" and no autoplay, so first paint only
+     pays for the poster. Once the page has loaded, start it, unless the visitor
+     asked for reduced motion or Save Data, in which case the poster stays up. */
+  var heroVideos = document.querySelectorAll("video[data-autoplay]");
+  var saveData = navigator.connection && navigator.connection.saveData;
+  if (heroVideos.length && !reduceMotion && !saveData) {
+    var startHeroVideos = function () {
+      heroVideos.forEach(function (v) {
+        v.preload = "auto";
+        v.autoplay = true;
+        var played = v.play();
+        if (played && played.catch) played.catch(function () {});
+      });
+    };
+    if (document.readyState === "complete") startHeroVideos();
+    else window.addEventListener("load", startHeroVideos, { once: true });
+  }
+
+  /* ---------- Inline clips: start when they scroll into view ----------
+     Same deal as the hero (preload="none", no autoplay attribute), but these
+     sit well down the page, so loading them at window.load would pull video
+     nobody has scrolled to. Start on intersection, pause on the way out. */
+  var clips = document.querySelectorAll("video[data-clip]");
+  if (clips.length && !reduceMotion && !saveData && "IntersectionObserver" in window) {
+    var clipObserver = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          var v = entry.target;
+          if (entry.isIntersecting) {
+            v.preload = "auto";
+            var played = v.play();
+            if (played && played.catch) played.catch(function () {});
+          } else if (!v.paused) {
+            v.pause();
+          }
+        });
+      },
+      { rootMargin: "200px 0px" },
+    );
+    clips.forEach(function (v) {
+      clipObserver.observe(v);
+    });
   }
 
   /* ---------- FAQ: close others when one opens ---------- */

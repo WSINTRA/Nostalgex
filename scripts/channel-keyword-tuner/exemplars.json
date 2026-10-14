@@ -272,6 +272,8 @@
       "id": 9,
       "name": "GIRLS NIGHT",
       "mediaType": "movie",
+      "gateRequireAll": false,
+      "gateNote": "requireAll Romance from channels.json is not applied to recs, similar or collection claims here. Owner's call 2026-10-12: it would take 19 titles off.",
       "exemplars": [
         "Pretty Woman",
         "Dirty Dancing",
@@ -299,6 +301,8 @@
       "id": 52,
       "name": "ROM COMS",
       "mediaType": "movie",
+      "gateRequireAll": false,
+      "gateNote": "requireAll Romance + Comedy from channels.json is not applied to recs, similar or collection claims here. Owner's call 2026-10-12: it would take 83 titles off.",
       "exemplars": [
         "When Harry Met Sally",
         "Sleepless in Seattle",
@@ -556,6 +560,7 @@
       "name": "MARVEL",
       "mediaType": "movie",
       "exemplars": [],
+      "requireProductionCompanies": ["Marvel"],
       "tmdbCollections": [
         86311,
         131295,
@@ -564,9 +569,7 @@
         284433,
         422834,
         618529,
-        633766,
         531241,
-        295,
         556,
         748,
         453993,
@@ -959,6 +962,12 @@
       "id": 61,
       "name": "MUSICALS",
       "mediaType": "movie",
+      "genreRescueKeywords": [
+        "musical",
+        "song and dance",
+        "broadway"
+      ],
+      "gateNote": "TMDB tags many real musicals Drama or Family, not Music, so these keywords keep them. Not \"based on play or musical\": it pulls in plays (Roxanne, Cyrano de Bergerac, On Golden Pond). Not \"singing\".",
       "exemplars": [
         "Singin' in the Rain",
         "The Sound of Music",

@@ -10,19 +10,31 @@ import CoreText
 
 @main
 struct NostalgexApp: App {
-    @State private var appState = AppState()
+    @State private var appState: AppState
 
     init() {
         Self.registerCustomFonts()
         Self.configureAnalytics()
+        // When the viewer has turned sync on, pull synced preferences from iCloud before
+        // AppState reads its defaults, so this Apple TV adopts the household lineup
+        // instead of overwriting it. A no-op while sync is off (the default).
+        PreferenceSync.shared.bootstrap()
+        let state = AppState()
+        #if DEBUG
+        state.runPreferenceSyncProbeIfRequested()
+        #endif
+        _appState = State(initialValue: state)
         // Now Playing only surfaces for an app with an active .playback session.
         NowPlayingInfoService.configureAudioSession()
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environment(appState)
+            TipThanksHost {
+                RootView()
+                    .environment(appState)
+            }
+            .task { TipJar.shared.startListening() }
         }
     }
 

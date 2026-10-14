@@ -7,6 +7,17 @@ enum MediaBackendKind: String, Codable, Sendable {
     case plex
     case jellyfin
     case emby
+
+    /// How the server is named back to the user. Error copy says "Emby returned 404",
+    /// not "Plex returned 404", which is what a Jellyfin or Emby user used to be told
+    /// because every message was written for the one backend that shipped first.
+    var displayName: String {
+        switch self {
+        case .plex:     return "Plex"
+        case .jellyfin: return "Jellyfin"
+        case .emby:     return "Emby"
+        }
+    }
 }
 
 /// Abstraction over a media server the app can tune into (Plex, Jellyfin, …).
@@ -55,9 +66,19 @@ protocol MediaBackend: Sendable {
     func resolveTranscodePlayback(for item: PlexMediaItem) async -> PlaybackResolution?
 
     /// Like the above, but the backend may start the stream at `offsetSeconds` itself.
-    /// `startsAtOffset` true means the client must NOT seek: seeking into an HLS transcode
-    /// that began at zero fails (finished=false) and nothing ever renders.
+    /// `startsAtOffset` true means the client must NOT seek: seeking into a Plex HLS transcode
+    /// that began at zero fails (finished=false) and nothing ever renders. Only Plex does
+    /// this. Jellyfin and Emby return false (`JellyfinPlaybackResolver.offsetPlayback`): their
+    /// HLS playlist covers the whole runtime and the server transcodes from whichever segment
+    /// is requested, so the client seeks, and an offset on the URL breaks the segment requests.
     func resolveTranscodePlayback(for item: PlexMediaItem, offsetSeconds: Int) async -> (resolution: PlaybackResolution, startsAtOffset: Bool)?
+
+    /// The server stream for a file that was played directly and gave no picture or
+    /// starved. Must not hand back that same file. Plex's transcode request is always a
+    /// server stream, so the default is `resolveTranscodePlayback(for:offsetSeconds:)`.
+    /// Jellyfin and Emby override it: asked the first-attempt question about a file they
+    /// can direct play, they answer with the file itself.
+    func resolveServerStream(for item: PlexMediaItem, offsetSeconds: Int) async -> (resolution: PlaybackResolution, startsAtOffset: Bool)?
 
     /// Stops an active server-side transcode session so it doesn't linger (matters on a
     /// 24/7 channel-flipping app). `playSessionId` is the backend's session token when it
@@ -68,6 +89,12 @@ protocol MediaBackend: Sendable {
     /// stream the device turned out not to decode (4K H.264 on an older Apple TV, say): a
     /// re-encode the device can play beats a skipped program. Nil means no such option.
     func cappedTranscodeURL(for item: PlexMediaItem, offsetSeconds: Int, sessionID: String) -> URL?
+
+    /// Whether the URL from `cappedTranscodeURL` already begins at the requested offset.
+    /// Plex builds the offset into the transcode request. Jellyfin and Emby reject a start
+    /// time on segment requests, so their capped stream starts at zero and the client seeks,
+    /// the same split `resolveTranscodePlayback(for:offsetSeconds:)` already reports.
+    var cappedStreamStartsAtOffset: Bool { get }
 
     /// Registers a hand-built HLS start URL with the server before the player opens it.
     /// Plex needs its `decision` call first or it rejects `start.m3u8`; other backends
@@ -121,6 +148,7 @@ enum MediaServerPlaybackReport {
         return URLSession(configuration: config)
     }()
 
+    @discardableResult
     static func post(
         serverURL: String,
         authorization: String,
@@ -129,8 +157,8 @@ enum MediaServerPlaybackReport {
         mediaSourceId: String,
         playSessionId: String,
         positionTicks: Int
-    ) async {
-        guard let url = URL(string: "\(serverURL)\(event.path)") else { return }
+    ) async -> Bool {
+        guard let url = URL(string: "\(serverURL)\(event.path)") else { return false }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -143,7 +171,9 @@ enum MediaServerPlaybackReport {
             PositionTicks: positionTicks,
             IsPaused: false
         ))
-        _ = try? await session.data(for: req)
+        guard let (_, response) = try? await session.data(for: req),
+              let http = response as? HTTPURLResponse else { return false }
+        return (200..<300).contains(http.statusCode)
     }
 
     /// One increment, matching a Plex scrobble. Used when the watch cleared the
@@ -161,15 +191,20 @@ enum MediaServerPlaybackReport {
 }
 
 protocol WatchActivityReporting: Sendable {
+    /// True when the server answered 2xx. Only feeds `PulseBackoff`.
+    @discardableResult
     func reportWatchActivity(
         itemId: String,
         mediaSourceId: String,
         playSessionId: String,
         positionTicks: Int,
         event: MediaServerPlaybackReport.Event
-    ) async
+    ) async -> Bool
 
     func markWatched(itemId: String) async
+
+    /// Restores Resume after a session so reporting never leaves a program there.
+    var watchStateGuard: any WatchStateGuarding { get }
 }
 
 extension MediaBackend {
@@ -204,7 +239,13 @@ extension MediaBackend {
         return (r, false)
     }
 
+    func resolveServerStream(for item: PlexMediaItem, offsetSeconds: Int) async -> (resolution: PlaybackResolution, startsAtOffset: Bool)? {
+        await resolveTranscodePlayback(for: item, offsetSeconds: offsetSeconds)
+    }
+
     func cappedTranscodeURL(for item: PlexMediaItem, offsetSeconds: Int, sessionID: String) -> URL? { nil }
+
+    var cappedStreamStartsAtOffset: Bool { true }
 
     func prepareTranscodeSession(startURL: URL) async {}
 }

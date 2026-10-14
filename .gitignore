@@ -43,6 +43,8 @@ AuthKey_*.p8
 *.pem
 *.key
 .env*
+# The template with no values in it is the one env file that is committed.
+!.env.example
 
 # Local xcodebuild archive/export output
 build-archive/

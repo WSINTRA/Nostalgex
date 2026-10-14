@@ -78,14 +78,15 @@ Saved auth shape:
 
 | Key | Action |
 |-----|--------|
-| Up / Down | Change channel |
+| Up / Down | Browse the guide. Down on the last channel wraps to channel one, Up on channel one wraps to the last |
+| Enter | Tune the highlighted channel |
 | M | Mute / unmute |
 | F | Fullscreen |
 | B | Toggle retro mode (4:3 + CRT scanlines) |
 | C | Toggle subtitles (Jellyfin, fullscreen only) |
 | G | Fullscreen + guide overlay |
 | H | Open settings |
-| Left / Right | Switch settings tabs |
+| Left / Right | Change channel (wraps at both ends). In Settings, switch tabs |
 
 ---
 
@@ -102,12 +103,6 @@ Stored in `localStorage` as `plex90_retro_mode`.
 ## Channel bundles
 
 Users can enable/disable individual channel bundles (and individual channels within them) in Settings → Channels. Config persisted in `plex90_channel_config`. A CONFIG_VERSION integer gates migrations — bump it when the default bundle set changes significantly.
-
----
-
-## Blacklist
-
-Items can be skipped permanently. Stored in `plex90_blacklist` (array of rating keys). Blacklisted items are filtered out of every channel's schedule at load time.
 
 ---
 

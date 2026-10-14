@@ -13,6 +13,57 @@ final class PlaybackDecisionTests: XCTestCase {
                       videoBitDepth: bitDepth, doviProfile: dovi, videoWidth: width, videoHeight: height)
     }
 
+    func testWholeFilmOffsetMapsToPartRelativeClock() {
+        var source = item()
+        source.additionalPartKeys = ["/part2", "/part3"]
+        source.playbackParts = ["/part1", "/part2", "/part3"].map {
+            PlexPartPlaybackInfo(key: $0, container: "mkv", videoCodec: "h264", audioCodec: "aac", bitDepth: 8, doviProfile: nil, durationSeconds: 60)
+        }
+        let position = source.playbackPosition(at: 135)
+        XCTAssertEqual(position.item.partKey, "/part3")
+        XCTAssertEqual(position.item.partIndex, 2)
+        XCTAssertEqual(position.baseSeconds, 120)
+        XCTAssertEqual(position.offsetSeconds, 15)
+    }
+
+    func testPartBoundariesAndMissingDurationDoNotGuessOffsets() {
+        var source = item()
+        source.additionalPartKeys = ["/part2", "/part3"]
+        source.playbackParts = ["/part1", "/part2", "/part3"].map {
+            PlexPartPlaybackInfo(key: $0, container: "mkv", videoCodec: "h264", audioCodec: "aac", bitDepth: 8, doviProfile: nil, durationSeconds: 60)
+        }
+        XCTAssertEqual(source.playbackPosition(at: 60).item.partIndex, 1)
+        XCTAssertEqual(source.playbackPosition(at: 60).offsetSeconds, 0)
+        XCTAssertEqual(source.playbackPosition(at: -20).offsetSeconds, 0)
+        source.playbackParts?[1].durationSeconds = nil
+        let unknown = source.playbackPosition(at: 135)
+        XCTAssertEqual(unknown.item.partKey, source.partKey)
+        XCTAssertEqual(unknown.offsetSeconds, 135)
+        XCTAssertEqual(unknown.baseSeconds, 0)
+    }
+
+    func testSelectedVersionAndPartSurviveTranscodeAndPersistence() throws {
+        var source = item()
+        source.mediaIndex = 2
+        source.doviProfile = 7
+        source.additionalPartKeys = ["/part2", "/part3"]
+        source.playbackParts = [PlexPartPlaybackInfo(key: "/part2", container: "mkv", videoCodec: "h264", audioCodec: "dts", bitDepth: 10, doviProfile: nil)]
+        let second = source.withPartKey("/part2")
+        XCTAssertEqual(second.additionalPartKeys, source.additionalPartKeys)
+        XCTAssertEqual(second.videoCodec, "h264")
+        XCTAssertEqual(second.audioCodec, "dts")
+        XCTAssertEqual(second.videoBitDepth, 10)
+        XCTAssertNil(second.doviProfile, "A later SDR part must not inherit Dolby Vision from part one")
+        let third = second.withPartKey("/part3")
+        let restored = try JSONDecoder().decode(PlexMediaItem.self, from: JSONEncoder().encode(third))
+        XCTAssertEqual(restored.mediaIndex, 2)
+        XCTAssertEqual(restored.partIndex, 2)
+        let query = PlexAPIService.transcodeQueryItems(for: restored, sessionID: "test", offsetSeconds: 12,
+            isLocal: true, quality: .low, token: "synthetic", clientID: "synthetic", hevcCapable: true)
+        XCTAssertEqual(query.first { $0.name == "mediaIndex" }?.value, "2")
+        XCTAssertEqual(query.first { $0.name == "partIndex" }?.value, "2")
+    }
+
     // MARK: - Direct play refuses what the decoder cannot render
 
     func testTenBitH264IsNotDecodable() {
@@ -73,6 +124,7 @@ final class PlaybackDecisionTests: XCTestCase {
         XCTAssertEqual(value("X-Plex-Session-Identifier"), "abc")
         XCTAssertEqual(value("location"), "lan")
         XCTAssertEqual(value("hasMDE"), "1")
+        XCTAssertEqual(value("autoAdjustQuality"), "0", "Plex's adaptive mode throttles to one 3s segment per 6s after the eighth; tvOS 26 dies at 24s")
         XCTAssertNotNil(value("X-Plex-Client-Profile-Extra"))
     }
 
@@ -127,13 +179,20 @@ final class PlaybackDecisionTests: XCTestCase {
         XCTAssertEqual(v("session"), "s2")
     }
 
-    func testJellyfinAndEmbyGetAStartTimeInsteadOfAClientSeek() {
-        let base = URL(string: "https://jf.local/Videos/1/master.m3u8?MediaSourceId=1&api_key=k")!
-        let url = JellyfinPlaybackResolver.addingStartTime(to: base, offsetSeconds: 1234)
-        let q = URLComponents(url: url, resolvingAgainstBaseURL: false)!.queryItems!
-        XCTAssertEqual(q.first { $0.name == "StartTimeTicks" }?.value, "12340000000")
-        XCTAssertEqual(q.first { $0.name == "api_key" }?.value, "k", "existing query kept")
-        XCTAssertEqual(JellyfinPlaybackResolver.addingStartTime(to: base, offsetSeconds: 0), base, "no offset, no change")
+    func testJellyfinAndEmbyLeaveTheOffsetToAClientSeek() async throws {
+        // Loopback port 9 refuses the PlaybackInfo POST at once, so this runs the hand-built
+        // fallback URL without a server. The offset rule is the same on either path.
+        let backends: [any MediaBackend] = [
+            JellyfinAPIService(serverURL: "http://127.0.0.1:9", accessToken: "k", userId: "u"),
+            EmbyAPIService(serverURL: "http://127.0.0.1:9", accessToken: "k", userId: "u"),
+        ]
+        for backend in backends {
+            let result = await backend.resolveTranscodePlayback(for: item(), offsetSeconds: 1234)
+            let resolved = try XCTUnwrap(result)
+            XCTAssertFalse(resolved.startsAtOffset, "the HLS playlist starts at zero, so the player has to seek")
+            let q = URLComponents(url: resolved.resolution.url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            XCTAssertNil(q.first { $0.name == "StartTimeTicks" }, "Jellyfin 10.10+ rejects every segment of an HLS URL that carries StartTimeTicks")
+        }
     }
 
     func testTranscodeAudioTargetIsLossyOnly() {
@@ -219,5 +278,32 @@ final class TranscodeTimestampTests: XCTestCase {
         let q = PlexAPIService.transcodeQueryItems(for: item, sessionID: "s", offsetSeconds: 100, isLocal: true, quality: .auto, token: "t", clientID: "c", hevcCapable: true)
         XCTAssertEqual(q.first { $0.name == "copyts" }?.value, "0")
         XCTAssertEqual(q.first { $0.name == "offset" }?.value, "100", "the server still starts at the offset")
+    }
+}
+
+/// Dolby Vision profile 5 over Plex, measured 2026-10-07 (CH 48 FRESH on the living room):
+/// the everyday request is refused with 2003 and the app auto-skipped to the next film
+/// from 0:00; the Plex app got a remux because it resolves to the Generic profile.
+final class DolbyVisionRemuxTests: XCTestCase {
+    func testOnlyADoViRefusalTriggersTheRetry() {
+        XCTAssertTrue(PlexAPIService.isDolbyVisionRefusal(.init(code: "2003", text: "File is unplayable. DoVi (Profile 5) color space is not supported.")))
+        XCTAssertFalse(PlexAPIService.isDolbyVisionRefusal(.init(code: "2003", text: "File is unplayable. Something else.")))
+        XCTAssertFalse(PlexAPIService.isDolbyVisionRefusal(.init(code: "1001", text: "Direct play not available; Conversion OK.")))
+        XCTAssertFalse(PlexAPIService.isDolbyVisionRefusal(.unknown))
+    }
+
+    func testRemuxRequestKeepsTheSessionAndOffsetAndSwapsOnlyTheProfile() throws {
+        let url = try XCTUnwrap(URL(string: "http://192.168.4.79:32400/video/:/transcode/universal/start.m3u8?path=/library/metadata/55615&session=S1&offset=5449&copyts=0&X-Plex-Platform=tvOS&X-Plex-Client-Profile-Extra=old&X-Plex-Token=t"))
+        let remux = try XCTUnwrap(PlexAPIService.dolbyVisionRemuxURL(from: url))
+        let q = Dictionary(uniqueKeysWithValues: URLComponents(url: remux, resolvingAgainstBaseURL: false)!.queryItems!.map { ($0.name, $0.value ?? "") })
+        XCTAssertEqual(q["session"], "S1")
+        XCTAssertEqual(q["offset"], "5449")
+        XCTAssertEqual(q["copyts"], "0")
+        XCTAssertEqual(q["X-Plex-Platform"], "Generic", "the built-in tvOS profile forces mpegts, which cannot carry HEVC")
+        let profile = try XCTUnwrap(q["X-Plex-Client-Profile-Extra"])
+        XCTAssertTrue(profile.contains("container=mp4"), profile)
+        XCTAssertTrue(profile.contains("videoCodec=h264,hevc"), profile)
+        XCTAssertFalse(profile.contains("mpegts"), "one target only, so the server cannot pick mpegts again")
+        XCTAssertTrue(remux.path.hasSuffix("/start.m3u8"))
     }
 }
