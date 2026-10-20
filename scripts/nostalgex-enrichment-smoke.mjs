@@ -289,6 +289,56 @@ function backend() {
   check("trailing slash trimmed", E.configFromPage(set, { hostname: "localhost" }).supabaseURL, "https://x.supabase.co");
   const over = doc({ "nostalgex-tmdb-relay": "http://localhost:3000/api/tmdb" });
   check("relay override", E.configFromPage(over, { hostname: "localhost" }).relayURL, "http://localhost:3000/api/tmdb");
+
+  // Self-hosted: any LAN host, the www relay (the apex redirects, which breaks a
+  // preflight), and the selfhost client value.
+  const selfhost = doc({ "nostalgex-build": "selfhost", "nostalgex-supabase-url": "https://x.supabase.co", "nostalgex-supabase-anon-key": "k" });
+  check("selfhost config", E.configFromPage(selfhost, { hostname: "192.168.1.50" }), {
+    supabaseURL: "https://x.supabase.co", anonKey: "k",
+    relayURL: "https://www.nostalgex.app/api/tmdb", clientValue: "selfhost", selfhost: true,
+  });
+  check("selfhost on localhost still uses www relay",
+    E.configFromPage(selfhost, { hostname: "localhost" }).relayURL, "https://www.nostalgex.app/api/tmdb");
+  check("hosted config has no client value", "clientValue" in E.configFromPage(set, { hostname: "www.nostalgex.app" }), false);
+}
+
+// ---- Self-host: config.json gate, fails closed ----
+{
+  const selfCfg = { ...cfg, selfhost: true, clientValue: "selfhost" };
+  for (const [name, answer] of [
+    ["off", { status: 200, body: { enrichment: false } }],
+    ["missing", { status: 404, body: {} }],
+    ["unreadable", new Error("network")],
+    ["string true is not true", { status: 200, body: { enrichment: "true" } }],
+  ]) {
+    const f = stubFetch(async (url) => {
+      if (url === "config.json") { if (answer instanceof Error) throw answer; return answer; }
+      return { status: 200, body: [] };
+    });
+    const r = await E.enrichLibrary(library(), { config: selfCfg, fetch: f, cache: E.memoryCache(), now: () => NOW.getTime() });
+    check(`selfhost ${name}: skipped`, r.skipped, true);
+    check(`selfhost ${name}: only config.json asked`, f.calls.map((c) => c.url), ["config.json"]);
+  }
+  {
+    const f = stubFetch(async (url, init) => {
+      if (url === "config.json") return { status: 200, body: { enrichment: true } };
+      if (url.includes("/rest/v1/")) return (!init.method || init.method === "GET") ? { status: 200, body: [] } : { status: 201, body: null };
+      return { status: 200, body: { keywords: { keywords: [{ name: "k" }] } } };
+    });
+    const r = await E.enrichLibrary(library(), { config: selfCfg, fetch: f, cache: E.memoryCache(), now: () => NOW.getTime() });
+    check("selfhost on: runs", r.skipped, undefined);
+    check("selfhost on: config.json asked first", f.calls[0].url, "config.json");
+    const relay = f.calls.filter((c) => c.url.includes("path="));
+    check("selfhost on: relay asked", relay.length, 5);
+    check("selfhost on: relay calls carry selfhost", relay.every((c) => c.init.headers["X-Nostalgex-Client"] === "selfhost"), true);
+  }
+  {
+    // The hosted page never asks for config.json.
+    const f = backend();
+    await E.enrichLibrary(library(), { config: cfg, fetch: f, cache: E.memoryCache(), now: () => NOW.getTime() });
+    check("hosted: no config.json", f.calls.some((c) => c.url === "config.json"), false);
+    check("hosted: relay calls carry web", f.calls.filter((c) => c.url.includes("path=")).every((c) => c.init.headers["X-Nostalgex-Client"] === "web"), true);
+  }
 }
 
 // ---- OMDb: parse (OMDBService.parseResponse) ----

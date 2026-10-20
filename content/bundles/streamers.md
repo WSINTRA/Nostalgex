@@ -2,10 +2,10 @@
 title: "Channels by Studio and Streamer for Plex | Nostalgex"
 heading: "Channels by Studio and Streamer"
 description: "Your movies and shows sorted into channels by the studio or service that made them, built from your own Plex or Jellyfin library. Free on Apple TV."
-blurb: "Eleven channels split by who made the thing: HBO, NETFLIX, WARNER BROS and the rest."
+blurb: "Twelve channels split by who made the thing: HBO, NETFLIX, WARNER BROS, A24 and the rest."
 faq:
   - q: "What channels are in this bundle?"
-    a: "Eleven: HBO, APPLE TV+, NETFLIX, PARAMOUNT+, AMAZON, HULU, SONY, WARNER BROS, UNIVERSAL, 20TH CENTURY and MIRAMAX. Each one gathers the titles in your own library that came from that studio or service."
+    a: "Twelve: HBO, APPLE TV+, NETFLIX, PARAMOUNT+, AMAZON, HULU, SONY, WARNER BROS, UNIVERSAL, 20TH CENTURY, MIRAMAX and A24. Each one gathers the titles in your own library that came from that studio or service."
   - q: "Does this stream from a subscription service?"
     a: "No. There is no outside catalogue anywhere in Nostalgex, and no account with any service. These channels only play files that are already on your own Plex or Jellyfin server."
   - q: "How does a title end up on one of these channels?"
@@ -18,9 +18,9 @@ faq:
 
 This bundle sorts your library by who made the thing, which sounds dry until you see your own guide fill up.
 
-Eleven channels: HBO, APPLE TV+, NETFLIX, PARAMOUNT+, AMAZON, HULU, SONY, WARNER BROS, UNIVERSAL, 20TH CENTURY and MIRAMAX. Each one gathers the titles in your library that came out of the same place. It is the oldest way of organising a TV lineup there is. A channel used to mean a company with a house style, and you knew roughly what you were getting before the title card finished.
+Twelve channels: HBO, APPLE TV+, NETFLIX, PARAMOUNT+, AMAZON, HULU, SONY, WARNER BROS, UNIVERSAL, 20TH CENTURY, MIRAMAX and A24. Each one gathers the titles in your library that came out of the same place. It is the oldest way of organising a TV lineup there is. A channel used to mean a company with a house style, and you knew roughly what you were getting before the title card finished.
 
-That turns out to still be true. The HBO channel ends up being prestige drama and long running series. 20TH CENTURY and UNIVERSAL end up being the big loud summer stuff. MIRAMAX is a particular slice of the 90s that is hard to describe and obvious once it is running. Nobody tagged them that way: that is just what those places actually made, and once your own shelf is split along those lines you notice how much of your library came from two or three of them.
+That turns out to still be true. The HBO channel ends up being prestige drama and long running series. 20TH CENTURY and UNIVERSAL end up being the big loud summer stuff. MIRAMAX is a particular slice of the 90s that is hard to describe and obvious once it is running. A24 is the newest house style on the list and the easiest to spot: slow burn horror and odd little dramas. Nobody tagged them that way: that is just what those places actually made, and once your own shelf is split along those lines you notice how much of your library came from two or three of them.
 
 Worth being clear, because the names confuse people: nothing here streams from a subscription. Nostalgex has no catalogue of its own and no connection to any of these services. It reads the Plex or Jellyfin library sitting on your server, uses the studio information already attached to those files, and builds channels out of what you own. The NETFLIX channel is the originals you have in your own library, not a window into Netflix. If you have never owned anything from a particular studio, that channel never appears.
 

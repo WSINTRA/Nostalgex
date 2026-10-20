@@ -84,6 +84,69 @@ struct ExclusiveRuleTests {
         #expect(rule.matches(movie("Blade Runner 2049 (2017)")))
     }
 
+    // Title words match whole words, like a channel's titleContains. A substring test
+    // locked Kicking & Screaming away from every channel and caught Santana with "Santa".
+    @Test func titleWordsMatchWholeWordsOnly() {
+        let scream = ExclusiveRule(channelIDs: [132], genres: [], titleContains: ["Scream"],
+                                   editorialTitles: [], manifestExclusive: false)
+        #expect(!scream.matches(movie("Kicking & Screaming (2005)")))
+        #expect(scream.matches(movie("Scream 4")))
+        #expect(!holidazeRule.matches(movie("Santana")))
+        #expect(holidazeRule.matches(movie("The Santa Clause")))
+        let holiday = ExclusiveRule(channelIDs: [130], genres: [], titleContains: ["Holiday"],
+                                    editorialTitles: [], manifestExclusive: false)
+        #expect(!holiday.matches(movie("Holidays (2016)")))
+        #expect(holiday.matches(movie("Holiday Inn")))
+    }
+
+    // A music video's artist is not part of its title, on either platform.
+    @Test func aMusicVideoLockReadsTheSongNotTheArtist() {
+        var video = movie("Smooth")
+        video = PlexMediaItem(
+            id: video.id, title: video.title, artist: "Santana", episodeTitle: nil, seTag: nil,
+            summary: "", year: nil, originallyAvailableAt: nil, contentRating: nil, duration: 4,
+            ratingKey: "1", partKey: nil, container: nil, videoCodec: nil, audioCodec: nil,
+            videoProfile: nil, bitrate: nil, genres: [], rating: 0, userRating: 0, type: .movie,
+            thumb: nil, art: nil, viewCount: 0, addedAt: 0, studio: nil, tmdbID: nil, imdbID: nil,
+            librarySource: .musicVideo
+        )
+        #expect(!holidazeRule.matches(video))
+    }
+
+    // A scoped lock (type + source) only applies to films in a movie library. The
+    // holiday lock used to read show names and song titles too, and locked them to
+    // movie channels that can never air them.
+    @Test func aScopedLockSkipsEpisodesAndMusicVideos() {
+        let scoped = ExclusiveRule(channelIDs: [130], genres: [], titleContains: ["Christmas"],
+                                   editorialTitles: [], manifestExclusive: false,
+                                   type: .movie, source: .movie)
+        #expect(scoped.matches(movie("A Christmas Story")))
+        let song = PlexMediaItem(
+            id: "2", title: "Last Christmas", artist: "Wham!", episodeTitle: nil, seTag: nil,
+            summary: "", year: nil, originallyAvailableAt: nil, contentRating: nil, duration: 4,
+            ratingKey: "2", partKey: nil, container: nil, videoCodec: nil, audioCodec: nil,
+            videoProfile: nil, bitrate: nil, genres: [], rating: 0, userRating: 0, type: .movie,
+            thumb: nil, art: nil, viewCount: 0, addedAt: 0, studio: nil, tmdbID: nil, imdbID: nil,
+            librarySource: .musicVideo
+        )
+        #expect(!scoped.applies(to: song))
+        #expect(!scoped.matches(song))
+        let episode = PlexMediaItem(
+            id: "3", title: "Christmas Show Name", artist: nil, episodeTitle: "Pilot", seTag: nil,
+            summary: "", year: nil, originallyAvailableAt: nil, contentRating: nil, duration: 22,
+            ratingKey: "3", partKey: nil, container: nil, videoCodec: nil, audioCodec: nil,
+            videoProfile: nil, bitrate: nil, genres: [], rating: 0, userRating: 0, type: .episode,
+            thumb: nil, art: nil, viewCount: 0, addedAt: 0, studio: nil, tmdbID: nil, imdbID: nil,
+            librarySource: .tv
+        )
+        #expect(!scoped.matches(episode))
+        // Unscoped, the same rule still reads them, as before.
+        let unscoped = ExclusiveRule(channelIDs: [130], genres: [], titleContains: ["Christmas"],
+                                     editorialTitles: [], manifestExclusive: false)
+        #expect(unscoped.matches(song))
+        #expect(unscoped.matches(episode))
+    }
+
     @Test func titleContainsAndGenreStillMatch() {
         #expect(holidazeRule.matches(movie("The Christmas Chronicles (2018)")))
         #expect(holidazeRule.matches(movie("Some Winter Film", genres: ["Holiday"])))

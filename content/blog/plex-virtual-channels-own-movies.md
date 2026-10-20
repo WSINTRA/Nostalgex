@@ -14,7 +14,7 @@ draft: true
 
 # Does Plex Live TV Play Your Own Movies? How to Get Pluto Style Virtual Channels From Your Library
 
-> No. Plex Live TV plays Plex's free streaming channels and antenna TV, not the movies on your server. To get Pluto style virtual channels from your own Plex library, you need a separate tool, either a server like Tunarr that poses as a tuner or an app. [Nostalgex](/) does it free on Apple TV and in a browser, building 131 channels automatically with no Plex Pass.
+> No. Plex Live TV plays Plex's free streaming channels and antenna TV, not the movies on your server. To get Pluto style virtual channels from your own Plex library, you need a separate tool, either a server like Tunarr that poses as a tuner or an app. [Nostalgex](/) does it free on Apple TV and in a browser, building 130+ channels automatically with no Plex Pass.
 
 I get some version of this question every week, usually from someone who just found the Live TV tab in Plex and got excited for about thirty seconds. You've got a server with hundreds of movies on it. Plex has a Live TV section with a guide. Surely you can put your movies in the guide?
 
@@ -34,7 +34,7 @@ Not with Plex Live TV on its own. Here are the three routes, side by side:
 |---|---|---|
 | Plex Live TV | Plex's free streaming channels and antenna TV | Nothing, but your own movies never show up |
 | Tunarr or ErsatzTV added to Plex as a tuner | Your own channels inside Plex's guide | A separate server, schedules you build, and Plex's tuner setup |
-| An app like Nostalgex | 131 channels built from your library | Install the Apple TV app and sign in with a code |
+| An app like Nostalgex | 130+ channels built from your library | Install the Apple TV app and sign in with a code |
 
  The guide in Plex fills from two places: Plex's free streaming channels, and a tuner you connect to your server. A tuner usually means an HDHomeRun and an antenna for broadcast TV.
 
@@ -46,9 +46,9 @@ The workaround people have used for years is to fake a tuner. Tools like Tunarr 
 
 Use an app that builds the channels itself instead of going through Plex Live TV at all. The app reads your library, makes a schedule, and asks your Plex server for each file when it's time to play. Nothing to install on the server, no fake tuner.
 
-That's the gap I built Nostalgex for. If what you're after is the feeling of flipping past a sitcom rerun and landing on a movie you haven't seen in years, this is the easy way to get it. You install it on your Apple TV, sign in with a code at plex.tv/link, and it builds 131 channels in 14 bundles from what you own. You don't choose what goes on each channel. It sorts things by genre, decade, studio and franchise on its own, so you get stuff like SAT MORNING CARTOONS, 90S SITCOMS, VHS VAULT and BUDDIES (home of our [Friday buddy cop lineup](/blog/best-90s-buddy-cop-movies-channel)). Every channel keeps running even when nobody's watching, so you land in the middle of something like real TV.
+That's the gap I built Nostalgex for. If what you're after is the feeling of flipping past a sitcom rerun and landing on a movie you haven't seen in years, this is the easy way to get it. You install it on your Apple TV, sign in with a code at plex.tv/link, and it builds 130+ channels in 14 bundles from what you own. You don't choose what goes on each channel. It sorts things by genre, decade, studio and franchise on its own, so you get stuff like SAT MORNING CARTOONS, 90S SITCOMS, VHS VAULT and BUDDIES (home of our [Friday buddy cop lineup](/blog/best-90s-buddy-cop-movies-channel)). Every channel keeps running even when nobody's watching, so you land in the middle of something like real TV.
 
-It's basically Pluto, except the channels are made of your movies and there are no commercials. It's free, open source under MIT, and has no ads or account. It needs tvOS 18 or later. The [Nostalgex for Plex](/plex) page has the one minute setup.
+It's basically Pluto, except the channels are made of your movies and there are no commercials. It's free, open source under MIT, and needs no account. It needs tvOS 18 or later. The [Nostalgex for Plex](/plex) page has the one minute setup.
 
 Want to compare Coax and Bunny Ears TV too? See [the best channel surfing apps for Apple TV](/blog/apple-tv-channel-surfing-apps).
 
@@ -70,11 +70,11 @@ The web tuner and the Apple TV app don't show identical lineups, by the way. The
 
 ## What kinds of channels do you get?
 
-The 131 channels come in 14 bundles, and the ones you see depend on what's in your library. There are decades, genres, studios and franchises, plus the comfort stuff like SAT MORNING CARTOONS, 90S SITCOMS and VHS VAULT. You can switch whole bundles on and off in settings, but you never have to program a channel.
+The 130+ channels come in 14 bundles, and the ones you see depend on what's in your library. There are decades, genres, studios and franchises, plus the comfort stuff like SAT MORNING CARTOONS, 90S SITCOMS and VHS VAULT. You can switch whole bundles on and off in settings, but you never have to program a channel.
 
 ![Nostalgex guide showing Classic Fam Jams, Girls Night, Teen Movies, Retro Toons and Action Adventure channels from one movie library](https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/plex-virtual-channels-own-movies/teen-movies-channel-guide.webp)
 
-This month there's a free SCREAM bundle you can turn on with one button. It adds four horror channels: 137 SCREAM KIDS, 138 FRIGHT NIGHT, 139 SCREAM ADULTS and 140 NOSTALGEX HORROR. SCREAM KIDS is for the little ones, and NOSTALGEX HORROR sticks to 1975 through 1999. If you want a preview of what a night on those feels like, I wrote up [a 90s slasher marathon](/blog/90s-slasher-movies-halloween-marathon).
+This month there's a free SCREAM bundle you can turn on with one button. It adds a set of horror channels, from SCREAM KIDS for the little ones to FRIGHT NIGHT and NOSTALGEX HORROR, and you can keep it on after October. NOSTALGEX HORROR sticks to 1975 through 1999. If you want a preview of what a night on those feels like, I wrote up [a 90s slasher marathon](/blog/90s-slasher-movies-halloween-marathon).
 
 Get Nostalgex free on the [App Store](https://apps.apple.com/app/nostalgex/id6762563534) or try the [web tuner](/web-tuner) tonight.
 

@@ -19,8 +19,17 @@ extension AppState: PreferenceSyncApplying {
         if let v = values[PreferenceSync.audioLanguageKey] as? String, v != preferredAudioLanguageCode {
             preferredAudioLanguageCode = v
         }
-        if let v = values[PreferenceSync.reportPlaybackKey] as? Bool, v != syncPlexActivity {
-            syncPlexActivity = v
+        // The legacy cloud switch may fill missing choices, but can never override
+        // an explicit v2 value (especially false). Apply a received pair atomically.
+        let incomingNow = values[PreferenceSync.nowPlayingKey] as? Bool
+        let incomingMark = values[PreferenceSync.markWatchedKey] as? Bool
+        let old = values[PreferenceSync.reportPlaybackKey] as? Bool
+        let defaults = UserDefaults.standard
+        let legacyNow = defaults.object(forKey: Self.showNowPlayingDefaultsKey) == nil ? old : nil
+        let legacyMark = defaults.object(forKey: Self.markWatchedDefaultsKey) == nil ? old : nil
+        if incomingNow != nil || incomingMark != nil || legacyNow != nil || legacyMark != nil {
+            setPlaybackReporting(showNowPlaying: incomingNow ?? legacyNow ?? showNowPlaying,
+                                 markWatched: incomingMark ?? legacyMark ?? markWatched)
         }
         // Stream quality has no AppState property: `apply` already wrote it to
         // UserDefaults, which is where `StreamQuality.current` reads it on the next tune.

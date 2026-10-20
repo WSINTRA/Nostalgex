@@ -8,6 +8,11 @@ import XCTest
 /// to the focus engine — so this presses the remote and asserts every row is reachable.
 final class NowPlayingPanelFocusTests: XCTestCase {
 
+    override func setUp() {
+        super.setUp()
+        continueAfterFailure = false
+    }
+
     private func launchIntoPanel() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-uiTestResetCredentials"]
@@ -25,11 +30,11 @@ final class NowPlayingPanelFocusTests: XCTestCase {
         XCTAssertTrue(demo.hasFocus, "could not focus the demo mode button")
         XCUIRemote.shared.press(.select)
 
-        // Play/Pause on the tuner enters fullscreen; UP opens the panel.
+        // Play/Pause on the tuner enters fullscreen; DOWN opens the top panel.
         XCTAssertTrue(waitForTuner(app), "demo mode never reached the tuner")
         XCUIRemote.shared.press(.playPause)
         Thread.sleep(forTimeInterval: 5)
-        XCUIRemote.shared.press(.up)
+        XCUIRemote.shared.press(.down)
 
         XCTAssertTrue(
             app.buttons.matching(labelContains("RETRO MODE")).firstMatch.waitForExistence(timeout: 15),
@@ -119,12 +124,11 @@ final class NowPlayingPanelFocusTests: XCTestCase {
         XCTAssertTrue(quality.exists)
 
         // Walk to STREAM QUALITY without assuming a fixed row count.
-        var guardCount = 0
-        while !(focusedLabel(app)?.localizedCaseInsensitiveContains("STREAM QUALITY") ?? false) {
-            XCUIRemote.shared.press(guardCount == 0 ? .right : .down)
-            guardCount += 1
-            XCTAssertLessThan(guardCount, 14, "never reached the STREAM QUALITY row")
+        for step in 0..<14 {
+            if quality.hasFocus { break }
+            XCUIRemote.shared.press(step == 0 ? .right : .down)
         }
+        XCTAssertTrue(quality.hasFocus, "never reached the STREAM QUALITY row")
         XCUIRemote.shared.press(.select)
 
         // The expanded list replaces the columns; focus must land on the active option.
@@ -154,5 +158,48 @@ final class NowPlayingPanelFocusTests: XCTestCase {
             landed.localizedCaseInsensitiveContains("STREAM QUALITY"),
             "focus did not return to the STREAM QUALITY row, landed on: \(landed)"
         )
+    }
+
+    func testPlaybackInformationIsBelowSleepTimerAndBackRestoresItsFocus() {
+        let app = launchIntoPanel()
+        let retro = app.buttons.matching(labelContains("RETRO MODE")).firstMatch
+        let quality = app.buttons.matching(labelContains("STREAM QUALITY")).firstMatch
+        let sleep = app.buttons.matching(labelContains("1 HR")).firstMatch
+        let information = app.buttons.matching(labelContains("PLAYBACK INFORMATION")).firstMatch
+        XCTAssertTrue(information.waitForExistence(timeout: 10))
+        XCTAssertLessThan(retro.frame.minY, quality.frame.minY)
+        XCTAssertLessThan(quality.frame.minY, sleep.frame.minY)
+        XCTAssertLessThan(sleep.frame.maxY, information.frame.minY)
+
+        XCUIRemote.shared.press(.right)
+        walk(app, .up, steps: 15)
+        let labels = walk(app, .down, steps: 15)
+        let visited = labels.joined(separator: " | ")
+        for expected in ["RETRO MODE", "STREAM QUALITY", "15 MIN", "30 MIN", "1 HR", "PLAYBACK INFORMATION"] {
+            XCTAssertTrue(visited.localizedCaseInsensitiveContains(expected), "device controls skipped \(expected): \(visited)")
+        }
+        XCTAssertTrue(focusedLabel(app)?.contains("PLAYBACK INFORMATION") == true)
+        let controls = XCTAttachment(screenshot: app.screenshot())
+        controls.name = "Playback information below sleep timer"
+        controls.lifetime = .keepAlways
+        add(controls)
+
+        XCUIRemote.shared.press(.select)
+        let back = app.buttons["Back to playback controls"]
+        XCTAssertTrue(back.waitForExistence(timeout: 10))
+        let backFocus = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasFocus == true"), object: back)
+        XCTAssertEqual(XCTWaiter.wait(for: [backFocus], timeout: 3), .completed)
+        XCTAssertTrue(app.descendants(matching: .any).matching(labelContains("BACKEND")).firstMatch.exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(labelContains("DELIVERED CODECS")).firstMatch.exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(labelContains("STREAM BITRATE")).firstMatch.exists)
+        let details = XCTAttachment(screenshot: app.screenshot())
+        details.name = "Playback information contents"
+        details.lifetime = .keepAlways
+        add(details)
+
+        XCUIRemote.shared.press(.menu)
+        XCTAssertTrue(retro.waitForExistence(timeout: 10), "Back dismissed the panel")
+        let ownerFocus = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasFocus == true"), object: information)
+        XCTAssertEqual(XCTWaiter.wait(for: [ownerFocus], timeout: 3), .completed)
     }
 }

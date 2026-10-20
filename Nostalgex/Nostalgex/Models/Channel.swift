@@ -159,6 +159,41 @@ struct DurationRange {
     var max: Int? // minutes
 }
 
+/// A stretch of the calendar as "MM-DD" bounds, inclusive. When `from` is later than
+/// `to` it wraps the new year ("11-25" to "01-10").
+struct AirWindow {
+    var from: String?
+    var to: String?
+
+    /// "MM-DD" -> month * 100 + day.
+    static func monthDay(_ s: String?) -> Int? {
+        guard let s else { return nil }
+        let parts = s.trimmingCharacters(in: .whitespaces).split(separator: "-")
+        guard parts.count == 2, parts.allSatisfy({ (1...2).contains($0.count) && $0.allSatisfy(\.isASCII) }),
+              let m = Int(parts[0]), let d = Int(parts[1]) else { return nil }
+        return m * 100 + d
+    }
+
+    /// Month * 100 + day of a "YYYY-MM-DD..." date string.
+    static func monthDay(ofDate s: String?) -> Int? {
+        guard let s else { return nil }
+        let chars = Array(s.utf8)
+        guard chars.count >= 10, chars[4] == UInt8(ascii: "-"), chars[7] == UInt8(ascii: "-"),
+              chars[0..<4].allSatisfy({ $0 >= 48 && $0 <= 57 }),
+              let m = Int(String(decoding: chars[5..<7], as: UTF8.self)),
+              let d = Int(String(decoding: chars[8..<10], as: UTF8.self)) else { return nil }
+        return m * 100 + d
+    }
+
+    /// Whether a "YYYY-MM-DD" date falls inside the window. Mirrors `inAirWindow` in
+    /// scripts/nostalgex-channel-filter.cjs.
+    func contains(date: String?) -> Bool {
+        guard let lo = Self.monthDay(from), let hi = Self.monthDay(to),
+              let md = Self.monthDay(ofDate: date) else { return false }
+        return lo <= hi ? (md >= lo && md <= hi) : (md >= lo || md <= hi)
+    }
+}
+
 struct BlockRatings {
     var ratings: [String]
     var blockBefore: Int? // hour 0-23
@@ -185,10 +220,24 @@ struct ChannelRules {
     var unwatchedOnly: Bool = false
     var rewatched: Bool = false // viewCount >= 3 (must match scripts/nostalgex-channel-filter.cjs)
     var titleContains: [String]? // matches if title contains any of these (case-insensitive)
-    /// Matches against the EPISODE title rather than the show name. The only way to find a
+    /// Episode rules read an item's OWN title (the episode title for an episode, the title
+    /// for anything else) and its summary, never the show name. The only way to find a
     /// Christmas special: the show is "Friends", the festive part is "The One with the
-    /// Holiday Armadillo". `titleContains` sees show names only.
+    /// Holiday Armadillo". `titleContains` sees show names only. A channel with any of
+    /// the three include lists is episode-curated: an item must match one, and nothing
+    /// else widens it. Mirrors scripts/nostalgex-channel-filter.cjs.
     var episodeTitleContains: [String]?
+    /// Whole words in the item's summary.
+    var episodeSummaryContains: [String]?
+    /// Whole words in the own title that only count for an episode first aired inside
+    /// `episodeAirWindow`. Films never take this path.
+    var episodeSeasonalTitleContains: [String]?
+    var episodeAirWindow: AirWindow?
+    /// Whole words in the own title that veto the item.
+    var episodeTitleExcludes: [String]?
+    /// This channel's genre tests also read the item's TMDB genres (`MediaEnrichment.tmdbGenres`).
+    /// A Plex listing carries two genres per film; TMDB has them all.
+    var matchTmdbGenres: Bool = false
     var titleExcludes: [String]? // excludes if title contains any of these (case-insensitive)
     var editorialOverrides: [String]? // exact title matches always included regardless of other rules
     var addedWithinDays: Int? // only items added to library within this many days
@@ -278,8 +327,30 @@ struct ExclusiveRule {
     /// owned by this rule — so manifest-claimed anime is blocked from other
     /// channels even when Plex tags it "Animation" instead of "Anime".
     let manifestExclusive: Bool
+    /// Optional scope: the lock only applies to items of this type and library source.
+    /// The holiday lock is movie + movie library, so a show called Santa Clarita Diet and
+    /// a Christmas song on a music video are no longer locked to movie channels that can
+    /// never air them. Mirrors `exclusiveRuleApplies` in scripts/nostalgex-channel-filter.cjs.
+    var type: MediaType? = nil
+    var source: LibrarySource? = nil
 
+    func applies(to item: PlexMediaItem) -> Bool {
+        if let type, item.type != type { return false }
+        if let source, (item.librarySource ?? .movie) != source { return false }
+        return true
+    }
+
+    /// Mirrors `exclusiveRuleMatches` in scripts/nostalgex-channel-filter.cjs; both read
+    /// scripts/filter-golden.json. A lock looks at the item's own title (the song for a
+    /// music video, never the artist), year suffix ignored:
+    /// - `editorialTitles`: the exact title
+    /// - `titleContains`: whole words, the same boundary rule as a channel's
+    ///   `titleContains` (`AppState.titleContainsWordLower`). It used to be a substring
+    ///   test, so "Scream" locked Kicking & Screaming off every channel it belongs on and
+    ///   "Santa" caught Santana.
+    /// - `genres`: substring of a genre tag
     func matches(_ item: PlexMediaItem) -> Bool {
+        guard applies(to: item) else { return false }
         let titleLower = item.title.lowercased()
         // Plex's TMDB agent routinely stores films as "Elf (2003)". Every other
         // title comparison in the app strips that suffix, but this exact match
@@ -297,8 +368,10 @@ struct ExclusiveRule {
             return true
         }
 
-        // Title keyword match
-        if !titleContains.isEmpty && titleContains.contains(where: { titleLower.contains($0.lowercased()) }) {
+        // Title words: whole words only, never a substring of a longer word
+        if !titleContains.isEmpty && titleContains.contains(where: {
+            AppState.titleContainsWordLower(strippedLower, $0.lowercased())
+        }) {
             return true
         }
 
@@ -323,6 +396,8 @@ struct ExclusiveRuleJSON: Codable {
     let titleContains: [String]?
     let editorialTitles: [String]?
     let manifestExclusive: Bool?
+    let type: String?
+    let source: String?
 
     func toExclusiveRule() -> ExclusiveRule {
         ExclusiveRule(
@@ -330,7 +405,9 @@ struct ExclusiveRuleJSON: Codable {
             genres: genres ?? [],
             titleContains: titleContains ?? [],
             editorialTitles: editorialTitles ?? [],
-            manifestExclusive: manifestExclusive ?? false
+            manifestExclusive: manifestExclusive ?? false,
+            type: type.flatMap { MediaType(rawValue: $0) },
+            source: source.flatMap { LibrarySource(rawValue: $0) }
         )
     }
 }
@@ -391,6 +468,15 @@ struct YearRangeJSON: Codable {
     }
 }
 
+struct AirWindowJSON: Codable {
+    let from: String?
+    let to: String?
+
+    func toAirWindow() -> AirWindow {
+        AirWindow(from: from, to: to)
+    }
+}
+
 struct DurationRangeJSON: Codable {
     let min: Int?
     let max: Int?
@@ -415,6 +501,11 @@ struct ChannelRulesJSON: Codable {
     let rewatched: Bool?
     let titleContains: [String]?
     let episodeTitleContains: [String]?
+    let episodeSummaryContains: [String]?
+    let episodeSeasonalTitleContains: [String]?
+    let episodeAirWindow: AirWindowJSON?
+    let episodeTitleExcludes: [String]?
+    let matchTmdbGenres: Bool?
     let titleExcludes: [String]?
     let editorialOverrides: [String]?
     let addedWithinDays: Int?
@@ -455,6 +546,11 @@ struct ChannelRulesJSON: Codable {
             rewatched: rewatched ?? false,
             titleContains: titleContains,
             episodeTitleContains: episodeTitleContains,
+            episodeSummaryContains: episodeSummaryContains,
+            episodeSeasonalTitleContains: episodeSeasonalTitleContains,
+            episodeAirWindow: episodeAirWindow?.toAirWindow(),
+            episodeTitleExcludes: episodeTitleExcludes,
+            matchTmdbGenres: matchTmdbGenres ?? false,
             titleExcludes: titleExcludes,
             editorialOverrides: editorialOverrides,
             addedWithinDays: addedWithinDays,

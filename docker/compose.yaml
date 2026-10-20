@@ -1,0 +1,20 @@
+# Nostalgex web tuner. Copy this next to your other compose files, then:
+#   docker compose up -d
+# and open http://YOUR-SERVER-IP:8080 in any browser on your network.
+services:
+  nostalgex:
+    image: ghcr.io/chadmueller/nostalgex:latest
+    container_name: nostalgex
+    ports:
+      - "8080:8080"
+    environment:
+      # on: channels that need TMDB/IMDb data (keywords, studios, ratings) fill in.
+      #     Only TMDB and IMDb ids leave your network, to the shared cache and the
+      #     nostalgex.app relay. off: no outside requests except plex.tv for Plex sign-in.
+      NOSTALGEX_ENRICHMENT: "on"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

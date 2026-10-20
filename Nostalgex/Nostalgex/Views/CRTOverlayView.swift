@@ -1,10 +1,25 @@
 import SwiftUI
 import Combine
 
-/// CRT + VHS effect overlay: scanlines, vignette, flicker, tracking glitch, color fringe.
-struct CRTOverlayView: View {
-    var showScanlines: Bool = true
+/// How strong retro mode looks, in the guide and in full screen alike. Picked on a living
+/// room TV on 2026-10-18 from three trial looks: the old one (scanlines 0.12, and none in
+/// full screen, which read as too subtle), this one, and a stronger one. The Roku port
+/// matches these numbers.
+enum RetroLook {
+    static let scanlineOpacity = 0.18
+    static let cornerShadow = 0.78
+    static let topBottomShadow = 0.58
+    static let sideShadow = 0.48
+    /// Chance per 80 ms tick that the scanlines dip, and how far.
+    static let flickerChance = 0.08
+    static let flickerRange = 0.76...0.88
+    /// Chance that a tracking line runs at each 6 to 15 s check, and its brightness.
+    static let glitchChance = 0.45
+    static let glitchBrightness = 0.22
+}
 
+/// CRT + VHS effect overlay: scanlines, vignette, flicker, tracking glitch.
+struct CRTOverlayView: View {
     @State private var flickerOpacity: Double = 1.0
     @State private var trackingOffset: CGFloat = -200
     @State private var showTracking: Bool = false
@@ -14,14 +29,12 @@ struct CRTOverlayView: View {
     var body: some View {
         ZStack {
             // Scanlines
-            if showScanlines {
-                ScanlineLayer()
-                    .opacity(flickerOpacity)
-            }
+            ScanlineLayer(opacity: RetroLook.scanlineOpacity)
+                .opacity(flickerOpacity)
 
             // VHS tracking glitch line
             if showTracking {
-                TrackingGlitchLine(yOffset: trackingOffset)
+                TrackingGlitchLine(yOffset: trackingOffset, brightness: RetroLook.glitchBrightness)
             }
 
             // Vignette (dark edges, simulates tube curvature)
@@ -34,9 +47,9 @@ struct CRTOverlayView: View {
         .allowsHitTesting(false)
         .onReceive(flickerTimer) { _ in
             let roll = Double.random(in: 0...1)
-            if roll > 0.95 {
+            if roll > 1 - RetroLook.flickerChance {
                 withAnimation(.easeInOut(duration: 0.03)) {
-                    flickerOpacity = Double.random(in: 0.80...0.90)
+                    flickerOpacity = Double.random(in: RetroLook.flickerRange)
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
                     withAnimation(.easeInOut(duration: 0.03)) {
@@ -59,7 +72,7 @@ struct CRTOverlayView: View {
         trackingTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { _ in
             Task { @MainActor in
                 let roll = Double.random(in: 0...1)
-                if roll > 0.7 {
+                if roll > 1 - RetroLook.glitchChance {
                     triggerGlitch()
                 }
                 scheduleNextGlitch()
@@ -84,6 +97,8 @@ struct CRTOverlayView: View {
 // MARK: - Scanline layer
 
 private struct ScanlineLayer: View {
+    let opacity: Double
+
     var body: some View {
         Canvas { context, size in
             // Horizontal scanlines every 3px
@@ -94,7 +109,7 @@ private struct ScanlineLayer: View {
                     p.move(to: CGPoint(x: 0, y: y))
                     p.addLine(to: CGPoint(x: size.width, y: y))
                 }
-                context.stroke(path, with: .color(.black.opacity(0.12)), lineWidth: 1.5)
+                context.stroke(path, with: .color(.black.opacity(opacity)), lineWidth: 1.5)
                 y += spacing
             }
         }
@@ -112,7 +127,7 @@ private struct VignetteLayer: View {
             ZStack {
                 // Corner shadows (heavier than edges)
                 RadialGradient(
-                    gradient: Gradient(colors: [.clear, .clear, .black.opacity(0.7)]),
+                    gradient: Gradient(colors: [.clear, .clear, .black.opacity(RetroLook.cornerShadow)]),
                     center: .center,
                     startRadius: min(w, h) * 0.3,
                     endRadius: max(w, h) * 0.7
@@ -121,7 +136,7 @@ private struct VignetteLayer: View {
                 // Top/bottom edge darkening
                 VStack(spacing: 0) {
                     LinearGradient(
-                        colors: [.black.opacity(0.5), .clear],
+                        colors: [.black.opacity(RetroLook.topBottomShadow), .clear],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -130,7 +145,7 @@ private struct VignetteLayer: View {
                     Spacer()
 
                     LinearGradient(
-                        colors: [.clear, .black.opacity(0.5)],
+                        colors: [.clear, .black.opacity(RetroLook.topBottomShadow)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -140,7 +155,7 @@ private struct VignetteLayer: View {
                 // Left/right edge darkening
                 HStack(spacing: 0) {
                     LinearGradient(
-                        colors: [.black.opacity(0.4), .clear],
+                        colors: [.black.opacity(RetroLook.sideShadow), .clear],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
@@ -149,7 +164,7 @@ private struct VignetteLayer: View {
                     Spacer()
 
                     LinearGradient(
-                        colors: [.clear, .black.opacity(0.4)],
+                        colors: [.clear, .black.opacity(RetroLook.sideShadow)],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
@@ -164,6 +179,7 @@ private struct VignetteLayer: View {
 
 private struct TrackingGlitchLine: View {
     let yOffset: CGFloat
+    let brightness: Double
 
     var body: some View {
         GeometryReader { geo in
@@ -174,9 +190,9 @@ private struct TrackingGlitchLine: View {
                         LinearGradient(
                             colors: [
                                 .clear,
-                                .white.opacity(0.08),
-                                .white.opacity(0.15),
-                                .white.opacity(0.08),
+                                .white.opacity(brightness * 0.53),
+                                .white.opacity(brightness),
+                                .white.opacity(brightness * 0.53),
                                 .clear
                             ],
                             startPoint: .top,
@@ -190,7 +206,7 @@ private struct TrackingGlitchLine: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                .white.opacity(0.03),
+                                .white.opacity(brightness * 0.2),
                                 .clear
                             ],
                             startPoint: .top,

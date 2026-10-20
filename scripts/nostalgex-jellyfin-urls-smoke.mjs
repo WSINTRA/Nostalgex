@@ -94,6 +94,51 @@ check("no secure context (plain-http LAN tuner): still a 32-hex id", () => {
   }
 });
 
+// ── Emby, where it differs from Jellyfin (EmbyAPIService.swift), and Jellyfin unchanged ──
+// Shapes captured 2026-10-16 from Jellyfin 12.2.0 and Emby 4.8.11.0, 4.9.5.0 and 4.10.1.0
+// (/System/Info/Public), with names and ids replaced.
+const JELLYFIN_12_2 = { LocalAddress: "http://127.0.0.1:8096", ServerName: "lab", Version: "12.2.0",
+  ProductName: "Jellyfin Server", OperatingSystem: "", Id: "0123456789abcdef0123456789abcdef", StartupWizardCompleted: true };
+const EMBY = (Version) => ({ LocalAddresses: [], RemoteAddresses: [], ServerName: "lab", Version, Id: "fedcba9876543210fedcba9876543210" });
+
+check("Jellyfin libraries stay at /UserViews?userId= (unchanged)", () =>
+  strictEqual(JU.userViewsPath("jellyfin", "user 1"), "/UserViews?userId=user%201"));
+check("Emby libraries are /Users/{id}/Views (/UserViews is 404 on Emby)", () =>
+  strictEqual(JU.userViewsPath("emby", "user 1"), "/Users/user%201/Views"));
+check("Emby user id is path-escaped", () =>
+  strictEqual(JU.userViewsPath("emby", "a/b?c"), "/Users/a%2Fb%3Fc/Views"));
+check("Jellyfin PlaybackInfo body gains nothing on the retry (unchanged)", () =>
+  strictEqual(JSON.stringify(JU.serverStreamOnlyFields("jellyfin", true)), "{}"));
+check("Jellyfin PlaybackInfo body gains nothing on the first attempt (unchanged)", () =>
+  strictEqual(JSON.stringify(JU.serverStreamOnlyFields("jellyfin", false)), "{}"));
+check("Emby retry after a failed direct play turns off direct play AND direct stream", () =>
+  strictEqual(JSON.stringify(JU.serverStreamOnlyFields("emby", true)), '{"EnableDirectPlay":false,"EnableDirectStream":false}'));
+check("Emby first attempt lets the server decide", () =>
+  strictEqual(JSON.stringify(JU.serverStreamOnlyFields("emby", false)), "{}"));
+check("Plex never gets MediaBrowser fields", () =>
+  strictEqual(JSON.stringify(JU.serverStreamOnlyFields("plex", true)), "{}"));
+check("isMediaBrowser: Jellyfin and Emby, nothing else", () => {
+  strictEqual(JU.isMediaBrowser("jellyfin"), true);
+  strictEqual(JU.isMediaBrowser("emby"), true);
+  strictEqual(JU.isMediaBrowser("plex"), false);
+  strictEqual(JU.isMediaBrowser(undefined), false);
+});
+check("public info: Jellyfin 12.2 reads as Jellyfin", () =>
+  strictEqual(JU.serverKindFromPublicInfo(JELLYFIN_12_2), "jellyfin"));
+for (const v of ["4.8.11.0", "4.9.5.0", "4.10.1.0"]) {
+  check(`public info: Emby ${v} reads as Emby`, () => strictEqual(JU.serverKindFromPublicInfo(EMBY(v)), "emby"));
+}
+check("public info: anything unclear keeps the person's choice (null)", () => {
+  for (const x of [null, undefined, "", 42, [], {}, { ServerName: "x" }, { ProductName: "Emby Server" },
+    { LocalAddresses: "no", Version: "4.10.1.0", Id: "x" }, { LocalAddresses: [], Version: 4, Id: "x" }]) {
+    strictEqual(JU.serverKindFromPublicInfo(x), null, JSON.stringify(x));
+  }
+});
+check("stream URLs carry no backend switch: Emby and Jellyfin get the same direct and fallback URLs", () => {
+  strictEqual(direct("mp4"), `${S}/Videos/abc/stream.mp4?Static=true&MediaSourceId=ms%201&api_key=TOK`);
+  strictEqual(new URL(fb({ playSessionId: "p" })).pathname, "/Videos/abc/master.m3u8");
+});
+
 if (failures.length) {
   console.error(`jellyfin-urls: ${failures.length} failed, ${passed} passed`);
   for (const f of failures) console.error("  " + f);

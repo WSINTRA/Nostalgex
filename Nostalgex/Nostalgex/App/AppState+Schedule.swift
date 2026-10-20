@@ -41,6 +41,9 @@ extension AppState {
     /// User-initiated tunes go through `tuneChannelFromUser(_:method:precomputedSchedule:)`,
     /// which fires the signal with the correct method parameter.
     func selectChannel(_ channel: Channel, precomputedSchedule: ChannelSchedule? = nil) {
+        // A channel that stopped after repeated failures gets a fresh run whenever it is
+        // chosen again: by the viewer, on foreground return, or after a library reload.
+        channelFailureRun.reset()
         let pool = channel.filteredPool()
         print("[Plex90] SELECT CH \(channel.number) \(channel.name) (pool: \(pool.count) items)")
         currentPartIndex = 0

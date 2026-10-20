@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self-Host Nostalgex: Retro TV Guide for Plex, Jellyfin and Emby in Docker</title>
+<meta name="description" content="Run the Nostalgex web tuner as a Docker container next to your own Plex, Jellyfin or Emby server. Plain http on your network, so a browser can finally reach a local Jellyfin or Emby box.">
+<!-- ROBOTS:START (auto-generated) -->
+<meta name="robots" content="index, follow">
+<!-- ROBOTS:END (auto-generated) -->
+<link rel="canonical" href="https://www.nostalgex.app/self-host">
+<link rel="icon" type="image/png" sizes="48x48" href="/logo/favicon-48.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Self-Host Nostalgex: Retro TV Guide for Plex, Jellyfin and Emby in Docker">
+<meta property="og:description" content="Run the Nostalgex web tuner as a Docker container next to your own Plex, Jellyfin or Emby server. Plain http on your network, so a browser can finally reach a local Jellyfin or Emby box.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.nostalgex.app/self-host">
+<meta property="og:site_name" content="Nostalgex">
+<meta property="og:image" content="https://www.nostalgex.app/og-image-1200.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Nostalgex channel guide: a grid of live channels built from your own library">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Self-Host Nostalgex: Retro TV Guide for Plex, Jellyfin and Emby in Docker">
+<meta name="twitter:description" content="Run the Nostalgex web tuner as a Docker container next to your own Plex, Jellyfin or Emby server. Plain http on your network, so a browser can finally reach a local Jellyfin or Emby box.">
+<meta name="twitter:image" content="https://www.nostalgex.app/og-image-1200.png">
+
+<script async data-site="nostalgex" src="https://statsngraphs.lol/s.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://www.nostalgex.app/self-host#webpage",
+      "url": "https://www.nostalgex.app/self-host",
+      "name": "Self-Host Nostalgex: Retro TV Guide for Plex, Jellyfin and Emby in Docker",
+      "about": {
+        "@id": "https://www.nostalgex.app/#app"
+      },
+      "breadcrumb": {
+        "@id": "https://www.nostalgex.app/self-host#breadcrumb"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://www.nostalgex.app/self-host#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://www.nostalgex.app/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Self-host",
+          "item": "https://www.nostalgex.app/self-host"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://www.nostalgex.app/self-host#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Why would I run the Nostalgex web tuner myself?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Because nostalgex.app is served over https, and browsers refuse to let an https page reach a server on plain http or a raw LAN IP. That rule is why a local Jellyfin or Emby server with no certificate cannot be used from the hosted tuner. The container serves the same tuner over plain http on your own network, so the rule does not apply and your local server is reachable."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need this if I only use Plex?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Probably not. Plex hands out real certificates for local addresses through plex.direct, so the hosted web tuner at nostalgex.app already reaches a Plex server. If you watch on an Apple TV, the free App Store app is the better option either way."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What hardware does the Nostalgex container need?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A machine that stays on and runs Docker, on the same network as your media server: a Synology or Unraid NAS, a mini PC, a Raspberry Pi 4 or 5, or a spare Mac. The image is amd64 and arm64. There is no armv7 build. It is nginx serving static files, so it needs almost nothing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does the self-hosted Nostalgex container send anything outside my network?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sign-in and playback go straight from your browser to your own server. Plex sign-in uses plex.tv, the same as every Plex app. Metadata enrichment is on by default and sends only TMDB and IMDb ids to a shared cache and a relay, never titles, server addresses or credentials. Setting NOSTALGEX_ENRICHMENT=off turns that off. There are no analytics and no CDN scripts or fonts in the image."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+  /* Theme boot — runs before first paint so there's no flash on reload.
+     Flip DEFAULT_THEME to "light" to change the site default (one line).
+     ?theme=dark / ?theme=light in the URL previews a theme without saving it. */
+  (function () {
+    var DEFAULT_THEME = "dark";
+    var theme = null;
+    try { theme = localStorage.getItem("nostalgex-theme-v2"); } catch (e) {}
+    var q = /[?&]theme=(dark|light)/.exec(location.search);
+    if (q) theme = q[1];
+    if (theme !== "dark" && theme !== "light") theme = DEFAULT_THEME;
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body class="page-selfhost">
+
+  <header class="nav" id="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="Nostalgex, home">
+        <span class="brand-word" role="img" aria-label="Nostalgex">N<svg class="brand-o" viewBox="0 0 126 111" aria-hidden="true"><defs><linearGradient id="brandSun" x1="0" y1="0" x2="1" y2="0.35"><stop offset="0.05" stop-color="#f838ac"/><stop offset="0.5" stop-color="#ff8a3d"/><stop offset="0.95" stop-color="#ffd91c"/></linearGradient></defs><rect x="6" y="6" width="114" height="99" rx="30" fill="url(#brandSun)" stroke="currentColor" stroke-width="11"/><path d="M12 43 H114" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.55"/><path d="M12 70 H114" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.55"/></svg>STALGEX</span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="/#how">How it works</a>
+        <a href="/#guide">The guide</a>
+        <a href="/#lineup">Lineup</a>
+        <a href="/#top" data-changelog-home>What's new</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-outline btn-sm btn-icon" href="/web-tuner" aria-label="Web app" title="Web app">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <span class="btn-icon-text">Web app</span>
+        </a>
+        <a class="btn btn-ink btn-sm btn-icon" href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener" aria-label="Get the tvOS app" title="Get the tvOS app">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M17.05 12.54c-.03-2.89 2.36-4.28 2.47-4.35-1.35-1.97-3.44-2.24-4.18-2.27-1.78-.18-3.47 1.05-4.37 1.05-.9 0-2.29-1.02-3.77-.99-1.94.03-3.73 1.13-4.72 2.86-2.02 3.5-.52 8.67 1.45 11.51.96 1.39 2.1 2.95 3.6 2.9 1.45-.06 1.99-.93 3.74-.93s2.24.93 3.77.9c1.56-.03 2.54-1.41 3.49-2.81 1.1-1.61 1.55-3.17 1.58-3.25-.04-.02-3.03-1.16-3.06-4.62zM14.16 4.06c.8-.97 1.34-2.31 1.19-3.65-1.15.05-2.55.77-3.37 1.73-.74.86-1.39 2.23-1.22 3.54 1.29.1 2.6-.65 3.4-1.62z"/></svg>
+          <span class="btn-icon-text">Get the tvOS app</span>
+        </a>
+        <div class="nav-social" aria-label="Nostalgex elsewhere">
+          <a class="social-icon" href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+          <a class="social-icon" href="https://discord.gg/FgnZcr5bDT" target="_blank" rel="noopener" aria-label="Discord" title="Discord">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.07.07 0 0 0-.075.035c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.035A19.736 19.736 0 0 0 3.68 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127c-.598.35-1.22.645-1.873.893a.076.076 0 0 0-.04.106c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.673-3.549-13.662a.06.06 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.955 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg>
+          </a>
+          <a class="social-icon" href="https://instagram.com/nostalgex_" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="0.9" fill="currentColor" stroke="none"/></svg>
+          </a>
+          <a class="social-icon" href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener" aria-label="Buy me a coffee" title="Buy me a coffee">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h12v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z"/><path d="M16 9h2a2 2 0 0 1 0 4h-2"/><path d="M7 3v2M11 3v2"/></svg>
+          </a>
+        </div>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="true" aria-label="Switch to day mode" title="Switch to day mode">
+          <svg class="tt-icon tt-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/>
+          </svg>
+          <svg class="tt-icon tt-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.3 8.3 0 1 0 10.5 10.5z"/>
+          </svg>
+        </button>
+        <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">
+          <svg class="nt-icon nt-burger" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          <svg class="nt-icon nt-close" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+        </button>
+      </div>
+    </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <nav class="mobile-menu-links" aria-label="Mobile">
+      <a href="/#how">How it works</a>
+      <a href="/#guide">The guide</a>
+      <a href="/#lineup">Lineup</a>
+      <a href="/#top" data-changelog-home>What's new</a>
+    </nav>
+    <div class="mobile-menu-social" aria-label="Nostalgex elsewhere">
+    <a class="social-icon" href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+    <a class="social-icon" href="https://discord.gg/FgnZcr5bDT" target="_blank" rel="noopener" aria-label="Discord" title="Discord">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.07.07 0 0 0-.075.035c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.035A19.736 19.736 0 0 0 3.68 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127c-.598.35-1.22.645-1.873.893a.076.076 0 0 0-.04.106c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.673-3.549-13.662a.06.06 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.955 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg>
+    </a>
+    <a class="social-icon" href="https://instagram.com/nostalgex_" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="0.9" fill="currentColor" stroke="none"/></svg>
+    </a>
+    <a class="social-icon" href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener" aria-label="Buy me a coffee" title="Buy me a coffee">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h12v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z"/><path d="M16 9h2a2 2 0 0 1 0 4h-2"/><path d="M7 3v2M11 3v2"/></svg>
+    </a>
+    </div>
+  </div>
+  </header>
+
+  <main id="top">
+    <section class="section doc-hero">
+      <div class="container sh-hero">
+        <div class="sh-hero-copy">
+          <h1>Run Nostalgex on your own server</h1>
+          <p>The same web tuner that runs at nostalgex.app, as a small Docker container sitting next to your media server. It serves the tuner over plain http on your own network, which is the one thing the hosted site can't do.</p>
+          <p>That matters if you run Jellyfin or Emby on a plain <code>http://</code> address. Browsers won't let an https page talk to a plain http server, so nostalgex.app can't reach your box no matter what you type into it. Run the tuner yourself and that wall is gone.</p>
+        </div>
+
+        <aside class="sh-quickstart" aria-labelledby="sh-quickstart-heading">
+          <div class="sh-quickstart-head">
+            <svg class="sh-docker-mark" viewBox="0 0 24 18" role="img" aria-label="Docker" focusable="false">
+              <path fill="currentColor" d="M13.6 7.2h2.3v-2h-2.3v2Zm-2.9 0H13v-2h-2.3v2Zm-2.8 0h2.3v-2H7.9v2Zm-2.8 0h2.3v-2H5.1v2Zm2.8-2.6h2.3V2.5H7.9v2.1Zm2.8 0H13V2.5h-2.3v2.1Zm0-2.6H13V0h-2.3v2Zm5.7 5.2H19v-2h-2.6v2Zm7.1 1.2c-.5-.3-1.6-.5-2.5-.3-.1-.9-.6-1.6-1.4-2.3l-.5-.3-.3.5c-.4.6-.6 1.5-.5 2.3 0 .3.1.8.4 1.2-.3.2-.9.4-1.7.4H.6l-.1.4c-.2 1.3 0 2.7.6 3.9.7 1.3 1.8 2.3 3.2 2.8 1.5.5 3.9.8 6.5.3 1.9-.4 3.6-1.1 5.1-2.3 1.2-.9 2.2-2.1 3-3.5h.2c1.6 0 2.6-.6 3.1-1.2.4-.4.6-.8.8-1.3l.1-.4-.4-.2Z"/>
+            </svg>
+            <h2 id="sh-quickstart-heading">Start here</h2>
+          </div>
+          <p class="sh-quickstart-sub">One command. Nothing is installed on your media server.</p>
+          <pre class="sh-cmd"><code>docker run -d --name nostalgex -p 8080:8080 --restart unless-stopped ghcr.io/chadmueller/nostalgex:latest</code></pre>
+          <p class="sh-quickstart-then">Then open <code>http://YOUR-SERVER-IP:8080</code> in a browser on the same network.</p>
+          <div class="sh-quickstart-links">
+            <a class="sh-quickstart-cta" href="#run-it">Compose file and the rest of the setup</a>
+            <a href="https://github.com/chadMueller/Nostalgex/pkgs/container/nostalgex" target="_blank" rel="noopener">Image on GHCR</a>
+            <a href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener">Source on GitHub</a>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div class="container doc-layout">
+      <nav class="doc-toc" aria-label="Contents">
+          <a href="#what">What this is</a>
+          <a href="#not-for-you">Who doesn't need it</a>
+          <a href="#what-you-need">What you need</a>
+          <a href="#run-it">Get it running</a>
+          <a href="#network">What leaves your network</a>
+          <a href="#where">Where it works</a>
+          <a href="#limits">When it doesn't work</a>
+          <a href="#help">Help</a>
+      </nav>
+
+      <div class="doc-body">
+        <!-- PREVIEW-NOTE:START (auto-generated) -->
+        <!-- PREVIEW-NOTE:END (auto-generated) -->
+        <section class="doc-section" id="what">
+<h2>What this is</h2>
+    <p>Nostalgex turns your own Plex, Jellyfin or Emby library into live TV channels with a real channel guide. There are three ways to watch it: the <a href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener">Apple TV app</a>, the <a href="/web-tuner">hosted web tuner</a>, and this, a Docker container you run yourself.</p>
+    <p>The container is nginx serving the tuner's static files on port 8080. No database, no backend, nothing to sign up for, nothing installed on your media server. Start it, open <code>http://YOUR-SERVER-IP:8080</code> in a browser on your network, and connect the same way you would on the hosted site.</p>
+
+    <h3>The mixed-content wall, and why this is the fix</h3>
+    <p>nostalgex.app is served over https. Browsers block an https page from reaching a plain <code>http://</code> address or a raw LAN IP, and there's no setting that turns that off. It's a rule of the web, not a choice I made.</p>
+    <p>Plex slips past it because plex.direct hands out real certificates for local addresses. Jellyfin and Emby usually don't have that, so a server at <code>http://192.168.1.50:8096</code> is simply unreachable from the hosted tuner.</p>
+    <p>Running the container puts the tuner on plain http too, on the same network as your server. Same origin rules, same protocol, no block. Everything that was impossible in a browser tab now works.</p>
+    <p>The second reason people want this: nothing of mine sits in the path. Your browser talks to the container and your server. The only outside requests are listed <a href="#network">below</a>, and you can switch them off.</p>
+        </section>
+
+        <section class="doc-section" id="not-for-you">
+<h2>Who doesn't need it</h2>
+    <p>Worth saying plainly, because this is extra work and plenty of people can skip it.</p>
+    <ul>
+      <li><strong>You use Plex and you watch on an Apple TV.</strong> Install the <a href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener">free App Store app</a> and stop reading. It connects straight to a local server, plain http included, and it's the best version of Nostalgex there is.</li>
+      <li><strong>You use Plex and you want it in a browser.</strong> The <a href="/web-tuner">hosted tuner</a> already works. plex.direct gives your server a real certificate, so there's nothing to get around.</li>
+      <li><strong>Your Jellyfin or Emby is already on https with a valid certificate</strong> through a reverse proxy, Tailscale Serve or a Cloudflare Tunnel. The hosted tuner reaches that fine. You might need one CORS header at the proxy, which the <a href="/support#cors">support page</a> walks through.</li>
+    </ul>
+    <p>What's left is the case this is built for: Jellyfin or Emby on a plain http address on your LAN, and you want it in a browser instead of on an Apple TV. Or you'd rather run the whole thing yourself.</p>
+        </section>
+
+        <section class="doc-section" id="what-you-need">
+<h2>What you need</h2>
+    <ul>
+      <li><strong>A machine that stays on, with Docker.</strong> A Synology or Unraid NAS, a mini PC or NUC, a Raspberry Pi 4 or 5, or a spare Mac. If it already runs your media server, run it there.</li>
+      <li><strong>The same network as your media server.</strong> The browser has to reach both, so they need to be on the same LAN.</li>
+      <li><strong>amd64 or arm64.</strong> Both are published. There's no armv7 build, so older Pi and Synology models are out.</li>
+      <li><strong>One free port.</strong> 8080 by default. Change the left side of <code>-p</code> if something else already has it.</li>
+    </ul>
+    <p>That's the whole list. It's nginx serving static files as a non-root user (uid 101), it runs happily with a read-only root filesystem as long as <code>/tmp</code> is writable, and it uses almost nothing while it sits there.</p>
+        </section>
+
+        <section class="doc-section" id="run-it">
+<h2>Get it running</h2>
+    <h3>docker run</h3>
+    <pre><code>docker run -d --name nostalgex -p 8080:8080 --restart unless-stopped ghcr.io/chadmueller/nostalgex:latest</code></pre>
+
+    <h3>Or compose</h3>
+    <p>Drop this next to your other compose files and run <code>docker compose up -d</code>. There's a fuller version in the repo at <a href="https://github.com/chadMueller/Nostalgex/blob/main/docker/compose.yaml" target="_blank" rel="noopener"><code>docker/compose.yaml</code></a>.</p>
+    <pre><code>services:
+  nostalgex:
+    image: ghcr.io/chadmueller/nostalgex:latest
+    container_name: nostalgex
+    ports:
+      - "8080:8080"
+    environment:
+      NOSTALGEX_ENRICHMENT: "on"   # "off" for no outside requests, see below
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: unless-stopped</code></pre>
+
+    <h3>Then open it</h3>
+    <p>Go to <code>http://YOUR-SERVER-IP:8080</code> in any browser on your network, using whatever address the machine answers on: <code>http://192.168.1.20:8080</code>, <code>http://nas.local:8080</code>, whatever you already use. Connect Plex, Jellyfin or Emby the same way you would on the hosted tuner.</p>
+
+    <h3>Updating</h3>
+    <p><code>docker compose pull &amp;&amp; docker compose up -d</code>, or <code>docker pull ghcr.io/chadmueller/nostalgex:latest</code> and recreate the container. Tags are <code>latest</code>, <code>1.0</code> and <code>1.0.0</code> style versions, so you can pin a line if you'd rather not move with <code>latest</code>.</p>
+
+    <h3>Building it yourself</h3>
+    <p>The whole thing is in the repo, so you don't have to trust my image:</p>
+    <pre><code>docker build -t nostalgex .
+docker run -d --name nostalgex -p 8080:8080 nostalgex</code></pre>
+    <p>Enrichment needs the shared cache's address and public anon key at build time: add <code>--build-arg VITE_SUPABASE_URL=... --build-arg VITE_SUPABASE_ANON_KEY=...</code>, or point them at your own Supabase project. Without them it builds with enrichment off. To skip Docker entirely, <code>npm run build:selfhost</code> writes the same files to <code>dist-selfhost/</code> and any static server will do, as long as it serves <code>.cjs</code> as JavaScript.</p>
+        </section>
+
+        <section class="doc-section" id="network">
+<h2>What leaves your network</h2>
+    <p>The point of running it yourself is knowing where things go, so here's the whole list for the container's tuner.</p>
+
+    <div class="sh-table-wrap">
+      <table class="sh-table">
+        <thead>
+          <tr>
+            <th scope="col">Where</th>
+            <th scope="col">When</th>
+            <th scope="col">Turn it off</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Your media server</th>
+            <td data-label="When">Always. Sign-in and playback go straight from the browser to your server.</td>
+            <td></td>
+          </tr>
+          <tr>
+            <th scope="row">plex.tv</th>
+            <td data-label="When">Plex only: PIN sign-in and finding your server, like every Plex app.</td>
+            <td data-label="Turn it off">Use Jellyfin or Emby</td>
+          </tr>
+          <tr>
+            <th scope="row">The shared metadata cache (Supabase) and the nostalgex.app TMDB/OMDb relay</th>
+            <td data-label="When">On by default. Nine or more channels need keywords, studios or IMDb ratings to fill (TEEN MOVIES, TRUE CRIME, CULT CLASSICS and others). Only TMDB and IMDb ids leave the browser: no titles, no server address, no credentials.</td>
+            <td data-label="Turn it off"><code>NOSTALGEX_ENRICHMENT=off</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>There are no analytics, no scripts or fonts from a CDN, and no MusicBrainz or Deezer lookups in the image. With <code>NOSTALGEX_ENRICHMENT=off</code> and Jellyfin or Emby, the browser talks to the container and your media server and nothing else. With it on, those channels fill the way they do on Apple TV.</p>
+    <p>The switch is an environment variable, so it's one line in your compose file:</p>
+    <pre><code>environment:
+  NOSTALGEX_ENRICHMENT: "off"</code></pre>
+    <p>A value the container doesn't recognise is treated as <code>off</code>, on purpose. A typo shouldn't quietly send requests you tried to stop.</p>
+        </section>
+
+        <section class="doc-section" id="where">
+<h2>Where it works</h2>
+    <p>Here's the honest state of it. Nothing in this table says "works" unless it's actually been run there.</p>
+        <!-- DEVICES:START (auto-generated) -->
+        <div class="sh-table-wrap">
+          <table class="sh-table">
+            <thead>
+              <tr>
+                <th scope="col">Where</th>
+                <th scope="col">Status</th>
+                <th scope="col">What that means</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <th scope="row">Desktop browsers<span class="sh-device-detail">Chrome, Safari and Firefox on a Mac</span></th>
+              <td data-label="Status"><span class="sh-pill sh-pill--ok">Works</span></td>
+              <td data-label="What that means">Tested. This is the surface the tuner is built for.</td>
+            </tr>
+            <tr>
+              <th scope="row">iPhone and iPad<span class="sh-device-detail">Safari</span></th>
+              <td data-label="Status"><span class="sh-pill sh-pill--ok">Works</span></td>
+              <td data-label="What that means">Tested from the container on a real iPhone and iPad. Plays inline with the phone and tablet layouts, and the controls sit in a menu on the phone.</td>
+            </tr>
+            <tr>
+              <th scope="row">Google TV<span class="sh-device-detail">TV Bro browser</span></th>
+              <td data-label="Status"><span class="sh-pill sh-pill--ok">Works</span></td>
+              <td data-label="What that means">Tested on a Google TV. The remote moves an on-screen cursor and OK clicks, so everything is a button: UP and DOWN under the guide, CLOSE in Settings, and OK on the picture in full screen brings up channel, sound and exit. Back belongs to the browser. Sound starts off; turn it on once and it comes back with your first click next time. Surround audio not tested yet.</td>
+            </tr>
+            <tr>
+              <th scope="row">Other TV browsers<span class="sh-device-detail">Fire TV Silk, Samsung and LG</span></th>
+              <td data-label="Status"><span class="sh-pill sh-pill--unknown">Untested</span></td>
+              <td data-label="What that means">No results yet, good or bad. TV browsers vary a lot and some cannot decode surround audio. If you try one, tell me what happened.</td>
+            </tr>
+            <tr>
+              <th scope="row">Apple TV<span class="sh-device-detail">tvOS</span></th>
+              <td data-label="Status"><span class="sh-pill sh-pill--na">Use the app</span></td>
+              <td data-label="What that means">tvOS has no web browser. The free App Store app does this job properly, with the Siri Remote and no mixed-content rule.</td>
+            </tr>
+            <tr>
+              <th scope="row">Roku</th>
+              <td data-label="Status"><span class="sh-pill sh-pill--na">No</span></td>
+              <td data-label="What that means">Roku has no web browser, so there is nothing to open the tuner in.</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="sh-table-stamp">Last updated 2026-10-15. Anything not listed here has not been tried. Tell me what you ran it on and this table gets another row.</p>
+        <!-- DEVICES:END (auto-generated) -->
+        </section>
+
+        <section class="doc-section" id="limits">
+<h2>When it doesn't work</h2>
+
+    <h3>A reverse proxy puts the wall back</h3>
+    <p>This is the one that catches people. If you put the tuner behind https at <code>https://nostalgex.mydomain.com</code> and your Jellyfin is still plain http, the browser blocks Jellyfin again, for exactly the reason you installed the container to avoid.</p>
+    <p>Serve the tuner and your media server the same way. Both on plain http inside your network is the simple setup and the one this is built for. If you want https, put both behind it.</p>
+
+    <h3>No armv7</h3>
+    <p>amd64 and arm64 only. Older Raspberry Pi and Synology models won't pull the image. A Pi 4 or 5 on a 64-bit OS (<code>uname -m</code> says <code>aarch64</code>) is fine.</p>
+
+    <h3>Surround audio on TV browsers</h3>
+    <p>Some smart TV browsers can't decode surround audio, so a file with a 5.1 track can play silently or not at all. That's the browser, not the tuner. If a channel won't play on a TV, try it on a laptop or a phone first to see whether it's the file or the device, and use the Apple TV app on a TV.</p>
+
+    <h3>Music video genres</h3>
+    <p>MusicBrainz and Deezer lookups are off in the image, because they'd be outside requests. The music video channels still work and still show titles and artists. Genre splits are thinner than they are on Apple TV.</p>
+        </section>
+
+        <section class="doc-section" id="help">
+<h2>Help</h2>
+    <div class="doc-note">
+      <p><strong>Discord</strong> <a href="https://discord.gg/FgnZcr5bDT" target="_blank" rel="noopener">join the server</a>. Quickest way to get an answer, and where new versions get mentioned first.</p>
+      <p><strong>Bugs and feature requests</strong> <a href="https://github.com/chadMueller/Nostalgex/issues" target="_blank" rel="noopener">GitHub Issues</a>.</p>
+      <p><strong>Email</strong> <a href="mailto:support@nostalgex.app">support@nostalgex.app</a>.</p>
+    </div>
+    <p>Reporting a problem with the container? The useful bits: which server you're on (Plex, Jellyfin or Emby) and its version, what the machine running Docker is, the browser you opened it in, the output of <code>docker logs nostalgex</code>, and anything red in the browser's dev console.</p>
+    <p>If you've run it somewhere that isn't in the table above, say so even if it worked. That table only grows from real reports.</p>
+    <p>More setup help is on the <a href="/support">support page</a>, and the full technical write-up is in the <a href="https://github.com/chadMueller/Nostalgex#run-it-on-your-server" target="_blank" rel="noopener">repo README</a>. Nostalgex is MIT licensed and free, and it's staying that way. If it gives you a good Friday night you can <a href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener">buy me a coffee</a>.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <img src="./logo/nostalgex-black.svg" alt="Nostalgex" width="545" height="72" class="footer-logo footer-logo-day" loading="lazy">
+        <img src="./logo/nostalgex-white.svg" alt="Nostalgex" width="545" height="72" class="footer-logo footer-logo-nite" loading="lazy">
+        <p>Retro cable TV for your own library.</p>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener">Apple TV app</a>
+        <a href="/web-tuner">Web tuner</a>
+        <a href="/plex">Plex</a>
+        <a href="/jellyfin">Jellyfin</a>
+        <a href="/emby">Emby</a>
+        <a href="/channels">Channel Guide</a>
+        <a href="/blog">Blog</a>
+        <a href="/support">Support</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/#top">What's new</a>
+        <a href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener">Buy me a coffee</a>
+      </nav>
+      <div class="footer-signup">
+        <p class="footer-signup-label">Update emails, when there's something to say</p>
+        <form class="subscribe-form js-subscribe-form" novalidate>
+          <label class="visually-hidden" for="footerEmail">Email address</label>
+          <input class="subscribe-input" id="footerEmail" type="email" name="email" placeholder="you@somewhere.tv" autocomplete="email" maxlength="254" required>
+          <button class="btn btn-ink btn-sm subscribe-btn" type="submit">Sign up</button>
+        </form>
+        <p class="subscribe-msg" role="status" aria-live="polite"></p>
+      </div>
+      <p class="footer-note">Not affiliated with Plex, Jellyfin, Emby, or Apple.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

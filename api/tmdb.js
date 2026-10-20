@@ -21,20 +21,37 @@
  * daily limit as HTTP 401 "Request limit reached!"; the relay turns that into a 429
  * so clients can tell it from a bad key.
  *
- * `X-Nostalgex-Client: tvos` (the Apple TV app) or `web` (the browser tuner) is a
- * cheap filter against stray browsers and crawlers, not security. Nothing about a
- * request is logged, ids included.
+ * `X-Nostalgex-Client: tvos` (the Apple TV app), `web` (the browser tuner),
+ * `roku` (the Roku port) or `selfhost` (the tuner in the Docker image) is a cheap
+ * filter against stray browsers and crawlers, not security. Nothing about a request
+ * is logged, ids included.
+ *
+ * Roku needs no CORS: roUrlTransfer is not a browser, so it sends no Origin and
+ * reads the body whatever the allow-origin header says. It only has to clear the
+ * client filter, and it gets the same path allowlist and the same edge cache.
  *
  * CORS. The tuner on nostalgex.app calls this same-origin and needs nothing. A
  * cross-origin page (www vs apex, or the Vite dev server) sends a preflight because
- * of the custom header. Only the origins in ALLOWED_ORIGINS get their Origin echoed
- * back; anything else gets no Access-Control-Allow-Origin and the browser blocks it.
+ * of the custom header. The origins in ALLOWED_ORIGINS get their Origin echoed back.
+ *
+ * Self-hosted tuners run on whatever address a home server has
+ * (http://192.168.1.50:8080, http://nas.local:8080, a reverse-proxied domain), so
+ * their origins cannot be listed. A `selfhost` GET from any http(s) origin gets its
+ * Origin echoed. A preflight cannot carry the header's value, only its name, so a
+ * preflight from any http(s) origin that asks to send X-Nostalgex-Client is allowed;
+ * the GET that follows still needs `selfhost` (or a listed origin) to be readable.
+ * Everything else is unchanged for self-host: the same path allowlist, the same
+ * edge cache headers, and the client's own request pacing.
  */
 
 const TMDB = 'https://api.themoviedb.org/3';
 const OMDB = 'https://www.omdbapi.com/';
 const CLIENT_HEADER = 'x-nostalgex-client';
-const CLIENT_VALUES = new Set(['tvos', 'web']);
+const SELFHOST_CLIENT = 'selfhost';
+const CLIENT_VALUES = new Set(['tvos', 'web', 'roku', SELFHOST_CLIENT]);
+// A bare http(s) origin: scheme, host, optional port. Rejects "null" (sandboxed
+// frames, file://) and anything with a path.
+const ORIGIN_RE = /^https?:\/\/[^/\s?#]+$/;
 const ALLOWED_ORIGINS = new Set([
   'https://www.nostalgex.app',
   'https://nostalgex.app',
@@ -88,14 +105,25 @@ export function upstreamRequest(query) {
   return null;
 }
 
+/** True when a preflight asks to send X-Nostalgex-Client. */
+function preflightAsksForClientHeader(requestHeaders) {
+  if (typeof requestHeaders !== 'string') return false;
+  return requestHeaders.split(',').some((h) => h.trim().toLowerCase() === CLIENT_HEADER);
+}
+
 /**
  * CORS headers for one request. Every response varies on Origin and the client
  * header, so the edge cache never hands one origin's answer (or a 403 for a missing
- * header) to another. Exported for the smoke test.
+ * header) to another. `client` is the X-Nostalgex-Client value on a GET;
+ * `preflightHeaders` is Access-Control-Request-Headers on an OPTIONS. Exported for
+ * the smoke test.
  */
-export function corsHeaders(origin) {
+export function corsHeaders(origin, { client, preflightHeaders } = {}) {
   const headers = { Vary: 'Origin, X-Nostalgex-Client' };
-  if (typeof origin === 'string' && ALLOWED_ORIGINS.has(origin)) {
+  const listed = typeof origin === 'string' && ALLOWED_ORIGINS.has(origin);
+  const selfhost = typeof origin === 'string' && ORIGIN_RE.test(origin)
+    && (client === SELFHOST_CLIENT || preflightAsksForClientHeader(preflightHeaders));
+  if (listed || selfhost) {
     headers['Access-Control-Allow-Origin'] = origin;
     headers['Access-Control-Allow-Headers'] = 'X-Nostalgex-Client';
     headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS';
@@ -105,7 +133,11 @@ export function corsHeaders(origin) {
 }
 
 export default async function handler(req, res) {
-  for (const [key, value] of Object.entries(corsHeaders(req.headers?.origin))) {
+  const cors = corsHeaders(req.headers?.origin, {
+    client: req.headers?.[CLIENT_HEADER],
+    preflightHeaders: req.method === 'OPTIONS' ? req.headers?.['access-control-request-headers'] : undefined,
+  });
+  for (const [key, value] of Object.entries(cors)) {
     res.setHeader(key, value);
   }
 

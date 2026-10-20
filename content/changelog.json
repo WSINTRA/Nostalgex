@@ -1,9 +1,35 @@
 {
   "entries": [
     {
-      "version": "1.0.26",
+      "version": "1.0.27",
       "date": "OCT 2026",
       "released": false,
+      "title": "Holiday channels, a stronger retro look, and a lot of playback fixes",
+      "bullets": [
+        "TIS THE SEASON grows to eight channels: MISTLETOE for cozy holiday romances, CHRISTMAS SPECIALS and KIDS CHRISTMAS TV with the Christmas episodes of your shows, and TURKEY DAY for Thanksgiving episodes. It shows up a week before US Thanksgiving, in time for TURKEY DAY.",
+        "SCREAM is eight channels and can stay on in any month: SLASHER, HORROR COMEDY, FOUND FOOTAGE and WORLD HORROR join. Plus MYSTERY BOX TV, CRINGE TV and A24. Channel ideas from @tydude001.",
+        "Retro mode looks more like an old TV, with scanlines in full screen too.",
+        "Films with Blu-ray 7.1 audio that wouldn't start, like The Wild Robot, play now.",
+        "Jellyfin Quick Connect works on Jellyfin 12. Thanks to @tydude001 for spotting it.",
+        "On Emby, tuning into a film part way through keeps the sound in sync with the picture. 4K HEVC files can still drift.",
+        "Jellyfin and Emby no longer burn subtitles into the picture, which re-encoded the whole film. Forced subtitles in your language still show.",
+        "Dolby Vision profile 5 from Jellyfin shows the right colours. On Emby those files are left off channels, since Emby sends them green and purple.",
+        "TOON TOWN no longer airs The Hobbit.",
+        "RATE opens the Nostalgex page in the App Store.",
+        "Your server's collections of TV shows now become channels too, not just collections of movies.",
+        "Report Playback is now two switches: SHOW NOW PLAYING and MARK WATCHED. Use either one on its own. Thanks to @w6trp.",
+        "PLAYBACK INFORMATION at the bottom of the Now Playing panel shows how the current programme is playing and why it fell back, which makes a not-playing report much quicker to sort out. Thanks to @w6trp.",
+        "Channel changes during a stall can no longer let an old stream take over the new channel. Thanks to @w6trp.",
+        "A Plex library with a file or folder name in an old text encoding loads again instead of stopping with an unexpected data error.",
+        "A channel where nothing will play stops after five tries and says so, instead of retrying forever.",
+        "Emby's backup stream works, and stalled Jellyfin and Emby streams recover by asking the server again.",
+        "The app sends far fewer anonymous usage signals."
+      ]
+    },
+    {
+      "version": "1.0.26",
+      "date": "OCT 2026",
+      "released": true,
       "title": "Franchises, iCloud sync, tips, and big libraries that stay put",
       "bullets": [
         "FRANCHISES finds the film series in your own library, from Star Wars to American Pie, and gives each one its own channel with its own switch in Settings.",
@@ -12,7 +38,7 @@
         "REPORT PLAYBACK shows what you are watching in Now Playing and counts a real watch, and never fills your Continue Watching row. Thanks to @w6trp for the Plex heartbeat it is built on.",
         "Plex films with more than one version, or split across several files, play the right version and start in the right part. Thanks to @w6trp.",
         "More channels fill up: titles are matched against TMDB and IMDb data, which fills channels that used to come up empty.",
-        "A tip jar in Settings: Popcorn, TV Dinner and Pizza Night, as many as you like. Nostalgex stays free and every tip unlocks nothing. Paid through your Apple account.",
+        "A tip jar in Settings: Popcorn, TV Dinner and Pizza Night, as many as you like. A tip is just a thank you. Paid through your Apple account.",
         "Very large libraries no longer crash right after the guide appears. The app now saves your library in small pieces in the background, so a library of several hundred thousand titles opens from the saved copy next time instead of scanning from scratch.",
         "Plex films keep their full titles. A title cleaner meant for music videos was trimming every film with a dash in its name, so Star Wars: Episode I showed as The Phantom Menace and Spider-Man as Man, and those films were missing from channels that look for them by name.",
         "Jellyfin: MP4 files saved with an .mkv name now play, and the backup stream works on new Jellyfin servers.",

@@ -36,6 +36,8 @@ function stubTMDB(response) {
   return calls;
 }
 
+const CLIENT_VALUES_OK = (r) => r.status !== 403;
+
 async function call({ method = "GET", query = {}, headers = { "x-nostalgex-client": "tvos" } } = {}) {
   let status = 0;
   let json = null;
@@ -104,6 +106,14 @@ check("undefined rejected", upstreamRequest(undefined), null);
   check("wrong client header no upstream", calls.length, 0);
 }
 {
+  // The Roku port is a native client: no Origin, so no CORS, just the client filter.
+  const calls = stubTMDB({ status: 200, body: { id: 603 } });
+  const r = await call({ query: { path: "movie/603" }, headers: { "x-nostalgex-client": "roku" } });
+  check("roku client header 200", r.status, 200);
+  check("roku client one upstream call", calls.length, 1);
+  check("roku client needs no allow-origin", r.headers["Access-Control-Allow-Origin"], undefined);
+}
+{
   const calls = stubTMDB({ status: 200, body: { id: 603 } });
   const r = await call({ query: { path: "movie/603" }, headers: { "x-nostalgex-client": "web" } });
   check("web client header 200", r.status, 200);
@@ -157,6 +167,73 @@ check("cors vary always", corsHeaders(undefined).Vary, "Origin, X-Nostalgex-Clie
   const r = await call({ query: { path: "movie/603" }, headers: { "x-nostalgex-client": "tvos" } });
   check("tvos no origin no allow origin", r.headers["Access-Control-Allow-Origin"], undefined);
   check("tvos no origin still varies", r.headers.Vary, "Origin, X-Nostalgex-Client");
+}
+// ---- Self-hosted tuners: any http(s) origin, `selfhost` client ----
+{
+  const lan = "http://192.168.1.50:8080";
+  check("selfhost header accepted", CLIENT_VALUES_OK(await call({ query: { path: "movie/603" }, headers: { "x-nostalgex-client": "selfhost" } })), true);
+  for (const origin of [lan, "http://nas.local:8080", "https://tuner.example.com", "http://[fd00::5]:8080"]) {
+    check(`selfhost cors echoes ${origin}`, corsHeaders(origin, { client: "selfhost" })["Access-Control-Allow-Origin"], origin);
+  }
+  for (const origin of ["null", "", undefined, "file://", "http://192.168.1.50:8080/path", "ftp://x"]) {
+    check(`selfhost cors refuses ${origin}`, corsHeaders(origin, { client: "selfhost" })["Access-Control-Allow-Origin"], undefined);
+  }
+  check("web client from a LAN origin still refused", corsHeaders(lan, { client: "web" })["Access-Control-Allow-Origin"], undefined);
+  check("tvos client from a LAN origin still refused", corsHeaders(lan, { client: "tvos" })["Access-Control-Allow-Origin"], undefined);
+  check("no client from a LAN origin refused", corsHeaders(lan)["Access-Control-Allow-Origin"], undefined);
+  check("selfhost vary unchanged", corsHeaders(lan, { client: "selfhost" }).Vary, "Origin, X-Nostalgex-Client");
+  check("listed origin unchanged", corsHeaders("https://www.nostalgex.app", { client: "web" })["Access-Control-Allow-Origin"], "https://www.nostalgex.app");
+}
+{
+  // Preflight from a LAN origin: the value is not visible yet, only the header name.
+  const calls = stubTMDB({ status: 200, body: {} });
+  const r = await call({
+    method: "OPTIONS", query: { path: "movie/603" },
+    headers: { origin: "http://192.168.1.50:8080", "access-control-request-headers": "x-nostalgex-client" },
+  });
+  check("selfhost preflight 204", r.status, 204);
+  check("selfhost preflight allow origin", r.headers["Access-Control-Allow-Origin"], "http://192.168.1.50:8080");
+  check("selfhost preflight allow headers", r.headers["Access-Control-Allow-Headers"], "X-Nostalgex-Client");
+  check("selfhost preflight no upstream", calls.length, 0);
+}
+{
+  const r = await call({
+    method: "OPTIONS", query: { path: "movie/603" },
+    headers: { origin: "http://192.168.1.50:8080", "access-control-request-headers": "authorization" },
+  });
+  check("preflight for another header refused", r.headers["Access-Control-Allow-Origin"], undefined);
+}
+{
+  // A GET can't borrow the preflight rule: the header name on a GET means nothing.
+  stubTMDB({ status: 200, body: {} });
+  const r = await call({
+    query: { path: "movie/603" },
+    headers: { origin: "http://192.168.1.50:8080", "x-nostalgex-client": "web", "access-control-request-headers": "x-nostalgex-client" },
+  });
+  check("LAN GET as web not readable", r.headers["Access-Control-Allow-Origin"], undefined);
+}
+{
+  const calls = stubTMDB({ status: 200, body: { id: 603 } });
+  const r = await call({ query: { path: "movie/603" }, headers: { origin: "http://192.168.1.50:8080", "x-nostalgex-client": "selfhost" } });
+  check("selfhost GET 200", r.status, 200);
+  check("selfhost GET readable", r.headers["Access-Control-Allow-Origin"], "http://192.168.1.50:8080");
+  check("selfhost GET same edge cache", r.headers["Cache-Control"], "public, s-maxage=86400, stale-while-revalidate=604800");
+  check("selfhost GET one upstream", calls.length, 1);
+}
+{
+  const calls = stubTMDB({ status: 200, body: {} });
+  const r = await call({ query: { path: "person/1" }, headers: { origin: "http://192.168.1.50:8080", "x-nostalgex-client": "selfhost" } });
+  check("selfhost path allowlist 400", r.status, 400);
+  check("selfhost path allowlist no upstream", calls.length, 0);
+}
+{
+  process.env.OMDB_API_KEY = "omdb_key";
+  const calls = stubTMDB({ status: 200, body: { Response: "True" } });
+  const r = await call({ query: { path: "omdb/tt0133093" }, headers: { origin: "http://192.168.1.50:8080", "x-nostalgex-client": "selfhost" } });
+  delete process.env.OMDB_API_KEY;
+  check("selfhost omdb ok", r.status, 200);
+  check("selfhost omdb readable", r.headers["Access-Control-Allow-Origin"], "http://192.168.1.50:8080");
+  check("selfhost omdb upstream", calls.length, 1);
 }
 {
   const calls = stubTMDB({ status: 200, body: {} });

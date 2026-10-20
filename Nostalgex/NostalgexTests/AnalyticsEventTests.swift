@@ -489,7 +489,9 @@ final class AnalyticsWrapperTests: XCTestCase {
     /// AppState only has to flip a single switch when entering / leaving demo mode.
     func testDemoContextRidesOnEverySignal() {
         let spy = SpyAnalyticsService()
-        Analytics.configure(with: spy)
+        // No gate: this checks the context flag, not the budget (the gate would hold
+        // back the second identical rate.tapped).
+        Analytics.configure(with: spy, gate: nil)
         defer {
             Analytics.setDemoMode(false)
             Analytics.configure(with: NoOpAnalytics())

@@ -5,7 +5,7 @@
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/90s-slasher-movies-halloween-marathon/scream-bundle-guide.webp": {
     "width": 1280,
-    "height": 412
+    "height": 720
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/apple-tv-channel-surfing-apps/cover.jpg": {
     "height": 630,
@@ -13,11 +13,11 @@
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/apple-tv-channel-surfing-apps/girls-night-overboard-grid.webp": {
     "width": 1280,
-    "height": 412
+    "height": 720
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/apple-tv-channel-surfing-apps/scream-adults-guide-grid.webp": {
     "width": 1280,
-    "height": 412
+    "height": 720
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/best-90s-buddy-cop-movies-channel/cover.jpg": {
     "height": 630,
@@ -25,11 +25,11 @@
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/best-90s-buddy-cop-movies-channel/last-action-heroes-and-buddies-guide.webp": {
     "width": 1280,
-    "height": 412
+    "height": 720
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/jellyfin-tv-guide-own-library/buddies-channel-eurotrip.webp": {
     "width": 1280,
-    "height": 565
+    "height": 720
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/jellyfin-tv-guide-own-library/cover.jpg": {
     "height": 630,
@@ -37,7 +37,7 @@
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/jellyfin-tv-guide-own-library/girls-night-guide-grid.webp": {
     "width": 1280,
-    "height": 412
+    "height": 720
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/make-plex-feel-like-cable-tv/cover.jpg": {
     "height": 630,
@@ -45,7 +45,15 @@
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/make-plex-feel-like-cable-tv/scream-banner-guide.webp": {
     "width": 1280,
-    "height": 565
+    "height": 720
+  },
+  "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/nostalgex-1-0-26-franchise-channels/cover.jpg": {
+    "height": 630,
+    "width": 1200
+  },
+  "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/nostalgex-1-0-26-franchise-channels/teen-movies-guide.webp": {
+    "width": 1280,
+    "height": 720
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/plex-virtual-channels-own-movies/cover.jpg": {
     "height": 630,
@@ -53,7 +61,7 @@
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/plex-virtual-channels-own-movies/teen-movies-channel-guide.webp": {
     "width": 1280,
-    "height": 565
+    "height": 720
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/tunarr-ersatztv-alternative-apple-tv/channel-flip-bar.webp": {
     "width": 1280,
@@ -65,6 +73,6 @@
   },
   "https://pub-98e43e3b886d48018eab8387d373ddb4.r2.dev/site/blog/tunarr-ersatztv-alternative-apple-tv/nostalgex-horror-guide.webp": {
     "width": 1280,
-    "height": 565
+    "height": 720
   }
 }

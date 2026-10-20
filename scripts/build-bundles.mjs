@@ -83,12 +83,23 @@ const INTRO_MAX_WORDS = 600;
 const FAQ_MIN = 3;
 const FAQ_MAX = 5;
 
-// The two static pages that carry a hard coded channel count in prose. Static
-// HTML cannot compute it, so the number is written out and checked here
-// instead: if channels.json ever says something other than what these pages
-// claim, the build stops and names the files.
-const HARD_CODED_COUNT_PAGES = ["plex.html", "jellyfin.html"];
-const HARD_CODED_COUNT_PHRASE = (n) => `browse all ${n} channels`;
+// Static pages cannot compute the channel count, so their prose says "130+
+// channels" and never needs editing when a channel is added. The check keeps
+// that honest: an "N+ channels" claim may not exceed what channels.json has,
+// a bare count of 100 or more must be the real one, and plex.html and
+// jellyfin.html must still link the guide with "browse all N+ channels".
+// Blog posts are scanned too. Generated regions (LINEUP, CHANGELOG and the like) are skipped: their
+// numbers come from data, and old changelog entries keep old counts.
+const COUNT_PAGES = ["index.html", "plex.html", "jellyfin.html", "emby.html", "public/llms.txt", "README.md"];
+const GUIDE_LINK_PAGES = ["plex.html", "jellyfin.html"];
+const GUIDE_LINK_RE = /browse all (\d+)\+ channels/;
+const COUNT_CLAIM_RE = /(?<![\d.,])(\d{3})(\+?)\s+(?:live\s+|TV\s+|themed\s+)*channels\b/gi;
+
+/** Every "N channels" / "N+ channels" claim outside generated regions. Exported for the tests. */
+export function channelCountClaims(text) {
+  const visible = text.replace(/<!--\s*([A-Z-]+):START[\s\S]*?<!--\s*\1:END[^>]*-->/g, "");
+  return [...visible.matchAll(COUNT_CLAIM_RE)].map((m) => ({ n: Number(m[1]), plus: m[2] === "+", text: m[0] }));
+}
 
 // The affiliation line that every held bundle page carries, from the handoff.
 const AFFILIATION_DISCLAIMER =
@@ -564,14 +575,25 @@ export function hubMeta() {
 // The hub has no content file, so its hero is named here. It uses the lineup
 // screenshot the home page already ships, which is app UI rather than a frame
 // from somebody's film.
-const HUB_IMAGE = resolveImage(
-  {
-    image: "/screens/lineup-1280.webp",
-    image_alt:
-      "The Nostalgex channel guide on Apple TV, showing bundles of live channels built from a Plex library",
-  },
-  { file: "scripts/build-bundles.mjs (hub)", rootDir: ROOT },
-);
+//
+// Measured on first use, not at import. The self-host build imports this module
+// from vite.config.js but never renders the site, and its Docker context carries
+// only the two tuner pages, so measuring at import made the image build fail on
+// a missing screenshot.
+let hubImage = null;
+function hubImageRef() {
+  if (!hubImage) {
+    hubImage = resolveImage(
+      {
+        image: "/screens/lineup-1280.webp",
+        image_alt:
+          "The Nostalgex channel guide on Apple TV, showing bundles of live channels built from a Plex library",
+      },
+      { file: "scripts/build-bundles.mjs (hub)", rootDir: ROOT },
+    );
+  }
+  return hubImage;
+}
 
 function renderHubPage(model, assetHrefs) {
   const { bundles, totalChannels, bundleCount, content } = model;
@@ -653,10 +675,10 @@ ${cells}${moreCell}
     title,
     description,
     canonical: HUB_CANONICAL,
-    ogImage: `${SITE_ORIGIN}${HUB_IMAGE.src}`,
-    ogImageAlt: HUB_IMAGE.alt,
-    ogImageWidth: HUB_IMAGE.width,
-    ogImageHeight: HUB_IMAGE.height,
+    ogImage: `${SITE_ORIGIN}${hubImageRef().src}`,
+    ogImageAlt: hubImageRef().alt,
+    ogImageWidth: hubImageRef().width,
+    ogImageHeight: hubImageRef().height,
     ogType: "website",
     jsonLd,
     extraMeta: `<link rel="stylesheet" href="/channels.css">`,
@@ -673,7 +695,7 @@ ${renderBreadcrumb(crumbs)}
         <h1>Channel Guide: ${escapeHtml(totalChannels)} Channels in ${escapeHtml(bundleCount)} Bundles</h1>
         <p class="channels-dek">Every channel here is a rule, not a playlist. Point the app at your own Plex or Jellyfin server and the channels with enough matching titles switch themselves on, grouped into the ${escapeHtml(bundleCount)} bundles below. This is the whole lineup, so you can see what the guide would look like before you install anything.</p>
       </header>
-      ${renderCover(HUB_IMAGE, { className: "channels-cover" })}
+      ${renderCover(hubImageRef(), { className: "channels-cover" })}
 
       <div class="channels-guide">
 ${rows}
@@ -932,22 +954,28 @@ function checkEmby(log, file, html) {
 }
 
 async function checkHardCodedCounts(log, totalChannels) {
-  const phrase = HARD_CODED_COUNT_PHRASE(totalChannels);
-  for (const page of HARD_CODED_COUNT_PAGES) {
+  const blogDir = path.join(ROOT, "content", "blog");
+  const blogPosts = existsSync(blogDir)
+    ? (await readdir(blogDir)).filter((f) => f.endsWith(".md")).map((f) => `content/blog/${f}`)
+    : [];
+  for (const page of [...COUNT_PAGES, ...blogPosts]) {
     const file = path.join(ROOT, page);
     if (!existsSync(file)) continue;
-    const html = await readFile(file, "utf8");
-    if (html.includes(phrase)) continue;
-    const stale = html.match(/browse all (\d+) channels/);
-    log.fail(
-      page,
-      "hard coded channel count drifted",
-      stale
-        ? `the page says "browse all ${stale[1]} channels" but channels.json has ${totalChannels}. ` +
-            `Update the sentence in ${HARD_CODED_COUNT_PAGES.join(" and ")} to "${phrase}".`
-        : `no "${phrase}" link to ${HUB_PATH} found. Static HTML cannot compute the count, so the ` +
-            `sentence carries it and this check keeps it honest.`,
-    );
+    const text = await readFile(file, "utf8");
+    for (const claim of channelCountClaims(text)) {
+      if (claim.plus && claim.n > totalChannels) {
+        log.fail(page, "channel count overclaims",
+          `"${claim.text}" but channels.json has ${totalChannels}.`);
+      } else if (!claim.plus && claim.n !== totalChannels) {
+        log.fail(page, "hard coded channel count drifted",
+          `"${claim.text}" but channels.json has ${totalChannels}. Write "${Math.floor(totalChannels / 10) * 10}+ channels" ` +
+            "so the sentence does not go stale again.");
+      }
+    }
+    if (GUIDE_LINK_PAGES.includes(page) && !GUIDE_LINK_RE.test(text)) {
+      log.fail(page, "guide link missing",
+        `no "browse all N+ channels" link to ${HUB_PATH} found.`);
+    }
   }
 }
 

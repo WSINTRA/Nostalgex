@@ -48,10 +48,14 @@ final class StallRetryServerStreamTests: XCTestCase {
 
     // MARK: - Request body
 
-    func testTheFirstAttemptSendsExactlyTheThreeKeysItAlwaysSent() throws {
+    /// `SubtitleStreamIndex` (-1) joined the three original keys on 2026-10-19. It does not
+    /// touch direct play: measured on Jellyfin 12.2.0 and Emby 4.10.1.0, every MP4 that
+    /// direct played still does, and on Jellyfin MP4s with a default subtitle track direct
+    /// play again instead of being burned in. See `JellyfinPlaybackResolver.noSubtitleStream`.
+    func testTheFirstAttemptSendsExactlyTheKeysItAlwaysSentPlusNoSubtitleStream() throws {
         let body = try json(JellyfinPlaybackResolver.playbackInfoBody(
             mediaSourceId: "src1", supportsHEVC: true, serverStreamOnly: false))
-        XCTAssertEqual(Set(body.keys), ["DeviceProfile", "MediaSourceId", "MaxStreamingBitrate"],
+        XCTAssertEqual(Set(body.keys), ["DeviceProfile", "MediaSourceId", "MaxStreamingBitrate", "SubtitleStreamIndex"],
                        "the first attempt must let the server direct play exactly as before")
     }
 

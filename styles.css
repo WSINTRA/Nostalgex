@@ -155,7 +155,16 @@ a { color: inherit; }
 
 /* ---------- Kickers / headline accents ---------- */
 
-.section-head { max-width: 700px; margin-bottom: 64px; }
+/* No width cap on the heading block. A fixed one in px cannot be right at every
+   viewport: 700px wrapped four of the six home page headings with 400px of
+   empty room beside them, and any replacement number is just a better guess.
+   The container already limits the line, the font size is already fluid, and
+   text-wrap: balance evens out the lines when a heading does have to wrap, so
+   no line is left with a single word. Prose under a heading keeps a tight
+   measure, because that is body copy and long lines there are harder to read. */
+.section-head { margin-bottom: 64px; }
+.section-head h2, .guide-copy h2, .surf-copy h2 { text-wrap: balance; }
+.section-head p { max-width: 700px; }
 .section-head h2, .guide-copy h2, .surf-copy h2 {
   font-size: clamp(32px, 4.2vw, 50px);
 }
@@ -644,32 +653,162 @@ a { color: inherit; }
 }
 
 /* ---------- How it works ---------- */
+/* The steps were thin hairline columns, which read as a footnote under the
+   colour tiles above. They are cards now, on the same border, radius and offset
+   shadow as the tiles, but filled dark so the colour tiles stay the loudest
+   thing on the page. The number carries the colour instead. */
 .steps {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid var(--hairline);
+  gap: 28px;
 }
-
 .step {
-  padding: 44px 36px 10px 0;
-  border-right: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 26px 28px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--paper-deep);
+  box-shadow: 6px 6px 0 var(--ink);
+  transition: transform 180ms var(--ease), box-shadow 180ms var(--ease);
 }
-.step + .step { padding-left: 36px; }
-.step:last-child { border-right: 0; padding-right: 0; }
-
+.step:hover { transform: translate(-3px, -3px); box-shadow: 9px 9px 0 var(--ink); }
+/* The number is a highlight block, the same treatment as "whole point." in the
+   guide heading. It also fixes the contrast problem that coloured text had:
+   the brand colours are built to sit behind dark ink rather than be ink, and
+   as 72px text on the cream card they measured 1.16, 1.66 and 2.86 to 1. Dark
+   ink on the colour clears 4.5:1 in both themes, because --on-accent is fixed
+   dark in both. */
 .step-num {
-  font-family: var(--font-mono);
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--pink);
-  display: block;
-  margin-bottom: 34px;
+  align-self: flex-start;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  background: var(--step-accent, var(--pink));
+  color: var(--on-accent);
+  padding: 2px 12px 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  margin-bottom: 20px;
 }
-.step h3 { font-size: 22px; margin-bottom: 14px; }
-.step p { color: var(--ink-soft); font-size: 15.5px; font-weight: 500; }
+.step--yellow { --step-accent: var(--yellow); }
+.step--cyan   { --step-accent: var(--cyan); }
+.step--pink   { --step-accent: var(--pink); }
+.step h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+.step p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  line-height: 1.6;
+}
+
+/* ---------- Where to watch: one tile per surface ----------
+   Solid colour, a big ink logo, the name and one line. Each tile is a single
+   link. Roku is a dashed paper tile until the app exists. */
+.section-screens { padding-bottom: 40px; }
+.section-screens h2 .h2-line { display: block; }
+.screens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+}
+.screens > li { display: flex; }
+.tile {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 236px;
+  padding: 28px 26px 26px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--tile-bg, var(--yellow));
+  box-shadow: 6px 6px 0 var(--ink);
+  color: var(--on-accent);
+  text-decoration: none;
+  transition: transform 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+.tile--yellow { --tile-bg: var(--yellow); }
+.tile--cyan   { --tile-bg: var(--cyan); }
+.tile--pink   { --tile-bg: var(--pink); }
+.tile:hover,
+.tile:focus-visible { transform: translate(-3px, -3px); box-shadow: 9px 9px 0 var(--ink); }
+.tile:focus-visible { outline: 3px solid var(--ink); outline-offset: 5px; }
+.tile-mark { display: flex; align-items: center; height: 60px; margin-bottom: auto; }
+.tile-logo { width: 54px; height: 54px; }
+.tile-logo--wide { width: 128px; height: 40px; }
+.tile-name {
+  margin-top: 28px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 27px;
+  line-height: 1.05;
+}
+.tile-line { margin-top: 8px; min-height: 2.9em; font-family: var(--font-mono); font-weight: 700; font-size: 12.5px; letter-spacing: 0.01em; line-height: 1.45; }
+.tile-go {
+  position: absolute;
+  top: 24px;
+  right: 22px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 700;
+  transition: transform 180ms var(--ease);
+}
+.tile:hover .tile-go { transform: translateX(3px); }
+.tile--soon {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+  color: var(--ink);
+}
+.tile--soon:hover,
+.tile--soon:focus-visible,
+.screens .tile--soon { box-shadow: none; }
+.tile--soon .tile-go { display: none; }
+
+@media (max-width: 1100px) {
+  .screens { grid-template-columns: repeat(2, 1fr); gap: 30px 28px; }
+}
+@media (max-width: 600px) {
+  .screens { gap: 22px 18px; }
+  .tile { min-height: 176px; padding: 20px 16px 18px; border-radius: 12px; box-shadow: 4px 4px 0 var(--ink); }
+  .tile:hover, .tile:focus-visible { box-shadow: 6px 6px 0 var(--ink); }
+  .tile-mark { height: 42px; }
+  .tile-logo { width: 38px; height: 38px; }
+  .tile-logo--wide { width: 92px; height: 29px; }
+  .tile-name { margin-top: 18px; font-size: 20px; }
+  .tile-line { font-size: 11.5px; }
+  .tile-go { top: 16px; right: 14px; width: 30px; height: 30px; font-size: 15px; }
+  .step { border-radius: 12px; box-shadow: 4px 4px 0 var(--ink); padding: 20px 18px 22px; }
+  .step:hover { box-shadow: 6px 6px 0 var(--ink); }
+  .step-num { font-size: 28px; margin-bottom: 14px; }
+  .step h3 { font-size: 20px; }
+  .step p { font-size: 11.5px; }
+  .tile--soon .cta-sticker { right: 12px; }
+}
 
 /* ---------- Guide (navy color block) ---------- */
 .section-navy {
@@ -1384,11 +1523,24 @@ a { color: inherit; }
    One card, one job: sign in to a media server, then hand off to
    /plex-tuner.html. The .connect-* class names and the #connect-* / #jf-* ids
    are contracts with the inline auth script on that page — the script toggles
-   [style.display] on #connect-default, #connect-jellyfin-intro and
-   #connect-jellyfin, and toggles .active on .connect-waiting / .connect-success.
+   [style.display] on #connect-default, #connect-alt, #connect-jellyfin-intro,
+   #connect-emby-intro, #connect-jellyfin and #connect-emby, and toggles .active
+   on .connect-waiting / .connect-success.
    Rename nothing here without changing the script.
    ========================================================================== */
 .page-connect { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* TV browsers report a mouse and a small viewport (TV Bro on Google TV: 960x540
+   at pixel ratio 2), so this page drew at twice its size and the Connect buttons
+   sat below the fold. Same scale as the tuner page; zoom also scales vh, so the
+   height is sized back up. */
+@media (pointer: fine) and (orientation: landscape) and (max-width: 1280px) and (max-height: 720px) {
+  .page-connect { zoom: 0.875; min-height: calc(100vh / 0.875); }
+  .page-connect .connect-main { padding: 32px 0 48px; }
+}
+@media (pointer: fine) and (orientation: landscape) and (max-width: 1099px) and (max-height: 620px) {
+  .page-connect { zoom: 0.6667; min-height: calc(100vh / 0.6667); }
+}
 
 .connect-main {
   flex: 1 0 auto;
@@ -1429,8 +1581,17 @@ a { color: inherit; }
 
 /* The script flips these between display:none and display:block, so they must
    fill the card or the full-width buttons inside them collapse to text width. */
-#connect-default,
-#connect-jellyfin-intro { width: 100%; }
+#connect-default { width: 100%; }
+
+/* Jellyfin and Emby: two text links on one line under the Plex button, wrapping
+   onto two on a narrow phone. */
+.connect-alt {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 36px;
+  width: 100%;
+}
 
 /* Buttons: same offset hard-shadow language as .btn, but the auth script owns
    these class names, so they carry their own rules rather than reusing .btn. */
@@ -1605,7 +1766,7 @@ a { color: inherit; }
 }
 .connect-redirect { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-faint); }
 
-/* ---- Jellyfin form ---- */
+/* ---- Jellyfin and Emby forms ---- */
 .connect-form {
   display: none;                       /* script sets display:block */
   width: 100%;
@@ -1628,7 +1789,8 @@ a { color: inherit; }
 .connect-input:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 
 #jf-quick-btn { margin-top: 10px; }
-#jf-back-btn { display: block; margin: 12px auto 0; }
+#jf-back-btn,
+#em-back-btn { display: block; margin: 12px auto 0; }
 
 .connect-lede--follow { margin-top: -24px; }
 
@@ -1670,25 +1832,23 @@ a { color: inherit; }
   .section { padding: 88px 0; }
 
   .hero-grid { grid-template-columns: 1fr; }
-  .hero-copy {
-    border-right: 0;
-    border-bottom: 1px solid var(--hairline);
-    padding: 80px 0 64px;
-  }
-  .hero-shot { padding: 72px 0 80px; }
+  /* Stacked, the video sits right under the headline, so the first screen
+     shows the guide before the paragraph. .hero-copy steps out of the way
+     (display: contents) so its children can be ordered around the video. */
+  .hero-copy { display: contents; }
+  .hero h1 { order: 1; padding-top: 72px; }
+  .hero-shot { order: 2; padding: 40px 0 12px; }
+  .hero-sub { order: 3; }
+  .cta-block { order: 4; }
+  .hero-note { order: 5; padding-bottom: 72px; }
+  .doodle-arrow { display: none; }
 
   .guide-grid, .surf-grid { grid-template-columns: 1fr; gap: 56px; }
   .surf-grid figure { order: 2; }
 
   .feature-grid { grid-template-columns: repeat(2, 1fr); }
-  .steps { grid-template-columns: 1fr; }
-  .step {
-    border-right: 0;
-    border-bottom: 1px solid var(--hairline);
-    padding: 36px 0 36px;
-  }
-  .step + .step { padding-left: 0; }
-  .step:last-child { border-bottom: 0; }
+  .steps { grid-template-columns: 1fr; gap: 22px; }
+  .step { padding: 22px 22px 24px; }
   .step-num { margin-bottom: 18px; }
 }
 
@@ -1758,7 +1918,88 @@ a { color: inherit; }
 
 .doc-hero { padding-top: 132px; padding-bottom: 24px; }
 .doc-hero h1 { margin: 0 0 12px; }
-.doc-hero p { color: var(--ink-soft); max-width: 640px; margin: 0; }
+/* Two paragraphs with margin:0 ran together as one block, which read as a
+   single wrapped sentence rather than two thoughts. */
+.doc-hero p { color: var(--ink-soft); max-width: 640px; margin: 0 0 14px; }
+.doc-hero p:last-child { margin-bottom: 0; }
+
+/* Self host hero: the copy filled half the width and left the rest empty, and
+   the one thing a Docker user wants (the command) was four sections down the
+   page. The card puts it in the first screen. */
+.page-selfhost .sh-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: 48px;
+  align-items: start;
+}
+.page-selfhost .sh-quickstart {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper-deep);
+  box-shadow: 5px 5px 0 var(--cyan);
+  padding: 22px 22px 20px;
+}
+.page-selfhost .sh-quickstart-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.page-selfhost .sh-docker-mark {
+  width: 30px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--cyan);
+}
+.page-selfhost .sh-quickstart h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+.page-selfhost .sh-quickstart-sub,
+.page-selfhost .sh-quickstart-then {
+  margin: 0 0 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: none;
+}
+.page-selfhost .sh-quickstart-then { margin: 12px 0 16px; }
+/* The command is longer than the card, and a horizontal scrollbar hides the
+   end of it. Wrap instead: it is there to be read and copied, not scrolled. */
+.page-selfhost .sh-cmd {
+  margin: 0;
+  overflow-x: visible;
+}
+.page-selfhost .sh-cmd code {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+.page-selfhost .sh-quickstart-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.page-selfhost .sh-quickstart-cta {
+  font-weight: 700;
+  color: var(--pink);
+}
+@media (max-width: 900px) {
+  .page-selfhost .sh-hero {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .page-selfhost .sh-quickstart {
+    box-shadow: 3px 3px 0 var(--cyan);
+    padding: 18px;
+  }
+}
 
 .doc-layout {
   display: grid;
@@ -2295,4 +2536,192 @@ a { color: inherit; }
 
 @media (min-width: 720px) {
   .blog-list { grid-template-columns: 1fr; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SELF-HOST PAGE  (/self-host)
+
+   The Docker guide for the web tuner. It reuses the .doc-* document
+   layout from the support page; everything here is the two tables
+   that page doesn't have, scoped under .page-selfhost so nothing
+   leaks. Colours come from the same variables as the rest of the
+   site, so day and night modes come for free.
+
+   The device table is generated from content/self-host.json by
+   scripts/render-self-host.mjs. Status pills are keyed on state:
+   ok, unconfirmed, unknown, na.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Tables scroll on a phone rather than crushing three columns into
+   nothing. The wrapper is the scroll container, so the border and
+   the shadow stay put while the table moves. */
+.page-selfhost .sh-table-wrap {
+  margin: 0 0 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 5px 5px 0 var(--cyan);
+}
+.page-selfhost .sh-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 14.5px;
+  line-height: 1.5;
+  text-align: left;
+}
+.page-selfhost .sh-table thead th {
+  background: var(--paper-deep);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--ink);
+  vertical-align: bottom;
+}
+.page-selfhost .sh-table tbody th,
+.page-selfhost .sh-table tbody td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: top;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+.page-selfhost .sh-table tbody th {
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 150px;
+}
+.page-selfhost .sh-table tbody tr:last-child th,
+.page-selfhost .sh-table tbody tr:last-child td { border-bottom: 0; }
+.page-selfhost .sh-table tbody tr:nth-child(even) th,
+.page-selfhost .sh-table tbody tr:nth-child(even) td { background: var(--paper-deep); }
+.page-selfhost .sh-table code { white-space: nowrap; }
+
+/* The second line in a device row: "Chrome, Safari and Firefox on a Mac". */
+.page-selfhost .sh-device-detail {
+  display: block;
+  margin-top: 3px;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* Status pills. Four states and nothing in between, so a surface is
+   either tested, assumed, unknown, or not a surface at all. */
+.page-selfhost .sh-pill {
+  display: inline-block;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+}
+.page-selfhost .sh-pill--ok { color: var(--cyan); }
+.page-selfhost .sh-pill--unconfirmed { color: var(--yellow); }
+.page-selfhost .sh-pill--unknown { color: var(--pink); }
+.page-selfhost .sh-pill--na { color: var(--ink-faint); }
+/* Yellow on cream is unreadable in day mode; darken just the text. */
+:root[data-theme="light"] .page-selfhost .sh-pill--unconfirmed { color: #8a6b00; }
+
+.page-selfhost .sh-table-stamp {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin: 0 0 14px;
+}
+
+/* The docker run one-liner is wider than a phone or a tablet. Wrap it
+   rather than make people drag a code block sideways to read the end of
+   a command they're about to paste. pre-wrap keeps the text itself
+   exactly as it is, so a copy still gives the right string. */
+@media (max-width: 900px) {
+  .page-selfhost .doc-section pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
+
+/* On a phone a three-column table hides its last column behind a
+   sideways scroll, and on this page that column is the honest part
+   ("not confirmed on hardware yet"). So below 640 each row becomes a
+   stacked card with its own labels and nothing is hidden. The labels
+   come from data-label on each cell; the header row goes away, since
+   every cell now carries its own. */
+@media (max-width: 640px) {
+  .page-selfhost .doc-section pre { font-size: 12px; padding: 14px; }
+
+  .page-selfhost .sh-table-wrap { overflow-x: visible; }
+  .page-selfhost .sh-table { display: block; min-width: 0; }
+  .page-selfhost .sh-table thead { display: none; }
+  .page-selfhost .sh-table tbody,
+  .page-selfhost .sh-table tr { display: block; }
+  .page-selfhost .sh-table tr { padding: 14px 16px; border-bottom: 1px solid var(--hairline); }
+  .page-selfhost .sh-table tr:last-child { border-bottom: 0; }
+  .page-selfhost .sh-table tbody th,
+  .page-selfhost .sh-table tbody td {
+    display: block;
+    padding: 0;
+    border-bottom: 0;
+    background: none;
+  }
+  /* Stacked, the zebra belongs to the whole card. Left on the cells it
+     paints ragged bands the width of each cell's text block. */
+  .page-selfhost .sh-table tbody tr:nth-child(even) { background: var(--paper-deep); }
+  .page-selfhost .sh-table tbody tr:nth-child(even) th,
+  .page-selfhost .sh-table tbody tr:nth-child(even) td { background: none; }
+  .page-selfhost .sh-table tbody th { margin-bottom: 10px; }
+  .page-selfhost .sh-table tbody td { margin-bottom: 12px; }
+  .page-selfhost .sh-table tbody td:last-child { margin-bottom: 0; }
+  /* The blank "turn it off" cell shouldn't leave an empty labelled block. */
+  .page-selfhost .sh-table tbody td:empty { display: none; }
+  .page-selfhost .sh-table tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .page-selfhost .sh-table code { white-space: normal; }
+}
+
+/* Copy button, added by app.js to every command block. Sits inside the <pre>,
+   out of the way until the pointer is near it. */
+pre.has-copy { position: relative; }
+pre.has-copy .copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 2px solid var(--hairline);
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
+}
+pre.has-copy:hover .copy-btn,
+pre.has-copy .copy-btn:focus-visible { opacity: 1; }
+pre.has-copy .copy-btn:hover { color: var(--pink); border-color: var(--pink); }
+pre.has-copy .copy-btn.is-copied { color: var(--cyan); border-color: var(--cyan); opacity: 1; }
+/* No hover on touch, so the button has to stay visible there. */
+@media (hover: none) {
+  pre.has-copy .copy-btn { opacity: 1; }
 }

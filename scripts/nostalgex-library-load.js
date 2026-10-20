@@ -78,13 +78,18 @@
     return (PHASE_META[phase] || PHASE_META.preparing).hint;
   }
 
+  // Mirrors AppState+Channels.swift `staticChannelIDsForPoolBuild`: every enabled
+  // bundle builds its pools, in any month. A seasonal bundle's `activeMonths` only
+  // decides when it is offered (the invite row) and when it leads the guide
+  // (scripts/nostalgex-season.js). It used to gate this too, so SCREAM or
+  // TIS THE SEASON switched on outside its month came back with zero channels after
+  // a reload, while Apple TV (since 1.0.26) kept them.
   function staticChannelIDsForPoolBuild(ctx) {
     const {
       buildAll,
       bundles: bundleList,
       enabledBundleIDs,
       allChannelsUnfiltered,
-      isBundleInSeason,
     } = ctx;
 
     if (buildAll || !bundleList || bundleList.length === 0) {
@@ -93,12 +98,15 @@
 
     const ids = new Set();
     for (const bundle of bundleList) {
-      if (enabledBundleIDs.has(bundle.id) && isBundleInSeason(bundle)) {
+      if (enabledBundleIDs.has(bundle.id)) {
         for (const id of bundle.channelIDs) ids.add(id);
       }
     }
     return ids;
   }
+
+  // The Settings row note for a seasonal bundle outside its season ("SPOTLIGHTED OCT")
+  // is NostalgexSeason.seasonalSpotlightLabel in scripts/nostalgex-season.js.
 
   function progressFraction() {
     switch (state.phase) {

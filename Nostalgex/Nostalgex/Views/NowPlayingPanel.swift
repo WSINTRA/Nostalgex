@@ -59,6 +59,7 @@ enum NowPlayingFocus: Hashable {
     case sleep(Int)  // -1 == OFF row
     case retro
     case streamQuality
+    case playbackInformation
     case subtitleLanguage
     case audioLanguage
     case autoSubtitles
@@ -76,6 +77,7 @@ enum NowPlayingFocus: Hashable {
 /// section and one presentation layer.
 private enum PanelPicker: Hashable {
     case streamQuality
+    case playbackInformation
     case subtitleLanguage
     case audioLanguage
 }
@@ -302,6 +304,7 @@ struct NowPlayingPanel: View {
             ForEach(SleepTimerLogic.offeredMinutes(armed: appState.sleepTimerMinutes), id: \.self) { minutes in
                 sleepRow(minutes: minutes)
             }
+            pickerRow(.playbackInformation, title: "PLAYBACK INFORMATION", value: "VIEW", focus: .playbackInformation)
         }
         .frame(width: controlColumnWidth, alignment: .leading)
     }
@@ -503,6 +506,7 @@ struct NowPlayingPanel: View {
             case .streamQuality:    return .streamQuality
             case .subtitleLanguage: return .subtitleLanguage
             case .audioLanguage:    return .audioLanguage
+            case .playbackInformation: return .playbackInformation
             }
         }()
         expandedPicker = nil
@@ -524,6 +528,8 @@ struct NowPlayingPanel: View {
                 .padding(.bottom, 2)
 
             switch picker {
+            case .playbackInformation:
+                playbackInformationContents
             case .streamQuality:
                 streamQualityOptions
             case .subtitleLanguage:
@@ -538,6 +544,47 @@ struct NowPlayingPanel: View {
         }
         .focusSection()
         .onAppear { focusedControl = .option(selectedOptionID(picker)) }
+    }
+
+    /// Reuses the panel's in-place navigation. Playback continues; Back returns focus
+    /// to the information row rather than dismissing the whole panel.
+    private var playbackInformationContents: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            TimelineView(.periodic(from: .now, by: 1)) { _ in
+                VStack(alignment: .leading, spacing: 8) {
+                    if appState.playbackInformationRows.isEmpty {
+                        Text("Playback information is unavailable.")
+                            .font(.custom("DMMono-Regular", size: 20))
+                            .foregroundStyle(.white.opacity(0.8))
+                    } else {
+                        ForEach(appState.playbackInformationRows) { row in
+                            HStack(alignment: .top, spacing: 16) {
+                                Text(row.label)
+                                    .font(.custom("DMMono-Medium", size: 17))
+                                    .foregroundStyle(.white.opacity(0.6))
+                                    .frame(width: 220, alignment: .leading)
+                                Text(row.value)
+                                    .font(.custom("DMMono-Regular", size: 21))
+                                    .foregroundStyle(.white)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .accessibilityElement(children: .combine)
+                            .padding(.vertical, 3)
+                        }
+                    }
+                }
+            }
+            Button { collapsePicker(owner: .playbackInformation) } label: {
+                controlRow(label: "BACK", value: nil,
+                           isFocused: focusedControl == .option("information-back"),
+                           isActive: false, disabled: false)
+            }
+            .buttonStyle(NoHighlightButtonStyle())
+            .focused($focusedControl, equals: .option("information-back"))
+            .accessibilityLabel("Back to playback controls")
+            .padding(.top, 8)
+        }
+        .frame(width: controlColumnWidth * 2 + 40, alignment: .leading)
     }
 
     private var streamQualityOptions: some View {
@@ -611,6 +658,7 @@ struct NowPlayingPanel: View {
         case .streamQuality:    return "STREAM QUALITY"
         case .subtitleLanguage: return "SUBTITLE LANGUAGE"
         case .audioLanguage:    return "AUDIO LANGUAGE"
+        case .playbackInformation: return "PLAYBACK INFORMATION"
         }
     }
 
@@ -618,6 +666,8 @@ struct NowPlayingPanel: View {
     /// only true in here: a new quality ceiling cannot reach the stream already playing.
     private func pickerSubtitle(_ picker: PanelPicker) -> String {
         switch picker {
+        case .playbackInformation:
+            return appState.playbackInformation?.evidenceNote ?? "Playback information is unavailable for this program."
         case .streamQuality:
             return "Lower this when your connection is slow or shared. Takes effect on the next program."
         case .subtitleLanguage:
@@ -633,6 +683,7 @@ struct NowPlayingPanel: View {
         case .streamQuality:    return streamQuality.id
         case .subtitleLanguage: return appState.preferredSubtitleLanguageCode
         case .audioLanguage:    return appState.preferredAudioLanguageCode
+        case .playbackInformation: return "information-back"
         }
     }
 

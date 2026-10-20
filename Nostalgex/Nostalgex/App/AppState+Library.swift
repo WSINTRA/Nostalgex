@@ -328,6 +328,10 @@ extension AppState {
             let withTMDB = merged.filter { $0.tmdbID != nil }.count
             let withIMDB = merged.filter { $0.imdbID != nil }.count
             print("[Plex90] Library: \(merged.count) items from \(successCount) server(s), \(withTMDB) with TMDB IDs, \(withIMDB) with IMDb IDs")
+            if backendKind == .emby {
+                // They stay in the library; ChannelEligibility keeps them out of every pool.
+                print("[Plex90] CHANNELS: \(ChannelEligibility.leftOffCount(merged, backend: backendKind)) Emby Dolby Vision profile 5 item(s) left off channels")
+            }
             LibraryLoadProbe.mark("merge+dedupe")
 
             if hasAnyCollectionBundle {

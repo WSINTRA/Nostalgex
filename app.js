@@ -169,8 +169,21 @@
         if (played && played.catch) played.catch(function () {});
       });
     };
-    if (document.readyState === "complete") startHeroVideos();
-    else window.addEventListener("load", startHeroVideos, { once: true });
+    // Waiting for load keeps the video off the critical path, but the load
+    // event waits for every subresource including the analytics script, and a
+    // slow third party should not be able to hold the hero still. Start on
+    // load, or two seconds after the DOM is ready, whichever comes first.
+    var heroStarted = false;
+    var startOnce = function () {
+      if (heroStarted) return;
+      heroStarted = true;
+      startHeroVideos();
+    };
+    if (document.readyState === "complete") startOnce();
+    else {
+      window.addEventListener("load", startOnce, { once: true });
+      setTimeout(startOnce, 2000);
+    }
   }
 
   /* ---------- Inline clips: start when they scroll into view ----------
@@ -196,6 +209,45 @@
     );
     clips.forEach(function (v) {
       clipObserver.observe(v);
+    });
+  }
+
+  /* ---------- Copy buttons on command blocks ----------
+     The self host page is mostly commands people have to retype into a shell.
+     Added here rather than in the markup so a copy button only ever appears
+     when the clipboard API is actually available. */
+  if (navigator.clipboard && window.isSecureContext) {
+    document.querySelectorAll("pre > code").forEach(function (code) {
+      var pre = code.parentElement;
+      if (pre.querySelector(".copy-btn")) return;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "copy-btn";
+      btn.textContent = "COPY";
+      btn.setAttribute("aria-label", "Copy to clipboard");
+      var reset;
+      btn.addEventListener("click", function () {
+        navigator.clipboard.writeText(code.textContent.trim()).then(
+          function () {
+            btn.textContent = "COPIED";
+            btn.classList.add("is-copied");
+            clearTimeout(reset);
+            reset = setTimeout(function () {
+              btn.textContent = "COPY";
+              btn.classList.remove("is-copied");
+            }, 1600);
+          },
+          function () {
+            btn.textContent = "PRESS CTRL C";
+            clearTimeout(reset);
+            reset = setTimeout(function () {
+              btn.textContent = "COPY";
+            }, 2400);
+          },
+        );
+      });
+      pre.classList.add("has-copy");
+      pre.appendChild(btn);
     });
   }
 

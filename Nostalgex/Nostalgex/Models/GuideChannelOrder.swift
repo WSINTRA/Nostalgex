@@ -28,10 +28,12 @@ enum GuideChannelOrder {
     }
 
     /// Channel IDs that should lead, taken from every seasonal bundle currently enabled
-    /// and in season. A bundle without `activeMonths` is not seasonal and never leads.
-    static func seasonalLeadIDs(bundles: [ChannelBundle], enabledBundleIDs: Set<String>, now: Date) -> [Int] {
+    /// and in season (the same window as its invite, `seasonStart` included). A bundle
+    /// without `activeMonths` is not seasonal and never leads.
+    static func seasonalLeadIDs(bundles: [ChannelBundle], enabledBundleIDs: Set<String>, now: Date,
+                                calendar: Calendar = ChannelBundle.seasonCalendar) -> [Int] {
         bundles
-            .filter { $0.activeMonths != nil && enabledBundleIDs.contains($0.id) && $0.isInSeason(on: now) }
+            .filter { $0.activeMonths != nil && enabledBundleIDs.contains($0.id) && $0.isInSeason(on: now, calendar: calendar) }
             .flatMap(\.channelIDs)
     }
 }

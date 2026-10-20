@@ -68,3 +68,21 @@ shape what the generator writes.
   title to disambiguate (TMDB search supports `Title (Year)` patterns).
 - TMDB free tier is 50 req/sec, well above what we need.
 - Exemplar lists are inputs to this script, not shipped to the app.
+
+## Claims that do not come from exemplars
+
+A bare run of `index.mjs` rebuilds `channels-memberships.json` from the
+exemplars and the `handCurated` blocks. Two sets of claims come from elsewhere
+and have to be put back afterwards:
+
+| Script | Channel | What it claims |
+|---|---|---|
+| `discover-standup.mjs` | STAND-UP (58), exclusive | every TMDB title with the `stand-up comedy` keyword |
+| `discover-world-horror.mjs` | WORLD HORROR (418) | every TMDB horror film whose original language is not English, at 25 votes or more (`--min-votes` to change; about 2,000 films) |
+
+Run them after the tuner, in either order. Both are idempotent.
+
+`handCurated` blocks survive every run, bare or `--channel`, because they are
+applied last. CRITERION (211) and MYSTERY BOX TV (419) are built entirely from
+them. Their TMDB ids are what the app matches on, so check each new id against
+TMDB (`tv/{id}` or `movie/{id}`: name and year) before adding it.

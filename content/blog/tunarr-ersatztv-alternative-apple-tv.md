@@ -13,7 +13,7 @@ updated: 2026-10-13
 
 # ErsatzTV and Tunarr Alternatives for Apple TV: Live Channels From Your Library, No Server Needed
 
-> The main ErsatzTV alternative is Tunarr, which builds custom channels on your server and works with Plex, Jellyfin, Emby and any IPTV player. If you only watch on an Apple TV, you may not need a server at all. Nostalgex is a free, open source Apple TV app that turns your Plex or Jellyfin library into 131 live channels with a retro guide, automatically.
+> The main ErsatzTV alternative is Tunarr, which builds custom channels on your server and works with Plex, Jellyfin, Emby and any IPTV player. If you only watch on an Apple TV, you may not need a server at all. Nostalgex is a free, open source Apple TV app that turns your Plex or Jellyfin library into 130+ live channels with a retro guide, automatically.
 
 I should say up front that I built Nostalgex, so take my opinions here with the right amount of salt. I also spent a long time running the server tools before I wrote a line of it, and I still think they're great. This post is my honest attempt to help you figure out which kind of tool you actually need, because a lot of people asking for an "ErsatzTV alternative" this year really just want to flip channels on the couch.
 
@@ -77,9 +77,9 @@ XDA Developers [tried Nostalgex with a Jellyfin server](https://www.xda-develope
 And here's what you get:
 
 * **Nothing installed on your server.** No container, no service, no FFmpeg build. The app talks to Plex or Jellyfin directly, and it plays the file as is when the Apple TV can handle it.
-* **131 channels in 14 bundles, already airing.** Saturday morning cartoons, 90s sitcoms, decades, franchises, seasonal stuff. You connect your server and they fill themselves from what you own. This month there's a free SCREAM bundle you can turn on with one button. It adds four horror channels: 137 SCREAM KIDS, 138 FRIGHT NIGHT, 139 SCREAM ADULTS and 140 NOSTALGEX HORROR.
-* **It's free in the same way Tunarr is free.** MIT licensed, [code on GitHub](https://github.com/chadMueller/Nostalgex), no ads, no account. It needs nothing paid either: no Plex Pass, no subscription.
-* **Plex and Jellyfin.** The Apple TV app can connect to more than one server at once, and Emby support is coming soon.
+* **130+ channels in 14 bundles, already airing.** Saturday morning cartoons, 90s sitcoms, decades, franchises, seasonal stuff. You connect your server and they fill themselves from what you own. This month there's a free SCREAM bundle you can turn on with one button. It adds a set of horror channels, from SCREAM KIDS for the little ones to FRIGHT NIGHT and NOSTALGEX HORROR, and you can keep it on after October.
+* **It's free in the same way Tunarr is free.** MIT licensed, [code on GitHub](https://github.com/chadMueller/Nostalgex), no account. It needs nothing paid either: no Plex Pass, no subscription.
+* **Plex, Jellyfin and Emby.** Nostalgex now works with all three, and the Apple TV app can connect to more than one server at once.
 
 If you're on Plex, here's [how Nostalgex works with Plex](/plex). On Jellyfin, start with [Nostalgex for Jellyfin](/jellyfin).
 

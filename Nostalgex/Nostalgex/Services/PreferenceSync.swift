@@ -166,7 +166,9 @@ final class PreferenceSync {
     nonisolated static let subtitleLanguageKey = "nostalgex_subtitle_language"
     nonisolated static let audioLanguageKey = "nostalgex_audio_language"
     nonisolated static let streamQualityKey = StreamQuality.storageKey
-    nonisolated static let reportPlaybackKey = "nostalgex_sync_plex_activity"
+    nonisolated static let reportPlaybackKey = PlaybackReportingPreferences.legacyKey
+    nonisolated static let nowPlayingKey = PlaybackReportingPreferences.nowPlayingKey
+    nonisolated static let markWatchedKey = PlaybackReportingPreferences.markWatchedKey
 
     nonisolated static let syncedKeys: [String] = [
         enabledBundlesKey,
@@ -180,13 +182,15 @@ final class PreferenceSync {
         audioLanguageKey,
         streamQualityKey,
         reportPlaybackKey,
+        nowPlayingKey,
+        markWatchedKey,
     ]
 
     nonisolated static func kind(of key: String) -> ValueKind? {
         switch key {
         case enabledBundlesKey: return .stringSet(allowEmpty: false)   // never an empty lineup
         case enabledCollectionsKey, enabledFranchisesKey, disabledFranchisesKey: return .stringSet(allowEmpty: true)
-        case retroModeKey, subtitlesFullscreenKey, autoSubsForeignAudioKey, reportPlaybackKey: return .bool
+        case retroModeKey, subtitlesFullscreenKey, autoSubsForeignAudioKey, reportPlaybackKey, nowPlayingKey, markWatchedKey: return .bool
         case subtitleLanguageKey, audioLanguageKey, streamQualityKey: return .string
         default: return nil
         }

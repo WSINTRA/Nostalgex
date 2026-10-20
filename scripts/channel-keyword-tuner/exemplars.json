@@ -1698,6 +1698,164 @@
           "tmdbID": 832
         }
       ]
+    },
+    {
+      "channelID": 419,
+      "label": "mystery-box",
+      "mediaType": "tv",
+      "note": "MYSTERY BOX TV: serial shows built around one big unanswered question (Lost, Twin Peaks, Dark, FROM, Severance). Idea from tydude001, discussion #29. The channel is manifestOnly, so this list is the whole channel: titles like Lost, Dark and From collide with Lost in Space, Dark Matter and every title containing 'from', and TMDB keywords on these shows are too sparse to find them (Lost carries three). Every id checked against TMDB tv/{id} name and first air year on 2026-10-16. Verify any new id the same way before adding.",
+      "titles": [
+        {
+          "title": "Lost",
+          "year": 2004,
+          "tmdbID": 4607
+        },
+        {
+          "title": "Twin Peaks",
+          "year": 1990,
+          "tmdbID": 1920
+        },
+        {
+          "title": "The X-Files",
+          "year": 1993,
+          "tmdbID": 4087
+        },
+        {
+          "title": "Dark",
+          "year": 2017,
+          "tmdbID": 70523
+        },
+        {
+          "title": "FROM",
+          "year": 2022,
+          "tmdbID": 124364
+        },
+        {
+          "title": "Severance",
+          "year": 2022,
+          "tmdbID": 95396
+        },
+        {
+          "title": "The Leftovers",
+          "year": 2014,
+          "tmdbID": 54344
+        },
+        {
+          "title": "Westworld",
+          "year": 2016,
+          "tmdbID": 63247
+        },
+        {
+          "title": "Yellowjackets",
+          "year": 2021,
+          "tmdbID": 117488
+        },
+        {
+          "title": "Fringe",
+          "year": 2008,
+          "tmdbID": 1705
+        },
+        {
+          "title": "The OA",
+          "year": 2016,
+          "tmdbID": 69061
+        },
+        {
+          "title": "Wayward Pines",
+          "year": 2015,
+          "tmdbID": 53425
+        },
+        {
+          "title": "Manifest",
+          "year": 2018,
+          "tmdbID": 79696
+        },
+        {
+          "title": "Outer Range",
+          "year": 2022,
+          "tmdbID": 113985
+        },
+        {
+          "title": "Silo",
+          "year": 2023,
+          "tmdbID": 125988
+        },
+        {
+          "title": "1899",
+          "year": 2022,
+          "tmdbID": 90669
+        },
+        {
+          "title": "Russian Doll",
+          "year": 2019,
+          "tmdbID": 84977
+        },
+        {
+          "title": "Devs",
+          "year": 2020,
+          "tmdbID": 81349
+        },
+        {
+          "title": "Archive 81",
+          "year": 2022,
+          "tmdbID": 112314
+        },
+        {
+          "title": "The Returned",
+          "year": 2012,
+          "tmdbID": 46616
+        },
+        {
+          "title": "The Prisoner",
+          "year": 1967,
+          "tmdbID": 894
+        },
+        {
+          "title": "FlashForward",
+          "year": 2009,
+          "tmdbID": 19092
+        },
+        {
+          "title": "The Lost Room",
+          "year": 2006,
+          "tmdbID": 3868
+        },
+        {
+          "title": "Counterpart",
+          "year": 2017,
+          "tmdbID": 63646
+        },
+        {
+          "title": "Under the Dome",
+          "year": 2013,
+          "tmdbID": 46331
+        },
+        {
+          "title": "Bodies",
+          "year": 2023,
+          "tmdbID": 233629
+        },
+        {
+          "title": "Persons Unknown",
+          "year": 2010,
+          "tmdbID": 32817
+        },
+        {
+          "title": "The Event",
+          "year": 2010,
+          "tmdbID": 32730
+        },
+        {
+          "title": "Paradise",
+          "year": 2025,
+          "tmdbID": 245927
+        },
+        {
+          "title": "The Resort",
+          "year": 2022,
+          "tmdbID": 194728
+        }
+      ]
     }
   ]
 }

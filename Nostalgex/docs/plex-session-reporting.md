@@ -1,4 +1,109 @@
-# Plex Session Reporting & Scrobbling
+# Playback reporting and watched counts
+
+## Current Settings
+
+Apple TV: Settings > CONNECTION > **SHOW NOW PLAYING ON <SERVER>** and
+**MARK WATCHED ON <SERVER>**. The server name is Plex, Jellyfin or Emby.
+Web tuner: Settings > PLAYBACK > **Show Now Playing** and **Mark Watched**.
+The controls are hidden in the native demo and never report demo playback.
+
+| Show Now Playing | Mark Watched | Behavior |
+|---|---|---|
+| Off | Off | No session reports or watched writes. Local watch accounting continues. |
+| On | Off | Show the current program without an explicit watched update. |
+| Off | On | Count qualifying watches without publishing a live session. |
+| On | On | Show the current program and count qualifying watches. |
+
+Both controls default off for a new install. This preserves the previous opt-in
+default; it does not change an existing viewer's explicit choice. An old Report
+Playback ON becomes ON/ON and OFF becomes OFF/OFF. An explicit new value,
+including off, wins over the legacy key. The source has these independent
+controls; the 1.0.26 release used the combined switch described in the historical
+reference below.
+
+Native migration materializes a legacy choice once, but leaves untouched new
+install defaults absent so they do not overwrite delayed household iCloud values.
+The complete pair syncs through the existing opt-in **SYNC WITH MY OTHER APPLE
+TVS** setting. While sync is off, no cloud reads or writes run. Existing household
+values retain precedence when enabling sync. The legacy key projects ON only
+when both controls are ON, so an older client cannot turn a Now Playing-only
+choice into permission to mark watched. Mixed-version and real multi-TV iCloud
+behavior still need acceptance testing.
+
+Changing a control applies to the current tracked program without retuning or
+resetting its watch clock. Turning a choice off invalidates queued writes from
+current and outgoing channels; turning it on again does not revive stale work.
+Already-attempted sessions keep their exact final stops and required cleanup.
+No pause UI or change to continuous channel playback is added.
+
+## Qualification and reporting
+
+Mark Watched uses the existing gates: join within the first 15% of the program
+and accumulate at least 75% of its runtime in the tracker. Crossing the threshold
+or stopping an eligible session evaluates the watch. Neither control changes
+these thresholds. Existing buffering/recovery/sleep watch-clock accounting and
+scrobble acknowledgement/retry behavior are separate follow-ups.
+
+Plex Show Now Playing sends `PUT /:/timeline` with `ratingKey`, the metadata
+`key`, player `state` and `X-Plex-Session-Identifier`, with no `time` or `duration`.
+A final position-free `stopped` removes that session from Now Playing. Mark
+Watched uses `GET /:/scrobble` with the bare rating key and library identifier.
+Now Playing-only makes no scrobble or history-restoration writes and needs no
+prior episode-state read. Mark-only episodes still capture the show's prior
+Continue Watching membership before a possible scrobble.
+
+Jellyfin/Emby reports have watch-state side effects. Before any session report or
+watched write, the tracker must read the original UserData. If that read fails,
+it skips reporting and watched updates for that program, without changing either
+saved setting. Cleanup with no baseline is a no-op, never a position-zero reset.
+For a readable baseline, qualifying Mark Watched is explicit even with Now
+Playing off or beyond 90% of the runtime. Session stops are capped below automatic
+completion so the server does not count the same watch twice.
+
+## Continue Watching and cleanup
+
+Reporting calls and cleanup share one serial queue, including outgoing channels.
+Cleanup runs after attempted reports and marks. Transcode lifecycle calls remain
+separate; turning reporting off never stops the media stream.
+
+| Backend and prior state | Result |
+|---|---|
+| Plex Now Playing-only | No resume/history writes or cleanup needed. |
+| Plex counted episode, show absent before tune-in | Remove its newly generated next-episode entry, with bounded lookup retries. |
+| Plex show already present or prior membership unreadable | Preserve the existing entry rather than remove real viewing activity. |
+| Jellyfin/Emby readable, no counted watch | Restore prior position, count, played flag and last-played state. A never-played item is reset through DELETE PlayedItems. |
+| Jellyfin/Emby readable, counted watch | Restore position zero, Played true and prior count plus one. |
+| Jellyfin/Emby unreadable | Skip session reports, watched writes and cleanup for that program. |
+
+Failed reports back off their ten-second pulses, skipping 1, 2, 4 and up to 30
+pulses; an answered report resets the backoff. Failure never changes a saved
+setting. Exact final stops and cleanup remain eligible, including the native
+background grace period. Restoration is best effort: network loss, force quit or
+background expiration can prevent it. This is not a guarantee that server state
+is immutable while a Jellyfin/Emby session is active or that cleanup always lands.
+
+## Validation and remaining acceptance
+
+Native and web tests use synthetic clocks and transports. They cover all four
+modes, legacy migration, explicit-off precedence, delayed cloud delivery,
+outgoing queue revocation, in-flight stops, position-free Plex requests,
+next-episode cleanup and unreadable Jellyfin/Emby baselines without writes.
+Both surfaces read `scripts/watch-cleanup-golden.json` for cleanup parity.
+
+Physical Apple TV Settings layout/focus/VoiceOver, real browser integration,
+live Plex/Jellyfin/Emby sessions and delayed persistence, failure cleanup, and
+real multi-TV/mixed-client iCloud remain unverified for these controls. Earlier
+fork measurements and the historical server measurements below do not validate
+this exact integrated version. No app version or release claim is made here.
+
+---
+
+## Historical reporting design and measurements
+
+The record below is preserved from main before the independent controls. Its
+single-switch Settings paths, unreadable-state position-zero fallback, original
+endpoint plan and shipped-version statements describe earlier behavior. Use the
+current sections above for this version's controls and policy.
 
 **Status:** Shipped in 1.0.9 (June 2026). Off by default since 1.0.11. Jellyfin and Emby use the same switch and the same 75% watch rule.  
 **Why:** Keep watch history accurate while Nostalgex is in use. Rewatchables filters on real play counts from whichever server is connected.

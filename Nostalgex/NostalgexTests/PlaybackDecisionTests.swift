@@ -104,6 +104,20 @@ final class PlaybackDecisionTests: XCTestCase {
         XCTAssertTrue(profile.contains("scopeName=hevc&type=upperBound&name=video.bitDepth&value=10"), "without this Plex assumes 8-bit and re-encodes 4K HEVC Main 10 to 1080p H.264")
     }
 
+    // Blu-ray DD+ 7.1 (an AC-3 core plus E-AC-3 extension frames) is refused by AVPlayer when
+    // Plex copies it. Both profiles cap EAC3 at 6 channels, scoped so Plex actually reads it.
+    func testBothProfilesCapEAC3AtSixChannels() throws {
+        for (hevcCapable, offersHEVC) in [(true, true), (true, false), (false, false)] {
+            let profile = PlexAPIService.clientProfileExtra(hevcCapable: hevcCapable, offersHEVC: offersHEVC)
+            XCTAssertTrue(profile.contains("scope=videoAudioCodec&scopeName=eac3&type=upperBound&name=audio.channels&value=6"), profile)
+            XCTAssertFalse(profile.contains("scope=audioCodec&scopeName=eac3"), "Plex ignores scope=audioCodec")
+        }
+        let url = try XCTUnwrap(URL(string: "http://192.168.4.79:32400/video/:/transcode/universal/start.m3u8?path=/library/metadata/1&X-Plex-Client-Profile-Extra=old"))
+        let remux = try XCTUnwrap(PlexAPIService.dolbyVisionRemuxURL(from: url))
+        let q = Dictionary(uniqueKeysWithValues: URLComponents(url: remux, resolvingAgainstBaseURL: false)!.queryItems!.map { ($0.name, $0.value ?? "") })
+        XCTAssertTrue(try XCTUnwrap(q["X-Plex-Client-Profile-Extra"]).contains("scopeName=eac3&type=upperBound&name=audio.channels&value=6"))
+    }
+
     func testDolbyVision7NeverOffersHEVC() {
         XCTAssertFalse(CodecSupport.offersHEVC(doviProfile: 7, deviceCapable: true))
         XCTAssertTrue(CodecSupport.offersHEVC(doviProfile: 8, deviceCapable: true))

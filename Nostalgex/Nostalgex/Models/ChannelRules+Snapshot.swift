@@ -22,6 +22,11 @@ extension ChannelRules {
             rewatched: rewatched,
             titleContains: titleContains,
             episodeTitleContains: episodeTitleContains,
+            episodeSummaryContains: episodeSummaryContains,
+            episodeSeasonalTitleContains: episodeSeasonalTitleContains,
+            episodeAirWindow: episodeAirWindow.map { AirWindowJSON(from: $0.from, to: $0.to) },
+            episodeTitleExcludes: episodeTitleExcludes,
+            matchTmdbGenres: matchTmdbGenres ? true : nil,
             titleExcludes: titleExcludes,
             editorialOverrides: editorialOverrides,
             addedWithinDays: addedWithinDays,
@@ -63,7 +68,9 @@ extension ExclusiveRule {
             genres: genres.isEmpty ? nil : genres,
             titleContains: titleContains.isEmpty ? nil : titleContains,
             editorialTitles: editorialTitles.isEmpty ? nil : editorialTitles,
-            manifestExclusive: manifestExclusive ? true : nil
+            manifestExclusive: manifestExclusive ? true : nil,
+            type: type?.rawValue,
+            source: source?.rawValue
         )
     }
 }

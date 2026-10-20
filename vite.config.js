@@ -2,7 +2,9 @@ import { resolve } from 'path'
 import { readdirSync, mkdirSync, copyFileSync } from 'fs'
 import { defineConfig, loadEnv } from 'vite'
 import { writeBlogToDist } from './scripts/build-blog.mjs'
+import { selfhostPlugins, hostedMarkerPlugin } from './scripts/selfhost-build.mjs'
 import { writeBundlesToDist } from './scripts/build-bundles.mjs'
+import { resolveTunerVersion, tunerVersionPlugin } from './scripts/tuner-version.mjs'
 
 // The browser-loaded helper scripts (scripts/nostalgex-*.js|.cjs) are referenced
 // by plex-tuner.html with a plain <script src>. Vite can't bundle non-module scripts,
@@ -72,22 +74,52 @@ function emitBundles() {
 const fileEnv = { ...loadEnv('development', __dirname, 'VITE_'), ...loadEnv('production', __dirname, 'VITE_') }
 if (!('VITE_TMDB_RELAY_URL' in fileEnv)) process.env.VITE_TMDB_RELAY_URL = ''
 
-export default defineConfig({
-  plugins: [copyBrowserScripts(), emitBlog(), emitBundles()],
-  build: {
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        'web-tuner': resolve(__dirname, 'web-tuner.html'),
-        'apple-tv': resolve(__dirname, 'apple-tv.html'),
-        'plex-tuner': resolve(__dirname, 'plex-tuner.html'),
-        privacy: resolve(__dirname, 'privacy.html'),
-        support: resolve(__dirname, 'support.html'),
-        plex: resolve(__dirname, 'plex.html'),
-        jellyfin: resolve(__dirname, 'jellyfin.html'),
-        emby: resolve(__dirname, 'emby.html'),
-        '404': resolve(__dirname, '404.html'),
+// The web tuner's version: package.json "tunerVersion", or the Docker build arg
+// NOSTALGEX_TUNER_VERSION when it is set. Both builds write it into the tuner pages
+// and Settings shows it. See scripts/tuner-version.mjs.
+const tunerVersion = resolveTunerVersion(process.env, __dirname)
+
+// `vite build --mode selfhost` is the Docker web tuner: the two tuner pages only,
+// with every outside script and font vendored. See scripts/selfhost-build.mjs.
+// Any other mode is the hosted site, unchanged.
+export default defineConfig(({ mode }) => {
+  if (mode === 'selfhost') {
+    return {
+      base: './',
+      publicDir: false,
+      plugins: [
+        ...selfhostPlugins({ root: __dirname, version: tunerVersion }),
+        tunerVersionPlugin(tunerVersion),
+      ],
+      build: {
+        rollupOptions: {
+          input: {
+            'web-tuner': resolve(__dirname, 'web-tuner.html'),
+            'plex-tuner': resolve(__dirname, 'plex-tuner.html'),
+          },
+        },
+      },
+    }
+  }
+
+  return {
+    plugins: [hostedMarkerPlugin(), tunerVersionPlugin(tunerVersion), copyBrowserScripts(), emitBlog(), emitBundles()],
+    build: {
+      rollupOptions: {
+        input: {
+          main: resolve(__dirname, 'index.html'),
+          'web-tuner': resolve(__dirname, 'web-tuner.html'),
+          'apple-tv': resolve(__dirname, 'apple-tv.html'),
+          'plex-tuner': resolve(__dirname, 'plex-tuner.html'),
+          privacy: resolve(__dirname, 'privacy.html'),
+          support: resolve(__dirname, 'support.html'),
+          'self-host': resolve(__dirname, 'self-host.html'),
+          plex: resolve(__dirname, 'plex.html'),
+          jellyfin: resolve(__dirname, 'jellyfin.html'),
+          emby: resolve(__dirname, 'emby.html'),
+          '404': resolve(__dirname, '404.html'),
+        },
       },
     },
-  },
+  }
 })

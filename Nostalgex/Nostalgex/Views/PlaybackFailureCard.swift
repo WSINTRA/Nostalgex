@@ -9,7 +9,8 @@ import SwiftUI
 ///
 /// Deliberately not a dialog. Nothing here is focusable, so the remote keeps working and
 /// the card sits over the video the way the tuning static does. It clears itself when the
-/// next programme starts.
+/// next programme starts, or, on a channel that has stopped after repeated failures, when
+/// the viewer tunes.
 struct PlaybackFailureCard: View {
     let failure: PlaybackFailure
     /// The windowed guide surface gets smaller type than the full-screen player.
@@ -39,7 +40,7 @@ struct PlaybackFailureCard: View {
                 .lineSpacing(4)
                 .frame(maxWidth: compact ? 520 : 900)
 
-            Text("Moving on to the next programme.")
+            Text(failure.nextStep)
                 .font(.custom("DMMono-Regular", size: nextSize))
                 .foregroundStyle(.white.opacity(0.4))
         }

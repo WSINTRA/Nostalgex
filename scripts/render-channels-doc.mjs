@@ -34,7 +34,7 @@ Quick reference for every channel and bundle. Source of truth: \`channels.json\`
 viewers tune to; its \`id\` is the stable key everything else references. They
 drifted apart as channels were renumbered, and today they differ for many
 channels — for example \`id\` 40 is **CH85 TRUE CRIME**, and \`id\` 211 is
-**CH140 CRITERION**. Get it wrong and you edit a different channel than the one
+**CH107 CRITERION**. Get it wrong and you edit a different channel than the one
 you meant.
 
 Which key does what:
@@ -72,15 +72,32 @@ const EXCLUSIVITY_INTRO = `Exclusive rules block a title from EVERY channel exce
 \`id\`s. **Only lock a title to a channel when you are 95%+ sure it belongs
 nowhere else — default to overlap.** Over-locking hides content: locking Die
 Hard into the holiday channel made it vanish from action for eleven months of
-the year.`;
+the year.
+
+A lock reads the item's own title (the song for a music video, never the
+artist), with any " (YYYY)" suffix ignored. \`editorialTitles\` must match the
+whole title exactly. \`titleContains\` matches whole words only, the same rule
+as a channel's \`titleContains\`: "Noel" catches Noel, not Noelle, and "Santa
+Claus" does not catch Santana. A lock can be scoped with \`type\` and \`source\`;
+then it only applies to items of that type from that kind of library. Both filters
+implement it (\`ExclusiveRule.matches\` in Swift, \`exclusiveRuleMatches\` in the
+web filter) and \`scripts/filter-golden.json\` pins the cases.`;
 
 // Long-form context per exclusive rule, keyed by the sorted channel-id list.
 // Keeps the "why" from the hand-written doc alive after regeneration.
 const EXCLUSIVITY_NOTES = {
-  "130": `Holiday and Christmas titles belong to HOLIDAZE for the season. Genre match
-  plus a title allowlist plus an editorial allowlist. Die Hard, Die Hard 2 and
-  Lethal Weapon are deliberately NOT on the list — they stay free for year-round
-  action.`,
+  "130,409,410,411,412,413,414": `Christmas films belong to the TIS THE SEASON channels, including the two TV
+  channels, which air half-hour specials stored as films. Films in a movie library
+  only (\`type: movie\`, \`source: movie\`), so a show with Santa in its name and a
+  Christmas song on a music video stay free. Title words are the ones that measured
+  95% or more Christmas across TMDB films with 25+ votes (2026-10-18): "Holiday"
+  (66%, Mr. Bean's Holiday, Roman Holiday), "Santa" (87%, Santa Sangre, Santa Fe
+  Trail), "Merry", "Snowman", "Grinch", "Scrooge", "Nutcracker" and "Reindeer" were
+  dropped, so the channels still match them but no longer lock them away. Die Hard,
+  Lethal Weapon, Reindeer Games, Rocky IV, Gremlins, Batman Returns, Trading Places,
+  The Family Man, While You Were Sleeping and The Shop Around the Corner are
+  deliberately NOT locked: Christmas-set, but they belong on their year-round channels
+  too.`,
   "32,60": `Anime is claimed by genre \`Anime\` OR by a TMDB-manifest claim
   (\`manifestExclusive\`), so manifest-claimed anime is blocked from the other
   animation channels even when Plex only tags it "Animation". The manifest
@@ -89,8 +106,10 @@ const EXCLUSIVITY_NOTES = {
   similar/collection noise cannot be claimed — that blocks live-action (Spy Kids)
   AND Western animation (An American Tail, Avatar, Castlevania). Strict Japanese
   anime only. Re-run the keyword tuner to apply changes.`,
-  "132": `Halloween horror is claimed by a title allowlist plus the manifest, so the
-  seasonal channel owns it rather than the year-round horror channels.`,
+  "132,415": `The Scream and Halloween films, by exact title, so SCREAM ADULTS and
+  SLASHER own them rather than the other horror channels. It used to match any
+  title containing "scream" or "halloween", which hid Kicking & Screaming and
+  Hubie Halloween from every channel they belong on.`,
 };
 
 // ── Rule summarising ───────────────────────────────────────────────────────
@@ -117,6 +136,14 @@ function summariseRules(rules) {
   const g = rules.genres || {};
 
   if (rules.manifestOnly) parts.push("**TMDB manifest only**");
+  if (rules.episodeTitleContains?.length) parts.push(`episode title words (${rules.episodeTitleContains.length})`);
+  if (rules.episodeSeasonalTitleContains?.length) {
+    const w = rules.episodeAirWindow || {};
+    parts.push(`seasonal title words (${rules.episodeSeasonalTitleContains.length}) if aired ${w.from ?? "?"} to ${w.to ?? "?"}`);
+  }
+  if (rules.episodeSummaryContains?.length) parts.push(`summary words (${rules.episodeSummaryContains.length})`);
+  if (rules.episodeTitleExcludes?.length) parts.push(`episode title blocklist (${rules.episodeTitleExcludes.length})`);
+  if (rules.matchTmdbGenres) parts.push("genres include TMDB's");
   if (rules.source) parts.push(`source: ${SOURCE_LABEL[rules.source] || rules.source}`);
   if (g.include?.length) parts.push(`incl ${list(g.include)}`);
   if (g.requireAll?.length) parts.push(`needs ALL ${g.requireAll.join(" + ")}`);
@@ -181,11 +208,45 @@ const data = JSON.parse(await readFile(CHANNELS_PATH, "utf8"));
 const channels = data.channels || [];
 const byId = new Map(channels.map((c) => [c.id, c]));
 
+/** "CH 130–136, 145": channel numbers as runs, so a bundle split across blocks reads right. */
+function numberRanges(nums) {
+  const sorted = [...nums].sort((a, z) => a - z);
+  const runs = [];
+  for (const n of sorted) {
+    const last = runs[runs.length - 1];
+    if (last && n === last[1] + 1) last[1] = n;
+    else runs.push([n, n]);
+  }
+  return `CH ${runs.map(([a, z]) => (a === z ? `${a}` : `${a}–${z}`)).join(", ")}`;
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "7 days before US Thanksgiving" for a bundle's `seasonStart`, or "" for none. */
+function seasonStartNote(start) {
+  if (!start || start.relativeTo !== "usThanksgiving") return "";
+  const days = Number.isInteger(start.days) ? start.days : 0;
+  const n = Math.abs(days);
+  const anchor = "US Thanksgiving (the fourth Thursday of November)";
+  if (days === 0) return `on ${anchor}`;
+  return `${n} day${n === 1 ? "" : "s"} ${days < 0 ? "before" : "after"} ${anchor}`;
+}
+
+/** "Spotlighted Oct, off until switched on, works in any month" for a seasonal bundle. */
+function seasonNote(activeMonths, seasonStart) {
+  if (!activeMonths?.length) return "";
+  const months = activeMonths.map((m) => MONTHS[m - 1]).filter(Boolean).join(", ");
+  const early = seasonStartNote(seasonStart);
+  const when = early ? `from ${early} through ${months}` : months;
+  return `Spotlighted ${when}. Off until switched on, then on in any month.`;
+}
+
 const bundles = (data.bundles || [])
   .map((b) => ({
     id: b.id,
     name: b.name,
     description: b.description || "",
+    season: seasonNote(b.activeMonths, b.seasonStart),
     chans: (b.channelIDs || [])
       .map((id) => byId.get(id))
       .filter(Boolean)
@@ -214,10 +275,10 @@ out.push(
 out.push("## Bundles", "");
 out.push("| Bundle | Bundle ID | Channels | Range | Description |", "|---|---|---|---|---|");
 for (const b of bundles) {
-  const nums = b.chans.map((c) => c.number);
-  const range = nums.length === 1 ? `CH ${nums[0]}` : `CH ${Math.min(...nums)}–${Math.max(...nums)}`;
+  const range = numberRanges(b.chans.map((c) => c.number));
   out.push(
-    `| ${cell(b.name)} | \`${b.id}\` | ${b.chans.length} | ${range} | ${cell(b.description)} |`,
+    `| ${cell(b.name)} | \`${b.id}\` | ${b.chans.length} | ${range} | ` +
+      `${cell([b.description, b.season].filter(Boolean).join(". "))} |`,
   );
 }
 out.push("", `Bundled channels: ${bundledCount} of ${channels.length}.`, "");
@@ -240,9 +301,12 @@ if (!rules.length) {
       .join("<br>");
     const matches = [
       rule.genres?.length ? `genres ${list(rule.genres, 4)}` : null,
-      rule.titleContains?.length ? `${rule.titleContains.length} title keywords` : null,
-      rule.editorialTitles?.length ? `${rule.editorialTitles.length} editorial titles` : null,
+      rule.titleContains?.length ? `${rule.titleContains.length} title words` : null,
+      rule.editorialTitles?.length ? `${rule.editorialTitles.length} exact titles` : null,
       rule.manifestExclusive ? "TMDB manifest claim (`manifestExclusive`)" : null,
+      rule.type || rule.source
+        ? `only ${TYPE_LABEL[rule.type]?.toLowerCase() || "items"}${rule.source ? ` from the ${SOURCE_LABEL[rule.source] || rule.source}` : ""}`
+        : null,
     ].filter(Boolean).join(", ");
     const note = (EXCLUSIVITY_NOTES[[...ids].sort((a, z) => a - z).join(",")] || "")
       .replace(/\s*\n\s*/g, " ")
@@ -274,10 +338,10 @@ function channelTable(chans) {
   return rows;
 }
 for (const b of bundles) {
-  const nums = b.chans.map((c) => c.number);
-  const range = nums.length === 1 ? `CH ${nums[0]}` : `CH ${Math.min(...nums)}–${Math.max(...nums)}`;
+  const range = numberRanges(b.chans.map((c) => c.number));
   out.push(`### ${b.name} · ${range}`, "");
   if (b.description) out.push(`_${b.description}_`, "");
+  if (b.season) out.push(b.season, "");
   out.push(...channelTable(b.chans), "");
 }
 if (orphans.length) {

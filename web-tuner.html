@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nostalgex Web Tuner: Watch Your Library as Live TV</title>
+<!-- selfhost:strip:start -->
 <meta name="description" content="Watch your Plex, Jellyfin or Emby library as live channels with a retro guide in your browser. Free, no account. Jellyfin and Emby need an https address.">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://www.nostalgex.app/web-tuner">
@@ -26,6 +27,9 @@
 <meta name="twitter:title" content="Nostalgex Web Tuner: Watch Your Library as Live TV">
 <meta name="twitter:description" content="Watch your Plex, Jellyfin or Emby library as live channels with a retro guide in your browser. Free, no account. Jellyfin and Emby need an https address.">
 <meta name="twitter:image" content="https://www.nostalgex.app/og-image-1200.png">
+<!-- selfhost:strip:end -->
+<!-- selfhost:only: <meta name="robots" content="noindex, nofollow"> -->
+<!-- selfhost:only: <link rel="icon" type="image/png" href="./logo/favicon.png"> -->
 
 <script>
   /* Theme boot — runs before first paint so there's no flash on reload.
@@ -47,7 +51,8 @@
 <link rel="stylesheet" href="./styles.css">
 <!-- Required by the Plex PIN flow below (renders the plex.tv/link QR code). -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
-<script defer data-site="nostalgex" src="https://statsngraphs.lol/s.js"></script>
+<script async data-site="nostalgex" src="https://statsngraphs.lol/s.js"></script>
+<!-- selfhost:strip:start -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -112,6 +117,7 @@
   ]
 }
 </script>
+<!-- selfhost:strip:end -->
 <!-- Returning-user fast redirect: runs before body renders so users never see the connect page -->
 <script>
   (function () {
@@ -124,7 +130,7 @@
         if (saved.userToken) sessionStorage.setItem('plex90_user_token', saved.userToken);
         if (saved.backend) sessionStorage.setItem('plex90_backend', saved.backend);
         if (saved.jellyfinUserId) sessionStorage.setItem('plex90_jellyfin_user_id', saved.jellyfinUserId);
-        window.location.replace('/plex-tuner.html');
+        window.location.replace('plex-tuner.html');
       }
     } catch (e) {}
   })();
@@ -138,6 +144,7 @@
         <span class="brand-word" role="img" aria-label="Nostalgex">N<svg class="brand-o" viewBox="0 0 126 111" aria-hidden="true"><defs><linearGradient id="brandSun" x1="0" y1="0" x2="1" y2="0.35"><stop offset="0.05" stop-color="#f838ac"/><stop offset="0.5" stop-color="#ff8a3d"/><stop offset="0.95" stop-color="#ffd91c"/></linearGradient></defs><rect x="6" y="6" width="114" height="99" rx="30" fill="url(#brandSun)" stroke="currentColor" stroke-width="11"/><path d="M12 43 H114" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.55"/><path d="M12 70 H114" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.55"/></svg>STALGEX</span>
       </a>
       <div class="nav-actions">
+        <!-- selfhost:strip:start -->
         <a class="btn btn-outline btn-sm" href="/">Back to the site</a>
         <div class="nav-social" aria-label="Nostalgex elsewhere">
           <a class="social-icon" href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
@@ -153,6 +160,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h12v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z"/><path d="M16 9h2a2 2 0 0 1 0 4h-2"/><path d="M7 3v2M11 3v2"/></svg>
           </a>
         </div>
+        <!-- selfhost:strip:end -->
         <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="true" aria-label="Switch to day mode" title="Switch to day mode">
           <svg class="tt-icon tt-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <circle cx="12" cy="12" r="4.2"/>
@@ -162,12 +170,15 @@
             <path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.3 8.3 0 1 0 10.5 10.5z"/>
           </svg>
         </button>
+        <!-- selfhost:strip:start -->
         <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">
           <svg class="nt-icon nt-burger" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
           <svg class="nt-icon nt-close" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
         </button>
+        <!-- selfhost:strip:end -->
       </div>
     </div>
+  <!-- selfhost:strip:start -->
   <div class="mobile-menu" id="mobileMenu">
     <div class="mobile-menu-social" aria-label="Nostalgex elsewhere">
     <a class="social-icon" href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
@@ -184,6 +195,7 @@
     </a>
     </div>
   </div>
+  <!-- selfhost:strip:end -->
   </header>
 
   <!-- ============ CONNECT ============
@@ -194,7 +206,10 @@
     <div class="connect-wrap">
 
       <h1 class="connect-title">Watch your library as live TV in a browser.</h1>
-      <p class="connect-lede">The Nostalgex web tuner plays your own Plex, Jellyfin or Emby library as live channels with a retro guide, right in your browser. It's free and needs no account. Plex works as is. Jellyfin and Emby need an https address, and Emby connects through the Jellyfin option.</p>
+      <!-- selfhost:strip:start -->
+      <p class="connect-lede">The Nostalgex web tuner plays your own Plex, Jellyfin or Emby library as live channels with a retro guide, right in your browser. It's free and needs no account. Plex works as is. Jellyfin and Emby need an https address.</p>
+      <!-- selfhost:strip:end -->
+      <!-- selfhost:only: <p class="connect-lede">The Nostalgex web tuner plays your own Plex, Jellyfin or Emby library as live channels with a retro guide. This copy runs on your own server, so a plain http:// Jellyfin or Emby address on your network works.</p> -->
       <p class="connect-lede connect-lede--follow">Sign in once and Nostalgex turns your library into channels, then drops you straight into the guide.</p>
 
       <div class="cta-card cta-card--cyan connect-card">
@@ -226,18 +241,26 @@
 
         <div class="connect-divider"><span>or</span></div>
 
-        <!-- Jellyfin: intro -->
-        <div id="connect-jellyfin-intro">
-          <button class="connect-link-btn" id="connect-jellyfin-btn" type="button">Connect with Jellyfin</button>
-          <p class="connect-fine-print">Running Emby? It connects through the Jellyfin option too.</p>
+        <!-- Jellyfin and Emby: one row of two choices. Each opens its own form. -->
+        <div class="connect-alt" id="connect-alt">
+          <div id="connect-jellyfin-intro">
+            <button class="connect-link-btn" id="connect-jellyfin-btn" type="button">Connect with Jellyfin</button>
+          </div>
+          <div id="connect-emby-intro">
+            <button class="connect-link-btn" id="connect-emby-btn" type="button">Connect with Emby</button>
+          </div>
         </div>
 
         <!-- Jellyfin: login form -->
         <div id="connect-jellyfin" class="connect-form">
           <div class="connect-field">
             <label class="connect-label" for="jf-url">Jellyfin server URL</label>
+            <!-- selfhost:strip:start -->
             <input class="connect-input" id="jf-url" type="url" inputmode="url" autocomplete="off" placeholder="https://jellyfin.yourdomain.com">
-            <p class="connect-fine-print connect-fine-print--left">Has to be reachable over HTTPS. Plain http:// LAN servers get blocked by your browser here, so use the Apple TV app for those.</p>
+            <p class="connect-fine-print connect-fine-print--left">Has to be reachable over HTTPS. Plain http:// LAN servers get blocked by your browser here, so use the Apple TV app for those, or <a href="/self-host">run the tuner on your own server</a>.</p>
+            <!-- selfhost:strip:end -->
+            <!-- selfhost:only: <input class="connect-input" id="jf-url" type="url" inputmode="url" autocomplete="off" placeholder="http://192.168.1.20:8096"> -->
+            <!-- selfhost:only: <p class="connect-fine-print connect-fine-print--left">The address you use for Jellyfin on your network, like http://192.168.1.20:8096. If this page is on https, your server has to be on https too.</p> -->
           </div>
           <div class="connect-field">
             <label class="connect-label" for="jf-user">Username</label>
@@ -263,16 +286,47 @@
         <!-- Jellyfin: error -->
         <div class="connect-error" id="connect-jellyfin-error"></div>
 
+        <!-- Emby: login form. Emby has no Quick Connect, so it is username and password,
+             the same as the Apple TV app. -->
+        <div id="connect-emby" class="connect-form">
+          <div class="connect-field">
+            <label class="connect-label" for="em-url">Emby server URL</label>
+            <!-- selfhost:strip:start -->
+            <input class="connect-input" id="em-url" type="url" inputmode="url" autocomplete="off" placeholder="https://emby.yourdomain.com">
+            <p class="connect-fine-print connect-fine-print--left">Has to be reachable over HTTPS. Plain http:// LAN servers get blocked by your browser here, so use the Apple TV app for those, or <a href="/self-host">run the tuner on your own server</a>.</p>
+            <!-- selfhost:strip:end -->
+            <!-- selfhost:only: <input class="connect-input" id="em-url" type="url" inputmode="url" autocomplete="off" placeholder="http://192.168.1.20:8096"> -->
+            <!-- selfhost:only: <p class="connect-fine-print connect-fine-print--left">The address you use for Emby on your network, like http://192.168.1.20:8096. If this page is on https, your server has to be on https too.</p> -->
+          </div>
+          <div class="connect-field">
+            <label class="connect-label" for="em-user">Username</label>
+            <input class="connect-input" id="em-user" type="text" autocomplete="username" placeholder="username">
+          </div>
+          <div class="connect-field">
+            <label class="connect-label" for="em-pass">Password</label>
+            <input class="connect-input" id="em-pass" type="password" autocomplete="current-password" placeholder="password">
+          </div>
+          <button class="connect-btn" id="em-signin-btn" type="button">Sign in</button>
+          <button class="connect-text-link" id="em-back-btn" type="button">Back</button>
+        </div>
+
+        <!-- Emby: error -->
+        <div class="connect-error" id="connect-emby-error"></div>
+
       </div>
 
       <p class="connect-privacy">Your credentials go straight from this browser to your server. Nothing lands on ours.</p>
 
+      <!-- selfhost:strip:start -->
       <section class="connect-how" aria-labelledby="connect-how-title">
         <h2 class="connect-how-title" id="connect-how-title">How the web tuner connects</h2>
-        <p>Plex works as is: sign in with a code and the tuner finds your server. Jellyfin and Emby have to be reachable over https, because browsers block a secure page from talking to a plain http server. Running Emby? It connects through the Jellyfin option. A plain http server on your network works in the Apple TV app instead.</p>
+        <p>Plex works as is: sign in with a code and the tuner finds your server. Jellyfin and Emby have to be reachable over https, because browsers block a secure page from talking to a plain http server. A plain http server on your network works in the Apple TV app instead.</p>
         <p>New here? See how it works with <a href="/plex">Plex</a>, <a href="/jellyfin">Jellyfin</a> or <a href="/emby">Emby</a>.</p>
       </section>
+      <!-- selfhost:strip:end -->
+      <!-- selfhost:only: <section class="connect-how" aria-labelledby="connect-how-title"><h2 class="connect-how-title" id="connect-how-title">How this tuner connects</h2><p>This page comes from your own server, so it talks to Jellyfin or Emby on your network directly. Plex sign-in goes through plex.tv, the same as any Plex app. Serve this page and your media server the same way: both on http, or both on https.</p></section> -->
 
+      <!-- selfhost:strip:start -->
       <div class="footer-signup connect-signup">
         <p class="footer-signup-label">Want an email when new channels ship?</p>
         <form class="subscribe-form js-subscribe-form" data-signup-source="webtuner" novalidate>
@@ -282,9 +336,11 @@
         </form>
         <p class="subscribe-msg" role="status" aria-live="polite"></p>
       </div>
+      <!-- selfhost:strip:end -->
     </div>
   </main>
 
+  <!-- selfhost:strip:start -->
   <footer class="footer">
     <div class="container footer-inner">
       <div class="footer-brand">
@@ -303,9 +359,13 @@
       <p class="footer-note">Not affiliated with Plex, Jellyfin, Emby, or Apple.</p>
     </div>
   </footer>
+  <!-- selfhost:strip:end -->
+  <!-- selfhost:only: <footer class="footer"><div class="container footer-inner"><p class="footer-note">Nostalgex self-hosted web tuner. <a href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener">Source on GitHub</a>. Not affiliated with Plex, Jellyfin, Emby, or Apple.</p></div></footer> -->
 
   <!-- Shared site script (theme toggle, nav scroll state). type="module" so Vite bundles it. -->
   <script type="module" src="./app.js"></script>
+  <!-- Tells Jellyfin and Emby apart after sign-in (serverKindFromPublicInfo) and starts Quick Connect. -->
+  <script src="scripts/nostalgex-jellyfin-urls.js"></script>
 
 <script>
   // ---- Plex Auth ----
@@ -316,10 +376,21 @@
     'X-Plex-Platform': 'Web',
   };
 
+  // crypto.randomUUID only exists on secure pages (https, localhost). A self-hosted
+  // tuner on plain http gets the same v4 shape from getRandomValues, which works anywhere.
+  function randomClientId() {
+    if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    const b = crypto.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+  }
+
   function getClientId() {
     let id = localStorage.getItem('plex90_client_id');
     if (!id) {
-      id = crypto.randomUUID();
+      id = randomClientId();
       localStorage.setItem('plex90_client_id', id);
     }
     return id;
@@ -439,7 +510,7 @@
         sessionStorage.setItem('plex90_pick_server', '1');
         sessionStorage.removeItem('plex90_server_url');
         sessionStorage.removeItem('plex90_server_name');
-        window.location.href = '/plex-tuner.html';
+        window.location.href = 'plex-tuner.html';
         return;
       }
 
@@ -484,7 +555,7 @@
         }));
       } catch (e) {}
 
-      window.location.href = '/plex-tuner.html';
+      window.location.href = 'plex-tuner.html';
     } catch (err) {
       document.getElementById('connect-success').classList.remove('active');
       const errorEl = document.getElementById('connect-error');
@@ -515,25 +586,40 @@
   function normalizeJellyfinUrl(raw) {
     let s = (raw || '').trim();
     if (!s) return '';
-    // Default to https: this page is served over https, and browsers block http://
-    // requests from a secure page (mixed content). A bare host almost always needs https here.
-    if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+    // Default to https on the hosted page: it is served over https, and browsers block
+    // http:// requests from a secure page (mixed content). A self-hosted copy on plain
+    // http is usually next to a plain http server, so a bare host gets http there.
+    if (!/^https?:\/\//i.test(s)) s = (location.protocol === 'http:' ? 'http://' : 'https://') + s;
     return s.replace(/\/+$/, '');
   }
 
+  // Jellyfin and Emby share one sign-in. These are the parts that name the server.
+  const MEDIA_FORMS = {
+    jellyfin: { NAME: 'JELLYFIN', fallbackName: 'Jellyfin', intro: 'connect-jellyfin-intro', form: 'connect-jellyfin',
+      error: 'connect-jellyfin-error', url: 'jf-url', user: 'jf-user', pass: 'jf-pass' },
+    emby: { NAME: 'EMBY', fallbackName: 'Emby', intro: 'connect-emby-intro', form: 'connect-emby',
+      error: 'connect-emby-error', url: 'em-url', user: 'em-user', pass: 'em-pass' },
+  };
+
   // A thrown fetch from this https page to an http:// server is the browser blocking
   // mixed content, not a real network failure — say so, since "check the URL" misleads users.
-  function jellyfinUnreachableMsg(url) {
+  function mediaServerUnreachableMsg(url, NAME) {
+    // On a plain http page (self-hosted) nothing is blocked as mixed content, so the
+    // https advice below would be wrong. It is a plain network or address problem.
+    if (location.protocol === 'http:') {
+      return `COULD NOT REACH THE ${NAME} SERVER. CHECK THE ADDRESS AND THAT THE SERVER IS RUNNING`;
+    }
     // A private address can never answer over https with a valid certificate, so the
     // generic "use an https URL" advice is a dead end. Name the real fix.
     if (/^https?:\/\/(?:10\.|127\.|192\.168\.|169\.254\.|172\.(?:1[6-9]|2[0-9]|3[01])\.|\[?::1\]?|localhost)/i.test(url)) {
-      return 'THAT IS A LOCAL NETWORK ADDRESS. BROWSERS CANNOT REACH IT FROM A SECURE PAGE. USE THE APPLE TV APP, OR A PUBLIC HTTPS ADDRESS FOR YOUR SERVER';
+      return 'THAT IS A LOCAL NETWORK ADDRESS. BROWSERS CANNOT REACH IT FROM A SECURE PAGE. USE THE APPLE TV APP, A PUBLIC HTTPS ADDRESS, OR RUN THE TUNER ON YOUR OWN SERVER (NOSTALGEX.APP/SELF-HOST)';
     }
     if (/^http:\/\//i.test(url)) {
-      return 'YOUR SERVER USES HTTP. BROWSERS BLOCK THAT ON A SECURE PAGE. USE AN HTTPS URL, OR THE APPLE TV APP FOR A LOCAL SERVER';
+      return 'YOUR SERVER USES HTTP. BROWSERS BLOCK THAT ON A SECURE PAGE. USE AN HTTPS URL, THE APPLE TV APP, OR RUN THE TUNER ON YOUR OWN SERVER (NOSTALGEX.APP/SELF-HOST)';
     }
-    return 'COULD NOT REACH THE JELLYFIN SERVER. CHECK THE URL AND THAT IT ANSWERS OVER HTTPS';
+    return `COULD NOT REACH THE ${NAME} SERVER. CHECK THE URL AND THAT IT ANSWERS OVER HTTPS`;
   }
+  function jellyfinUnreachableMsg(url) { return mediaServerUnreachableMsg(url, 'JELLYFIN'); }
 
   function jellyfinAuthHeader(token) {
     const fields = ['Client="Nostalgex"', 'Device="Browser"', `DeviceId="${getClientId()}"`, 'Version="1.0"'];
@@ -541,83 +627,117 @@
     return 'MediaBrowser ' + fields.join(', ');
   }
 
-  function showJellyfinError(msg) {
-    const errorEl = document.getElementById('connect-jellyfin-error');
+  function showMediaError(kind, msg) {
+    const errorEl = document.getElementById(MEDIA_FORMS[kind].error);
     errorEl.textContent = msg;
     errorEl.style.display = 'block';
   }
+  function showJellyfinError(msg) { showMediaError('jellyfin', msg); }
 
-  function showJellyfinForm() {
-    document.getElementById('connect-jellyfin-error').style.display = 'none';
-    document.getElementById('connect-jellyfin-intro').style.display = 'none';
-    document.getElementById('connect-jellyfin').style.display = 'block';
+  // One form open at a time. Both choices hide while either form is open, so Back is
+  // the one way out, as before.
+  function showMediaForm(kind) {
+    const f = MEDIA_FORMS[kind];
+    document.getElementById('connect-alt').style.display = 'none';
+    for (const k of Object.keys(MEDIA_FORMS)) {
+      document.getElementById(MEDIA_FORMS[k].error).style.display = 'none';
+      document.getElementById(MEDIA_FORMS[k].intro).style.display = 'none';
+      document.getElementById(MEDIA_FORMS[k].form).style.display = k === kind ? 'block' : 'none';
+    }
     try {
       const saved = JSON.parse(localStorage.getItem('plex90_saved_auth') || 'null');
-      if (saved && saved.backend === 'jellyfin') {
-        if (saved.jfUrl) document.getElementById('jf-url').value = saved.jfUrl;
-        if (saved.jfUser) document.getElementById('jf-user').value = saved.jfUser;
+      if (saved && saved.backend === kind) {
+        if (saved.jfUrl) document.getElementById(f.url).value = saved.jfUrl;
+        if (saved.jfUser) document.getElementById(f.user).value = saved.jfUser;
       }
     } catch (e) {}
   }
+  function showJellyfinForm() { showMediaForm('jellyfin'); }
+  function showEmbyForm() { showMediaForm('emby'); }
 
-  function resetJellyfin() {
+  function resetMediaForms() {
     if (jfPollInterval) { clearInterval(jfPollInterval); jfPollInterval = null; }
-    document.getElementById('connect-jellyfin').style.display = 'none';
     document.getElementById('connect-jellyfin-quick').classList.remove('active');
-    document.getElementById('connect-jellyfin-intro').style.display = 'block';
+    document.getElementById('connect-alt').style.display = '';
+    for (const k of Object.keys(MEDIA_FORMS)) {
+      document.getElementById(MEDIA_FORMS[k].form).style.display = 'none';
+      document.getElementById(MEDIA_FORMS[k].intro).style.display = 'block';
+    }
+  }
+  function resetJellyfin() { resetMediaForms(); }
+
+  // Which server answered. Jellyfin's public info says "Jellyfin Server"; Emby's has no
+  // product name (see scripts/nostalgex-jellyfin-urls.js). Emby's sign-in result has no
+  // server name either, so it comes from here too. Never fails the sign-in: an
+  // unreadable answer keeps the choice the person made.
+  async function readPublicInfo(url) {
+    try {
+      const res = await fetch(`${url}/System/Info/Public`, { headers: { 'Accept': 'application/json' } });
+      return res.ok ? await res.json() : null;
+    } catch (e) { return null; }
   }
 
-  // Persist creds the tuner reads, then redirect.
-  function completeJellyfinAuth(url, result) {
-    const serverName = (result.User && result.User.ServerName) || 'Jellyfin';
+  // Persist creds the tuner reads, then redirect. `picked` is the button they used; the
+  // server's own answer wins, so an Emby server signed in through Connect with Jellyfin
+  // (or the other way round) is saved as what it really is.
+  async function completeMediaAuth(picked, url, result) {
+    const info = await readPublicInfo(url);
+    const detected = window.NostalgexJellyfinUrls && NostalgexJellyfinUrls.serverKindFromPublicInfo(info);
+    const kind = detected || picked;
+    const serverName = (result.User && result.User.ServerName) || (info && info.ServerName)
+      || MEDIA_FORMS[kind].fallbackName;
     const jellyfinUserId = (result.User && result.User.Id) || '';
-    sessionStorage.setItem('plex90_backend', 'jellyfin');
+    sessionStorage.setItem('plex90_backend', kind);
     sessionStorage.setItem('plex90_token', result.AccessToken);
     sessionStorage.setItem('plex90_server_url', url);
     sessionStorage.setItem('plex90_server_name', serverName);
     sessionStorage.setItem('plex90_jellyfin_user_id', jellyfinUserId);
     try {
       localStorage.setItem('plex90_saved_auth', JSON.stringify({
-        backend: 'jellyfin', token: result.AccessToken,
+        backend: kind, token: result.AccessToken,
         serverUrl: url, serverName, jellyfinUserId,
         jfUrl: url,
-        jfUser: document.getElementById('jf-user')?.value?.trim() || '',
+        jfUser: document.getElementById(MEDIA_FORMS[picked].user)?.value?.trim() || '',
       }));
     } catch (e) {}
-    window.location.href = '/plex-tuner.html';
+    window.location.href = 'plex-tuner.html';
   }
+  function completeJellyfinAuth(url, result) { return completeMediaAuth('jellyfin', url, result); }
 
-  async function jellyfinSignIn() {
-    const url = normalizeJellyfinUrl(document.getElementById('jf-url').value);
-    const username = document.getElementById('jf-user').value.trim();
-    const password = document.getElementById('jf-pass').value;
-    document.getElementById('connect-jellyfin-error').style.display = 'none';
-    if (!url) return showJellyfinError('ENTER YOUR JELLYFIN SERVER URL');
-    if (!username) return showJellyfinError('ENTER YOUR USERNAME');
+  async function mediaSignIn(kind) {
+    const f = MEDIA_FORMS[kind];
+    const url = normalizeJellyfinUrl(document.getElementById(f.url).value);
+    const username = document.getElementById(f.user).value.trim();
+    const password = document.getElementById(f.pass).value;
+    document.getElementById(f.error).style.display = 'none';
+    if (!url) return showMediaError(kind, `ENTER YOUR ${f.NAME} SERVER URL`);
+    if (!username) return showMediaError(kind, 'ENTER YOUR USERNAME');
     try {
       const res = await fetch(`${url}/Users/AuthenticateByName`, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': jellyfinAuthHeader('') },
         body: JSON.stringify({ Username: username, Pw: password }),
       });
-      if (res.status === 401 || res.status === 403) return showJellyfinError('INCORRECT USERNAME OR PASSWORD');
-      if (!res.ok) return showJellyfinError('COULD NOT REACH THE JELLYFIN SERVER');
+      if (res.status === 401 || res.status === 403) return showMediaError(kind, 'INCORRECT USERNAME OR PASSWORD');
+      if (!res.ok) return showMediaError(kind, `COULD NOT REACH THE ${f.NAME} SERVER`);
       const result = await res.json();
-      if (!result.AccessToken) return showJellyfinError('SIGN IN FAILED');
-      completeJellyfinAuth(url, result);
+      if (!result.AccessToken) return showMediaError(kind, 'SIGN IN FAILED');
+      await completeMediaAuth(kind, url, result);
     } catch (err) {
-      showJellyfinError(jellyfinUnreachableMsg(url));
+      showMediaError(kind, mediaServerUnreachableMsg(url, f.NAME));
     }
   }
+  function jellyfinSignIn() { return mediaSignIn('jellyfin'); }
+  function embySignIn() { return mediaSignIn('emby'); }
 
   async function jellyfinQuickConnect() {
     const url = normalizeJellyfinUrl(document.getElementById('jf-url').value);
     document.getElementById('connect-jellyfin-error').style.display = 'none';
     if (!url) return showJellyfinError('ENTER YOUR JELLYFIN SERVER URL');
     try {
-      const initRes = await fetch(`${url}/QuickConnect/Initiate`, {
-        headers: { 'Accept': 'application/json', 'Authorization': jellyfinAuthHeader('') },
-      });
+      // POST, then GET for Jellyfin 10.7 and 10.8 (scripts/nostalgex-jellyfin-urls.js, 7).
+      const initRes = await NostalgexJellyfinUrls.quickConnectInitiate(url,
+        { 'Accept': 'application/json', 'Authorization': jellyfinAuthHeader('') });
       if (!initRes.ok) return showJellyfinError('QUICK CONNECT IS NOT ENABLED ON THIS SERVER');
       const init = await initRes.json();
       if (!init.Code || !init.Secret) return showJellyfinError('QUICK CONNECT IS NOT ENABLED ON THIS SERVER');
@@ -663,6 +783,9 @@
   document.getElementById('jf-quick-btn').addEventListener('click', jellyfinQuickConnect);
   document.getElementById('jf-back-btn').addEventListener('click', resetJellyfin);
   document.getElementById('jf-quick-cancel').addEventListener('click', resetJellyfin);
+  document.getElementById('connect-emby-btn').addEventListener('click', showEmbyForm);
+  document.getElementById('em-signin-btn').addEventListener('click', embySignIn);
+  document.getElementById('em-back-btn').addEventListener('click', resetMediaForms);
 
   // ---- Scroll fade-ins ----
   const observer = new IntersectionObserver((entries) => {

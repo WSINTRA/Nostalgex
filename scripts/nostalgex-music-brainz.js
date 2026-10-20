@@ -12,6 +12,18 @@
   let lastRequestAt = 0;
   let cache = {};
 
+  // The self-hosted build (Docker, `<meta name="nostalgex-build" content="selfhost">`)
+  // makes no MusicBrainz or Deezer requests. Titles still parse locally and cached
+  // results still apply; only the online genre and year lookups are off.
+  function lookupsEnabled() {
+    try {
+      const el = global.document && global.document.querySelector('meta[name="nostalgex-build"]');
+      return !(el && el.getAttribute('content') === 'selfhost');
+    } catch (e) {
+      return true;
+    }
+  }
+
   function stripYearSuffix(title) {
     return String(title || '').replace(/\s+\(\d{4}\)$/, '').trim();
   }
@@ -87,6 +99,7 @@
   let deezerCallbackSeq = 0;
 
   function deezerJSONP(path, params) {
+    if (!lookupsEnabled()) return Promise.reject(new Error('Music lookups are off in the self-hosted build'));
     return new Promise((resolve, reject) => {
       const elapsed = Date.now() - deezerLastRequestAt;
       const wait = elapsed < DEEZER_MIN_INTERVAL_MS ? DEEZER_MIN_INTERVAL_MS - elapsed : 0;
@@ -289,6 +302,7 @@
   }
 
   async function rateLimitedFetch(url) {
+    if (!lookupsEnabled()) throw new Error('Music lookups are off in the self-hosted build');
     const elapsed = Date.now() - lastRequestAt;
     if (elapsed < MIN_INTERVAL_MS) {
       await new Promise((r) => setTimeout(r, MIN_INTERVAL_MS - elapsed));
@@ -493,6 +507,7 @@
     loadDiskCache();
     const mv = items.filter(isMusicVideoItem);
     if (!mv.length) return { enriched: 0, total: 0 };
+    if (!lookupsEnabled()) return { enriched: 0, total: mv.length, skipped: true };
 
     let updated = 0;
     let done = 0;
@@ -559,6 +574,7 @@
   }
 
   global.NostalgexMusicBrainz = {
+    lookupsEnabled,
     parseTitle,
     cleanTitle,
     yearInTitle,

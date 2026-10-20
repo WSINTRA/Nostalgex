@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Privacy Policy | Nostalgex</title>
-<meta name="description" content="What the Nostalgex Apple TV app and website collect, what they never collect, and where your data goes. Plain language, no account, no ads.">
+<meta name="description" content="What the Nostalgex Apple TV app and website collect, what they never collect, and where your data goes. Plain language, no account.">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://www.nostalgex.app/privacy">
 <link rel="icon" type="image/png" sizes="48x48" href="/logo/favicon-48.png">
@@ -12,7 +12,7 @@
 
 <!-- Open Graph -->
 <meta property="og:title" content="Privacy Policy | Nostalgex">
-<meta property="og:description" content="What the Nostalgex Apple TV app and website collect, what they never collect, and where your data goes. Plain language, no account, no ads.">
+<meta property="og:description" content="What the Nostalgex Apple TV app and website collect, what they never collect, and where your data goes. Plain language, no account.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.nostalgex.app/privacy">
 <meta property="og:site_name" content="Nostalgex">
@@ -24,7 +24,7 @@
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Privacy Policy | Nostalgex">
-<meta name="twitter:description" content="What the Nostalgex Apple TV app and website collect, what they never collect, and where your data goes. Plain language, no account, no ads.">
+<meta name="twitter:description" content="What the Nostalgex Apple TV app and website collect, what they never collect, and where your data goes. Plain language, no account.">
 <meta name="twitter:image" content="https://www.nostalgex.app/og-image-1200.png">
 
 <script type="application/ld+json">
@@ -70,17 +70,17 @@
 <div class="container">
   <a href="/" class="back">Back to Nostalgex</a>
   <h1>Privacy Policy</h1>
-  <p class="date">Effective: October 11, 2026</p>
+  <p class="date">Effective: October 18, 2026</p>
 
   <p>Nostalgex turns your own Plex, Jellyfin, or Emby library into live TV channels. We do not host, supply, or stream any media. Everything you watch comes off your own server.</p>
 
-  <p>This policy covers two separate things: the Nostalgex app on Apple TV, and this website. They collect different things, so they are described separately below.</p>
+  <p>This policy covers three separate things: the Nostalgex app on Apple TV, the Nostalgex app on Roku, and this website. They collect different things, so they are described separately below.</p>
 
   <h2>Summary</h2>
   <ul>
-    <li>No accounts. No ads. Nothing is sold or rented to anyone.</li>
-    <li>Your server address and login token stay on your Apple TV.</li>
-    <li>The app sends a small, fixed list of anonymous usage events so we can tell whether things are working. No names, no library contents, no titles.</li>
+    <li>No accounts. Nothing is sold or rented to anyone.</li>
+    <li>Your server address and login token stay on your Apple TV or Roku.</li>
+    <li>The Apple TV app sends a small, fixed list of anonymous usage events so we can tell whether things are working. No names, no library contents, no titles. The Roku app sends none.</li>
     <li>This website uses one lightweight analytics script to count page visits.</li>
     <li>Nothing we collect follows you into other companies' apps or across the web.</li>
   </ul>
@@ -88,7 +88,7 @@
   <h2>The app: what it sends</h2>
   <p>Nostalgex sends anonymous usage events to <a href="https://telemetrydeck.com" rel="noopener">TelemetryDeck</a>, a privacy-focused analytics service. This is the complete list of what the app can send. Every value is a number or a word from a fixed list built into the app. Nothing you typed and nothing from your library is ever one of them. The full technical list, event by event, is in the <a href="https://github.com/chadMueller/Nostalgex/blob/main/Nostalgex/PRIVACY_POLICY.md" rel="noopener">privacy policy on GitHub</a>.</p>
   <ul>
-    <li>The app opened for the first time or again, and how long it stayed open</li>
+    <li>The app opened for the first time or again, how long it stayed open, and rough counts (like 2-5 or 6-20) of the channel changes, playback starts and playback errors in that visit</li>
     <li>A server connection was started, finished, cancelled, timed out or failed, and which kind of server (Plex, Jellyfin or Emby). A failure carries a short reason code from a fixed list (like <code>no_reachable_server</code> or <code>jellyfin_unreachable</code>). The server address never leaves the Apple TV</li>
     <li>A saved sign-in could not be read back or written, with a short numeric status code</li>
     <li>A library load started, finished, failed, stalled or came back empty, with counts (channels, items, milliseconds) and a short error code</li>
@@ -137,10 +137,21 @@
   <p>These lookups use public identifiers and titles for the purpose of matching metadata. The Supabase cache is keyed on public TMDB identifiers and holds metadata about films and shows. It does not record who asked for it, and it holds no account, device, or server information.</p>
 
   <h2>Sign-in</h2>
-  <p>Plex sign-in runs through Plex's own PIN system. We never see your Plex username or password. Jellyfin and Emby sign-in goes straight from the app to the server you typed in. Tokens are held in the Keychain on your Apple TV and are never sent to us.</p>
+  <p>Plex sign-in runs through Plex's own PIN system. We never see your Plex username or password. Jellyfin and Emby sign-in goes straight from the app to the server you typed in. Tokens are held in the Keychain on your Apple TV and are never sent to us. On Roku, sign-in uses the same Plex code, and the token is kept in the app's own storage on the TV.</p>
 
   <h2>Playback reporting</h2>
-  <p>The app and the web tuner can report what you are watching back to your own Plex, Jellyfin, or Emby server, so your server shows what is playing and a film or episode you watch most of counts as watched. This is <strong>off by default</strong> and you turn it on in Settings under Playback Reporting. In the web tuner it never fills your Continue Watching: when you change channel, it puts each program back the way your server had it. When it is on, the reports go only to the server you connected. They do not come to us.</p>
+  <p>The app and the web tuner can report what you are watching back to your own Plex, Jellyfin, or Emby server, so your server shows what is playing and a film or episode you watch most of counts as watched. This is <strong>off by default</strong> and you turn it on in Settings under Playback Reporting. Channel surfing never fills your Continue Watching row. On Plex the reports carry no position, so nothing is left half watched; on Jellyfin and Emby each program goes back the way your server had it when you change channel. When it is on, the reports go only to the server you connected. They do not come to us.</p>
+
+  <h2>The Roku app</h2>
+  <p>The Nostalgex app for Roku works with Plex only. It does not send usage analytics, and it does not use Roku's advertising identifier.</p>
+  <p>It connects to:</p>
+  <ul>
+    <li>plex.tv, to sign you in with Plex's own code and to find your servers. You enter the code at plex.tv/link, so the TV never sees your Plex password.</li>
+    <li>Your own Plex server, for your library and for playback. On your home network the app may reach the server at its local address over plain HTTP, the way Plex's own apps do at home. It only does that for a private home-network address, and your token travels in a request header, not in the address. Otherwise it uses HTTPS.</li>
+    <li>The metadata relay on nostalgex.app and the Supabase cache described above, to sort titles onto channels. It sends only public TMDB and IMDb ids. Metadata it fetches is written back to the cache under the title's TMDB id, the same as the Apple TV app and the web tuner. No library titles, account, server or device details go with it.</li>
+  </ul>
+  <p>The Roku app does not report what you watch to your Plex server and does not change anything in your library.</p>
+  <p>On the TV it keeps your Plex token, a random ID for this install (Plex shows it in your list of devices), your server list, your channel packages and other settings, and a saved copy of your library and guide so it opens quickly. Signing out in Settings removes the token, the install ID, the server list, the saved library and guide, and the metadata cache. Removing the app removes your sign-in and settings; the saved copies sit in the Roku's own cache, which the Roku clears when it needs the room, so sign out first if you want them gone straight away.</p>
 
   <h2>Tracking</h2>
   <p>Nostalgex does not track you across apps or websites owned by other companies, and does not use data for advertising or ad measurement.</p>

@@ -3,6 +3,894 @@
 Why things changed, and what state they were left in. Newest first.
 Commits carry the detail of *what*; this carries the *why*.
 
+## 2026-10-20 (the web tuner says its version in Settings)
+
+**Shipped.** Nothing yet. Branch `web/tuner-version` on build-50 (473c5ca), this entry included, not pushed. nostalgex.app gets it when main is pushed, Docker with `tuner-v1.0.3`, cut right after.
+
+**Why.** Chad: "on the web tuner do we put anywhere the version number? I think we should do that". Nothing on the page said which tuner was running, so a support report from the web or a container could not name a build. The Apple TV app has `VERSION 1.0.26 (50)` at the bottom of Settings.
+
+**Changed.**
+- One number: `"tunerVersion"` in `package.json`, 1.0.3. The hosted build can't read it from git, because Vercel's clone is shallow and has no tags, so it is committed. Not package.json `"version"`: package-lock.json repeats that one, and `npm version` would tag `v1.0.x`, which in this repo means an Apple TV release.
+- New `scripts/tuner-version.mjs`. The build takes `NOSTALGEX_TUNER_VERSION` when it is set (the Docker release passes the tag's version), else package.json, and writes `<meta name="nostalgex-tuner-version" content="1.0.3">` into `plex-tuner.html` and `web-tuner.html` in both builds. A missing or malformed value fails the build. The self-host `config.json` default gets the same number instead of `dev`.
+- Settings, a last line under the footer: `WEB TUNER 1.0.3` on nostalgex.app, `WEB TUNER 1.0.3 · DOCKER` in the container. VT323 18px, 35% white, centred, selectable, after the Apple TV's VERSION line. The container's number comes from its `config.json`, else the page's meta tag. Anything that isn't a release number (dev, empty, a missing file) shows no line at all. The hosted page makes no extra request; the container makes one `config.json` fetch.
+- Docker. The build arg defaults to empty (was `dev`), so a plain `docker build .` carries package.json's number. `docker/40-config.sh` takes `NOSTALGEX_TUNER_VERSION`, else the version the build wrote into the image's own `config.json`, else an empty string. It no longer writes `dev`. A local build's `org.opencontainers.image.version` label is empty; the release sets it.
+- Release. `.github/workflows/docker.yml` stops before pushing when the tag and `tunerVersion` differ. RELEASING.md has the step: bump `tunerVersion` in the commit you tag. `ci.yml` checks both builds after `build:selfhost`, and the PR docker smoke checks the meta tag, the container's value and an environment override.
+
+**Measured.**
+- `npm run test:tuner-version`, now in `npm test`: 59 checks. The module; the page's own section in a VM with a fake DOM and fetch (20 cases: hosted, the container's value, the fallbacks, and dev, empty, a placeholder, "undefined" or a missing file hiding the line; the hosted page makes no request); three negative controls; where the line sits in the markup; and `40-config.sh` under sh with its two paths pointed at a temp dir. Breaking the DOCKER suffix fails 9 checks, breaking the script's fallback to the built file fails 4.
+- `npm test` green. `npm run build` and `npm run build:selfhost`, then `npm run test:tuner-version:builds`: 69 checks, 10 on the built files. No regenerated file changed.
+- A local image run three ways: no build arg gives 1.0.3, `--build-arg NOSTALGEX_TUNER_VERSION=1.0.3` gives 1.0.3, `-e NOSTALGEX_TUNER_VERSION=1.0.9` gives a `config.json` of 1.0.9 and `WEB TUNER 1.0.9 · DOCKER` in Settings. Built with the legacy builder (no buildx here), from a scratch copy of the Dockerfile without the platform pin and `--chmod`; the version path is the same. The `ci.yml` smoke lines pass against these containers, and the `docker.yml` check passes for `tuner-v1.0.3` and fails for `tuner-v1.0.2`.
+- Headless Chromium, signed out: the line is in view and inside the Settings panel at 1440x900, at 960x540 (the TV zoom, about 12px tall) and on a 390x844 phone (demo channels, MENU, SETTINGS in the drawer), for both builds, with no page errors. With the meta tag removed, or an empty value in the container, there is no line.
+
+**Unverified.** A real TV browser and a real phone. The release workflow itself, which only runs on a tag.
+
+**Next.**
+- Cut `tuner-v1.0.3` from the merge; `tunerVersion` already says 1.0.3. README's "Latest: `tuner-v1.0.2`" moves with it.
+- Seen on the way, not changed: on a phone the Settings footer's key hints (ESC, TABS, ENTER, DEL, coffee) don't fit and overlap. They mean nothing on touch.
+- Draft changelog line, not in `content/changelog.json`: "The web tuner shows its version at the bottom of Settings."
+
+## 2026-10-19 (Emby A/V sync fix moved onto build 50)
+
+**Shipped.** Nothing. Branch `fix/emby-avsync-ts` is rebased onto `build-50`, not merged, not in any build. The 2026-10-16 entry below has the cause and the first measurements.
+
+**How it sits with build 50.** Build 50 changed the same PlaybackInfo request: no subtitle stream (`SubtitleStreamIndex` -1, every subtitle profile External), a second request that burns a forced track in the viewer's language (Encode), and the Dolby Vision range list on the HEVC codec profile. The segment format is one more parameter next to those and touches none of them. For an H.264 file the Emby body differs from build 50's in two values, the transcoding profile's `Container` (mp4 to ts) and `VideoCodec` (h264,hevc to h264); for HEVC it is the same body. The forced-subtitle request asks for the same format as the first. Jellyfin is unchanged.
+
+**Measured.** Lab Emby 4.10.1.0, each build's own request body (encoded by the app code), fetched in AVPlayer's order with 400 ms per segment, two encodes per join (the first, then the restart at the join segment). The H.264 + DTS eye-test file joined at 160 s, where the soak test joins:
+
+| Join segment | build 50 | branch |
+|---|---|---|
+| Format | fMP4 | MPEG-TS |
+| First PTS, video / audio | 0.083 / 0.000 s, both from zero | 164.154 / 165.979 s: source time + 10 s, the keyframe before 156 s and 156 s |
+| Beep minus flash | -1916 ms | -8 ms |
+
+The same file joined at 247.3 s: -1832 / -15 ms. The flash-per-second H.264 + DTS file: -1930 / -22 ms at 160 s, -1816 / +1 ms at 247.3 s; in AVPlayer on a Mac, -1833 / +14 ms and -1719 / +36 ms. HEVC + DTS: fMP4 on both, -1916 ms on both, the known limit. Forced subtitles over TS: Emby burned an SRT forced track (subtitles filter) and a PGS forced track (overlay) into libx264 MPEG-TS segments, AC3 copied, every segment 200.
+
+**Tests.** NostalgexTests: 831 run, 819 passed, 0 failed, 12 skipped (build 50 alone: 819 run, 807 passed, 12 skipped). `EmbySegmentContainerTests` gained two: TS changes nothing in the body but the transcoding profile, with and without a burned track; and the forced-subtitle request asks for the same format as the first. `npm test` green.
+
+**Next.** The eye test on the living room Apple TV, Debug 1.0.27 (50) with and without the fix.
+
+**Checked on a real Apple TV 4K (2026-10-20)** against a real Emby 4.10.1 library: a DTS film (H.264 MKV, the audio converted by Emby) joined part way through had its voices clearly ahead of the lips before the fix, and in sync after. An AC-3 film plays in sync either way, because Emby copies AC-3 rather than converting it.
+
+## 2026-10-19 (TIS THE SEASON: the invite from a week before Thanksgiving)
+
+**Shipped.** Nothing yet. Branch `holiday/invite-thanksgiving`, five commits on build-50 (0b1899c), this entry included, not pushed. Apple TV needs an App Store build; the web tuner gets it when main is pushed, and Docker with the next `tuner-v*` tag.
+
+**Why.** TIS THE SEASON's invite and guide lead ran in December only (`activeMonths: [12]`), so TURKEY DAY, its Thanksgiving channel, was never offered while Thanksgiving was coming. This answers the open question in the 2026-10-18 entry. Chad's call: the holiday invite shows from 7 days before US Thanksgiving.
+
+**Changed.**
+- `channels.json` v42. A bundle can carry `seasonStart: { "relativeTo": "usThanksgiving", "days": -7 }`. The bundle is then also in season from local midnight on that day to the end of that day's month, and then through its `activeMonths` as before. US Thanksgiving is the fourth Thursday of November, worked out each year in the device's time zone. TIS THE SEASON keeps `activeMonths: [12]` and gets the start, so it runs Nov 19 to Dec 31 in 2026 (Thanksgiving Nov 26), Nov 18 in 2027, Nov 16 in 2028. The start is never earlier than Nov 15 or later than Nov 21, so it never meets SCREAM's October. The end is unchanged: the last minute of Dec 31, out of season at midnight on Jan 1. An anchor a build does not know is ignored, and every other bundle, SCREAM included, has no `seasonStart` and is unchanged. Keeping `activeMonths: [12]` means a build that ignores the new key still offers the bundle in December.
+- Apple TV: `SeasonStart` and `ChannelBundle.isInSeason` in `ChannelBundle.swift`. The season check is now Gregorian in the device's zone whatever calendar the device is set to, since `activeMonths` and Thanksgiving are Gregorian dates. `SeasonalPrompt.bundleToOffer`, `GuideChannelOrder.seasonalLeadIDs`, the new `SeasonalPrompt.headline` and `ChannelBundle.spotlightLabel` (the Settings note, moved out of the view) take an injectable calendar for tests. The library snapshot keeps `seasonStart`; a snapshot saved before this has no start, so that Apple TV offers the bundle from December until its next scan (within a day, or a RESCAN).
+- Web tuner and Docker: new `scripts/nostalgex-season.js` holds the season check, the offer, the lead, the headline and the Settings note. `plex-tuner.html` calls it and keeps `seasonStart` when it parses `channels.json`; the note moved out of `nostalgex-library-load.js`. The web also takes two Apple TV rules it lacked, the September 15 gate (no bundle uses September) and the "<NAME> IS IN SEASON." fallback headline.
+- Copy. The invite headline reads "IT'S DECEMBER. DECK THE CHANNELS." in December only; from the start to Nov 30 it reads "THE HOLIDAYS ARE HERE. DECK THE CHANNELS." Outside the season the Settings row reads "Spotlighted NOV 19 to DEC 31" (this year's start, which outside the season is the next one) instead of "Spotlighted DEC". CHANNELS.md: "Spotlighted from 7 days before US Thanksgiving (the fourth Thursday of November) through Dec."
+- NOT THIS YEAR is still keyed on the calendar year, in both engines. The season sits inside one year, so a no on Nov 19 holds to Dec 31, and next season asks again from its own start (Nov 18 2027, not before). A no last December does not silence this November. DON'T ASK AGAIN is unchanged. A test fails if a shipped season ever wraps the year.
+- New shared vectors `scripts/season-golden.json`, read by `SeasonGoldenTests.swift` and `npm run test:season`: US Thanksgiving and the holiday start for 2024 to 2035; 38 in-season cases (the minute before the start and the start for 2025 to 2030, the earliest and latest possible years, Thanksgiving, Nov 30, Dec 1, Dec 25, Dec 31 23:59, Jan 1, SCREAM's edges, and inline bundles for an unknown anchor, days 0 and +1 and the September gate); offers; guide leads; six answer sequences (22 steps); headlines; Settings notes. Times are local; both runners check every case in seven zones from UTC-11 to UTC+14, Apple TV also in the machine's own.
+
+**Measured.**
+- `npm run test:season`: 70 checks, 87 vectors and 22 answer steps in each of 7 zones, through the module and through `plex-tuner.html`'s own season section in a VM with a pinned clock and an in-memory localStorage. Negative controls in the runner: with the early start removed from the module, exactly the 12 November in-season vectors fail and nothing else; reading UTC instead of local time fails 76 across the zones.
+- Swift: new `SeasonGoldenTests` (6 tests), 3 new `SeasonalBundleTests` and 5 new `SeasonalPromptTests`. Its committed control: the shipped bundles with the holiday start stripped fail exactly the 10 late November in-season, offer and lead vectors in every zone. Two more run by hand and reverted: with the early start removed from `isInSeason`, 9 of 30 seasonal tests fail (55 assertions); with the season read in UTC, 4 of the 6 golden tests fail (39 assertions). Full NostalgexTests, run serially: 819 tests, 0 failures, 12 skipped (the opt-in live harnesses), plus 32 Swift Testing tests.
+- `npm test`, `npm run build` and `npm run build:selfhost` pass; both builds ship `nostalgex-season.js` and `channels.json` v42.
+- The built web tuner in headless Chromium with a pinned clock, in Los Angeles and in Kiritimati: Oct 20 offers SCREAM; Nov 18 at 23:59 offers nothing; Nov 19 at 00:00 offers TIS THE SEASON with the November headline; Dec 25 shows the December headline; Jan 1 offers nothing and Settings reads "SPOTLIGHTED NOV 18 TO DEC 31"; with every package on, the guide leads with the holiday block from Nov 19 at 00:00 and not at 23:59 the night before; no page errors. No library was loaded; the check stops at the season logic.
+
+**Unverified.** No Apple TV and no Roku were used; the Apple TV side is tests only. Not seen on a real guide with a library.
+
+**Next.**
+- The November headline is a placeholder for Chad's copy.
+- Roku port. Its `NxSeasonalOffer` and `NxBundleInSeason` take a month (and year), so to match it needs the local day too: in season when the month is active, or when it is the start's month and the day is on or after the start's day. US Thanksgiving from `roDateTime` (Nov 1's `GetDayOfWeek`, then the fourth Thursday), plus `days`. The same check for the guide lead in `NxGuideOrder`, and `NxSeasonalHeadline` says December only in December. The per-year registry key (`seasonalDismissed_<id>_<year>`) works as is. Vendor `scripts/season-golden.json` next to the other vectors and add it to `run.sh`'s comparison; its zones don't matter to a runner that works in local date parts. Until then the port reads v42 and offers the holiday bundle in December, as before. Separately, `NxPoolChannelIds` still builds a seasonal bundle's pools only in season, which upstream stopped doing on 2026-10-16.
+- Draft changelog line, not in `content/changelog.json`: "TIS THE SEASON shows up a week before US Thanksgiving now, in time for TURKEY DAY."
+
+## 2026-10-20 (publish Apple TV channel surfing post)
+
+**Shipped.** Nothing until this lands on main. Vercel then deploys `https://www.nostalgex.app/blog/apple-tv-channel-surfing-apps`.
+
+**Why.** Chad's daily schedule, one post per morning. This one sat as a draft. The Oct 20 morning recheck found TubeTime+ had left TestFlight and landed on the App Store, so the reviewed copy was swapped in rather than flipping `draft: false` on the old Oct 9 competitor numbers.
+
+**Changed.**
+- `content/blog/apple-tv-channel-surfing-apps.md`: `draft: false`, `date` and `updated` both 2026-10-20. Competitor details rechecked on the vendors' own pages today: Coax and Bunny Ears prices and tvOS mins unchanged, TubeTime+ now on the App Store with Premium after 1 hour free, NostalgiaTV still not on Apple TV. Emby links and a tracked App Store link (`ct=blog_channel_surfing`) are in the copy. The HTML comment block of build notes stays in the Markdown because `scripts/build-blog.mjs` strips comments before rendering.
+- `content/blog/jellyfin-tv-guide-own-library.md`: date and updated stay 2026-10-19. The last sentence of "Do I have to set up M3U, XMLTV or a tuner for this?" now links to the new post. The App Store link carries `ct=blog_jellyfin_guide`. The HTML build-notes comment marks that Oct 20 link as done.
+- `npm run blog:render` wrote six live posts into `public/sitemap.xml`, including `/blog/apple-tv-channel-surfing-apps` with lastmod 2026-10-20. The blog block moved below the channels block, because the script always re-inserts it just before `</urlset>`. Images stay on R2. `scripts/media-sizes.json` already had the three R2 images for this post, so none were added.
+
+**Half-done.** The other drafts are still drafts: `make-plex-feel-like-cable-tv`, `plex-virtual-channels-own-movies`.
+
+**Next.** Nothing on this post. Indexing `/jellyfin` in Search Console is still Chad's, from the Jellyfin post's build notes. Oct 26, once `/blog/plex-virtual-channels-own-movies` is live: add the Plex Live TV link named in this post's build notes.
+
+## 2026-10-19 (Emby: Dolby Vision profile 5 stays off channels)
+
+**Shipped.** Nothing yet. Branch `jellyfin/playback-subs-dv`, not merged or pushed. Apple TV needs an App Store build; the web tuner gets it when main is pushed, and Docker with the next `tuner-v*` tag.
+
+**Why.** On a real Apple TV 4K signed in to Chad's Emby 4.10.1.0, a Dolby Vision profile 5 MKV plays green and purple. The same file from Plex is right. The entry below found no request that makes Emby send profile 5 in a form the Apple TV or a browser draws right. Chad's call: when the server is Emby, profile 5 files go on no channel, in every app. Profile 8 stays (HDR10 base layer, not green on Apple TV). Plex and Jellyfin are unchanged.
+
+**Changed.**
+- How the profile is known. Emby names it in the video stream's `ExtendedVideoSubType`: `DoviProfile50` is profile 5, `DoviProfile81` 8.1, `DoviProfile76` 7.6 (the last digit is the base layer's compatibility id). Emby has no `DvProfile`; that is Jellyfin's field, and Jellyfin has no `ExtendedVideoSubType`. `VideoRange` and `ExtendedVideoType` only say Dolby Vision. The list call the scan already makes (`Fields=...MediaSources...`) carries it for films and episodes, so the scan asks for nothing new. Anything else (`Hdr10`, `None`, missing) is an unknown profile, and an unknown profile is kept.
+- Apple TV: `EmbyAPIService.doviProfile(extendedVideoSubType:)` fills `doviProfile` on Emby films and episodes (the shared `JellyfinItem` decodes the one new field; Jellyfin's parse is untouched and never sets it). Only the Plex path reads `doviProfile` for playback, so nothing else changes. `ChannelEligibility.isLeftOffChannels` (Emby and profile 5) is applied wherever a pool is built from the library: stock channels (a flag in `makeFilterCache`, checked first in `filterItems`, with or without rules), found franchises (`rebuildFoundFranchises`) and server collections (`scanCollections`). The items stay in `allItems`, so library counts, enrichment and the snapshot are as before. One line per load: `[Plex90] CHANNELS: N Emby Dolby Vision profile 5 item(s) left off channels`.
+- Web tuner and Docker: the same rule. `embyDoviProfile` in `scripts/nostalgex-jellyfin-urls.js` (point 11), `isLeftOffChannels` and `onChannels` in `scripts/nostalgex-channel-filter.cjs`, checked first in `itemPasses`. The page passes `mediaBackend` to the pool build, to a channel with no rules and to the collection index. One line per scan: `[Emby] CHANNELS: N Dolby Vision profile 5 item(s) left off channels`.
+- `scripts/filter-golden.json` items can carry `backend` and `doviProfile`. Seven new cases: an Emby profile 5 film and episode on no channel, and on their channels an Emby profile 8 film and episode, an Emby film with no profile, and Jellyfin and Plex profile 5 films. Both runners read the new fields.
+- Support page: a FAQ entry, "Why is a Dolby Vision movie missing from my channels on Emby?", and its JSON-LD.
+- New opt-in `EmbyDolbyVisionLiveHarness`, skipped unless pointed at a server.
+
+**Measured.**
+- Field names, lab Emby 4.10.1.0: DV5 MKV and `dvh1` MP4 `ExtendedVideoSubType: DoviProfile50` ("Profile 5.0"), DV8.1 MKV and MP4 `DoviProfile81`, DV7 `DoviProfile76`, HDR10 and HDR10+ `Hdr10`, SDR `None`, on the item and on the scan's own list call, films and episodes alike. Lab Jellyfin 12.2.0 sends `DvProfile: 5` and `VideoRangeType: DOVI` for the same file, and no `ExtendedVideoSubType`.
+- Lab: the NX Playback Lab clips run under a minute, and both scans drop anything under a minute, so two new libraries hold 75 s stream-copy loops of them with Comedy and Action genres: "NX DV Channels" (DV5 MKV, DV5 MP4, DV8.1 MKV, DV8.1 MP4, HDR10, SDR) and "NX DV Shows" (one show, episodes DV5 MKV, DV5 MP4, DV8.1, HDR10, SDR). ffprobe sees the profile 5 and 8 configuration in every DV loop. Through each client's real scan and pool build (Apple TV: `EmbyAPIService.loadLibrary` and `rebuildStaticChannelPools` in the harness; web: the page itself in headless Chrome, served from the worktree): before, both DV5 films were on channels 14, 16, 17, 41 and 54 in both clients. After, all four DV5 files (two films, two episodes) are on no channel in both. DV8.1 films stay on 14, 16, 17, 41 and 54, the DV8.1 episode on 54 (the web also builds 18, 31 and 40, under their minimum), HDR10 and SDR as before, and the library count is unchanged (24 items, then 29 with the show). Control in the same runs: the same scanned items built as if from Jellyfin put the DV5 files back on 5 channels (films) and 1 to 4 (episodes). The web logged `[Emby] CHANNELS: 4 Dolby Vision profile 5 item(s) left off channels`.
+- Scan time: the request is unchanged (the smoke asserts the Fields list). Lab medians of 5 scans: Apple TV 0.019 s before, 0.025 s after (runs 0.017 to 0.050 s before and 0.018 to 0.044 s after, so noise); web scan and build 905 ms before, 908 ms after. At 10,000 items (the lab's list answer repeated): Swift decode 157 ms before, 162 ms after with the profile read and the rule (Mac, `-O`); on the web the profile read is 5 ms in all and the full stock pool build over 138 channels is no slower (6.3 s old filter, 5.8 s new, the profile 5 items now dropping out at the first check).
+- Tests. Swift: new `EmbyDolbyVisionChannelTests`, 8 tests: Emby's field, the scan's parse on JSON shaped like Emby's (and Jellyfin's, unchanged), the rule, stock pools for films and episodes (Emby DV5 on no channel; Emby 8, 7, unknown, Jellyfin 5 on the same channels as the same file from Plex, which must reach some), a channel with no rules, a found franchise and a server collection. `FilterGoldenTests` runs the 7 new cases. Web: new `npm run test:emby-dolby-vision`, 20 checks, runs the page's own scan, `filterItems` and `refreshCollectionChannels` against a fake server with Emby's and Jellyfin's fields; filter golden 53 cases. Negative controls: with the rule switched off behind the same API, 5 of the 9 Swift tests fail (15 assertions) and the parse tests pass; with Emby's field not read, the 2 parse tests fail and the rule tests pass. The web checks against the page, filter and module from before this change: 9 fail (every left-off check, the profile read, the log line), 11 pass (every keep check and control). Full NostalgexTests run serially: 803 tests, 0 failures, 12 skipped (the opt-in live harnesses, the new one included). `npm test`, `npm run build` and `npm run build:selfhost` pass, and both builds carry the change.
+
+**Unverified.** No Apple TV and no Roku were used. On a real Apple TV with Chad's Emby: the profile 5 file off every channel, profile 8 files still fine. An Emby library restored from the last scan (the Apple TV snapshot, the web's saved library) keeps that scan's channels until the next scan, up to a day or a RESCAN, because the old scan never read the profile. An item with several versions is judged by the version the app plays (highest bitrate). Emby other than 4.10.1.0 is not checked for the field.
+
+**Trade-off.** A profile 5 MP4 is left out too. It direct plays on Apple TV, but a browser gets Emby's re-encode with no tone mapping, and the rule is the same in every app.
+
+**Next.**
+- The Roku port scans Emby too. To match: read `ExtendedVideoSubType` off the video stream in `NxMbMediaInfo` (no new Fields) and put `doviProfile` on films and episodes; leave Emby profile 5 out in `NxItemPasses` (and a channel with no rules), and out of the franchise and collection sources; log the count once per load; teach its golden runner `backend` and `doviProfile`, since it reads this `filter-golden.json` unchanged and the 7 new cases fail until then.
+- Draft changelog line, not yet in `content/changelog.json`: "On Emby, Dolby Vision profile 5 files stay off your channels. Emby can't send them in a form the Apple TV or a browser shows right."
+
+## 2026-10-19 (Jellyfin and Emby: only forced subtitles burned in, Dolby Vision 5 signalled on Jellyfin)
+
+**Shipped.** Nothing yet. Branch `jellyfin/playback-subs-dv`, not merged or pushed. Apple TV needs an App Store build; the web tuner gets it when main is pushed, and Docker with the next `tuner-v*` tag.
+
+**Why.** Two reports. The Roku port's author saw Jellyfin answer PlaybackInfo for two MKVs with `SubtitleMethod=Encode`, a full video re-encode to burn subtitles in, and pointed out that our Apple TV body sends no `SubtitleProfiles` either. A Discord user who runs Jellyfin and Emby says Dolby Vision files show "a green tint on the channels". We don't know yet whether he watches on Apple TV, in a browser or through Docker.
+
+**Changed.**
+- Apple TV, Jellyfin and Emby (`JellyfinPlaybackResolver`): PlaybackInfo sends `SubtitleStreamIndex: -1` and lists every subtitle format as `External`, so no subtitle goes into the picture. One exception, Chad's choice (option B): a track flagged forced, in the viewer's subtitle language, is burned in. That is the app's own rule for subtitles the viewer has not turned on (`AppState.pickForcedLegibleOption`), and burning is the only way such a track reaches the screen from these servers. The tracks are known only from the first PlaybackInfo answer, so when it lists one, a second PlaybackInfo names that track with every format as `Encode`; if that fails, the first answer plays. A track flagged only default is never burned. Languages are compared through `SubtitleSelectionLogic.sameLanguage`, which reads "eng", "en", "ger" and "deu" alike. The HEVC codec profile names the dynamic ranges Apple TV shows (`VideoRangeType` SDR, HDR10, HLG, DOVI, DOVIWithHDR10, DOVIWithHLG, DOVIWithSDR; not DOVIWithEL).
+- Web tuner and Docker: the same rule, from `scripts/nostalgex-jellyfin-urls.js` (points 8 to 10), in one request because the tuner already has the item's tracks from the library. The tuner's own WebVTT skips a track already burned in, and the picker takes only text tracks.
+- Nothing for Dolby Vision in the web tuner, and nothing that changes Emby's Dolby Vision answer: no request we tried does.
+
+**Measured.** Lab Jellyfin 12.2.0 (account subtitle mode Default, tone mapping off, no hardware acceleration) and Emby 4.10.1.0 (mode Smart, tone mapping off) on this Mac. A new "NX Playback Lab" library on each holds 21 short clips, cut by stream copy from files in Chad's Plex (the SRT written here, the HDR10 clip is the DV8.1 one with its RPU stripped, the untagged HEVC encoded here): SRT, ASS, PGS and VobSub tracks flagged default, forced or neither, a Blu-ray layout (PGS default, SRT, ASS, forced PGS), an MP4 with `mov_text`, an MP4 with a sidecar `.srt`, DV profile 5 (MKV and `dvh1` MP4), 8.1 (MKV and `hvc1` MP4), 7, HDR10, HDR10+ and an untagged 8-bit HEVC. Each client's exact request was replayed: the Apple TV body and stream URL came out of the Swift source itself, the web tuner's from running its page function. Then the playlists, init and first segment as a player fetches them, the server's own ffmpeg command, and the first video packets compared with the source.
+- Subtitles, first pass (option A, nothing ever burned), before: Jellyfin burned every default or forced track, all four formats, into a libx264 re-encode, for both clients. Asked about the two MP4s, which should direct play, it answered with burn-in transcodes too. Apple TV asks PlaybackInfo about HEVC MP4s and on the retry after a failed direct play (H.264 MP4s direct play without asking); the web tuner asks about any MP4 whose audio a browser cannot play. Emby burned every forced track. No master playlist ever had a subtitle track, so the Apple TV subtitle toggle had nothing to pick on either server. After: all 13 subtitle files copy the video on both servers and both clients, and the MP4s direct play. Of 84 before and after pairs (21 files, two clients, two servers), 30 changed, every one a burn-in gone, a direct play back or Dolby Vision signalled; the other 54 are identical.
+- Option B, the shipped rule, run as shipped: the app's own `negotiate` against the live servers, the web body from the page's own function with the item's tracks. Viewer language English, plus a new clip with a forced SRT tagged `ger` (Jellyfin 12.2.0 reports it as `deu`, Emby keeps `ger`). Forced English SRT, PGS and VobSub, and the Blu-ray layout's forced PGS: burned in on both servers and both clients (libx264 with an overlay or subtitles filter; on the Blu-ray layout the overlay reads stream 5, the forced PGS, not the default at 2). The German clip: copied for an English viewer, burned for a German one. Every default-only, unflagged, no-subtitle and MP4 case copies or direct plays exactly as in option A, and every non-subtitle file (Dolby Vision, HDR10, HDR10+, DV7, the untagged HEVC) is identical to option A. The app sends one PlaybackInfo for those and two for the forced files.
+- Why `Encode`: asked for a forced track by index with the `External` profiles, both servers answered External and copied the video. With every format `Encode`, or with no profiles at all, both burned it in.
+- `-1` needs a matching `MediaSourceId`: without one Jellyfin burned in as before, which may be the Roku case. With `-1` Jellyfin still writes `SubtitleMethod=Encode` on the URL; nothing is encoded. Hand-built HLS URLs (the 1080p rung, the fallback) never burned on either server.
+- Tried and dropped: Jellyfin's HLS subtitle delivery. Selecting one text track lists all text tracks as HLS renditions, with DEFAULT and FORCED right, and AVPlayer offers them. But AVPlayer showed every cue 10 s late: the WebVTT says `X-TIMESTAMP-MAP=MPEGTS:900000`, which is where Jellyfin's MPEG-TS output starts (10.1 s), while its fMP4 output starts at 0.07 s. Emby has no HLS subtitles; asked for a text track it answered `External` or burned it.
+- PGS and VobSub as WebVTT: Jellyfin 400, Emby an empty `WEBVTT`. On the Blu-ray layout the web tuner used to pick the English PGS over the English SRT and show nothing.
+- Dolby Vision on Apple TV: both servers sent the DV5 MKV as plain `hvc1` with no `dvcC`, no colour information and the RPU still in every frame. AVFoundation reads that track as SDR. Drawn without the RPU, the frame is green and purple (yellow sign pink, red car purple). With the range list Jellyfin sends `dvh1` with a profile 5 `dvcC`, `CODECS="dvh1.05.06"`, `VIDEO-RANGE=PQ`, video still copied. That is what our Plex path gets from `dolbyVisionRemuxURL` (checked the same day on Chad's Plex: video copy, `dvh1`, profile 5 `dvcC`). AVFoundation reads the new track as HDR, and AVPlayer on the Mac plays it. DV8.1 gains its `dvvC` box. DV7, HDR10, HDR10+ and the untagged HEVC are unchanged. With the bitrate cap lifted, DV7 goes from copied with the RPU to copied with the RPU removed, plain HDR10. Emby ignores `VideoRangeType`, and every Emby answer is the same before and after. Emby never wrote `dvh1` or `dvcC` for any request tried (`VideoRange`, `ExtendedVideoType` and `ExtendedVideoSubType` conditions, `hevc-videorange`, `hevc-codectag=dvh1`). DV MP4s direct play on both.
+- Dolby Vision in browsers: the tuner always gets H.264 for HEVC. Jellyfin 12.2.0 tone-maps in software (`tonemapx`, which applies the RPU) even with tone mapping off in its settings, and the colours are right. Emby 4.10.1.0 re-encodes with no tone mapping: DV5 green and purple, DV8.1 and HDR10 washed out. Headless Chrome and WebKit, playing the tuner's own request with its hls.js 1.5.17, showed the same. A throwaway second Emby with software tone mapping switched on gave byte-identical green frames. Apple TV HD (no HEVC, so H.264) matches the browser: right on Jellyfin, green on Emby.
+- Swift: new tests in `JellyfinPlaybackInfoTests` for the body, the range list and the forced rule (forced, default only, none, another language, both ISO codes, the Blu-ray layout), and three that run both services' real negotiation against a fake server: forced (two requests, the burned stream plays), default only (one request), and a failed second request (the film plays without the burn). `SubtitleSelectionLogicTests` covers the language codes. The key-list test in `StallRetryServerStreamTests` now expects `SubtitleStreamIndex`. Full NostalgexTests run serially, rebased on main with the EAC3 cap: 794 tests, 0 failures, 11 skipped (the opt-in live harnesses). Negative controls behind the same API: with option A's behaviour (never burn) the 7 forced tests fail and the default-only, none and other-language ones pass; with main's behaviour 12 fail.
+- Web: new `npm run test:jellyfin-subtitles`, 46 checks, runs the page's own `getJellyfinTranscodeUrl`, `langMatches` and `pickSubtitle` against a fake server, both backends, the same forced, default-only, none and language cases. Against main's page and module it fails 40 of 46; against option A's it fails 25, every forced case on `SubtitleStreamIndex -1`. `web-tune-ownership-smoke` expects the new key. `npm test`, `npm run build` and `npm run build:selfhost` pass, and both builds carry the change.
+
+**Unverified.** No Apple TV and no Roku were used. A file a client plays without asking the server is not burned: on Apple TV an H.264 MP4, MOV or M4V (AVPlayer shows an embedded forced `mov_text` track by itself; a forced sidecar `.srt` beside such a file is not shown), in the tuner an MP4 or WebM the browser plays as it is. DV5 colour on a real Apple TV, before (expected green) and after (expected right), is not measured: the Mac's AVFoundation hands back the raw base layer even for a correct `dvh1` file, so it cannot judge. Not tested: Jellyfin other than 12.2.0 (DV tone mapping in 10.x depends on the version and the tone mapping setting), Emby with Premiere, hardware acceleration, Emby in subtitle mode Default, and the full web tuner page in a browser against these files.
+
+**Trade-off.** A forced track in the viewer's language costs a full video re-encode for that file, as before, and shows in the guide preview too, as forced lines do in the app's own rule. Default-flagged subtitles that the servers used to burn in no longer appear on Apple TV; the app had no other way to show them on these servers, and they could not be turned off. The web tuner still shows text subtitles itself, in full screen.
+
+**Next.**
+- Ask the Discord user which client, which server and version, and which DV profile and container.
+- On a real Apple TV: DV5 MKV from Jellyfin on this branch, and from Emby.
+- Subtitles on Apple TV for Jellyfin and Emby need the app to draw a fetched WebVTT itself, as the web tuner does, or Jellyfin to fix the fMP4 time map.
+- Emby DV5: no client fix. Emby tone mapping (possibly Premiere, untested) for browsers, or DV5 in MP4, which direct plays on Apple TV.
+- The Roku port: `SubtitleStreamIndex: -1` with a matching `MediaSourceId`, and `External` subtitle profiles; for a forced track in the viewer's language, its index with `Encode` profiles.
+- Draft changelog line, not yet in `content/changelog.json`: "Jellyfin and Emby no longer burn subtitles into the picture unless they are forced subtitles in your language, and Dolby Vision profile 5 plays as Dolby Vision from Jellyfin on Apple TV."
+
+## 2026-10-19 (Apple TV: RATE opens the Nostalgex page)
+
+**Shipped.** On main, for the next Apple TV build.
+
+**Why.** RATE (Settings and the rating nudge) opened the App Store but not the Nostalgex page, so rating took a search. All four App Store link forms land on the page when handed to the App Store directly, so the address was fine; an `https` link opened from inside the app is what lost it.
+
+**Changed.** `AppStoreLink.productPage` is `itms-apps://apps.apple.com/app/id6762563534`, which goes straight to the App Store with the address.
+
+**Measured.** On a real Apple TV 4K: RATE in Settings now lands on the Nostalgex page.
+
+## 2026-10-19 (Jellyfin Quick Connect starts with a POST)
+
+**Shipped.** Nothing yet. Branch `jellyfin/quick-connect-post`, not merged or pushed. Apple TV needs an App Store build; the web tuner gets it when main is pushed, and Docker with the next `tuner-v*` tag.
+
+**Why.** Quick Connect could not start on Jellyfin 12 from either client. Both sent `GET /QuickConnect/Initiate`. Jellyfin 12.2.0 answers that with 405 and an empty body, and answers `POST` with 200 and the code and secret. So the web tuner and the Docker image said QUICK CONNECT IS NOT ENABLED ON THIS SERVER with Quick Connect on, and Apple TV said "Could not start Quick Connect". Reported by the Roku port's author, who also confirmed the poll (`GET /QuickConnect/Connect`) and `POST /Users/AuthenticateWithQuickConnect` work as we have them. Jellyfin's own history, from `Jellyfin.Api/Controllers/QuickConnectController.cs` at each release tag: 10.7.7, 10.8.8 and 10.8.13 route Initiate as GET only. 10.9.0 made it POST and kept GET as an obsolete route (commit 722ad3f, "Change InitiateQuickConnect to use POST request"), and 10.9.0 through 10.11.11 answer both. 12.0 removed the GET ("Remove some deprecated API members", 874fd9a); 12.0-rc1, 12.0 and 12.2 are POST only.
+
+**Changed.**
+- Apple TV: `JellyfinAPIService.quickConnectInitiate` sends POST. Only when that gets 405 or 404 does it send the same request again as GET, so 10.7 and 10.8 keep working. A 401 (Quick Connect off), any other error and a network failure are not retried. Two 404s still read as "that address isn't Jellyfin", so sign-in moves on to the next address as before. How the request is sent is now a parameter, so tests can record it; the app passes the same session as before.
+- Web tuner and Docker: the same rule, as `quickConnectInitiate` in `scripts/nostalgex-jellyfin-urls.js` (point 7), which `web-tuner.html` already loads. It hands back the server's response, so the page's checks and messages are unchanged.
+- Every other Quick Connect call is unchanged.
+- Looked for the same problem elsewhere. Every other Jellyfin method and path either client uses is in Jellyfin's 12.2 source with the method we send, and the lab server routes each one (a PUT to the same path is 405, ours is not). The legacy `/Users/{id}/...` watch-state routes (`Items/{id}`, `PlayedItems/{id}`, `Items/{id}/UserData`) are still there in 12.2, left out of its OpenAPI document. The other endpoints the 12.0 cleanup removed are ones neither client calls.
+
+**Measured.** Lab Jellyfin 12.2.0 on this Mac, Quick Connect on: GET Initiate 405, POST 200 with a 6 digit code and a 64 character secret. Without the MediaBrowser header the POST is 400; both clients send it.
+- Swift: new `JellyfinQuickConnectTests`, 7 tests, pass, and `QuickConnectFailureMessageTests` (4) still pass. With the old GET-only request put back behind the same seam, all 7 fail. `JellyfinQuickConnectLiveHarness` (skipped unless pointed at a server) runs the app's own initiate, poll and authenticate: code issued, poll false, code approved, poll true, signed in as the right user, and the new token lists the libraries. With the old request it fails on HTTP 405. Full NostalgexTests run serially: 805 tests, 794 passed, 0 failed, 11 skipped (the opt-in live harnesses, this one included). In a parallel run one wall-clock harness, `TelemetryVolumeHarness` timing the five second skip loop, read 6.5 s against 5 plus or minus 1 on a busy machine; it passes 3 of 3 on its own.
+- Web: new `npm run test:jellyfin-quick-connect`, 24 checks. The module, then `web-tuner.html`'s own Jellyfin section in a VM against fake servers with the 12.x, 10.9 to 10.11, and 10.7 and 10.8 route tables, plus Quick Connect off, an unreachable server and a server that isn't Jellyfin. The old GET-only call is run through the same checks as negative controls. Against main's page and module the file fails 20 of 24. With a server set in the environment it also signs in for real through the page's code: POST Initiate 200, poll, `AuthenticateWithQuickConnect` 200, saved as Jellyfin, `/UserViews` 200 with the new token. The built Docker files in headless Chrome: Quick Connect lands on the tuner signed in; the same files with the old call put back show QUICK CONNECT IS NOT ENABLED ON THIS SERVER after a GET 405.
+- `npm test`, `npm run build` and `npm run build:selfhost` pass.
+
+**Unverified.** No Apple TV, no Roku and no Jellyfin 10.x server were used. The GET fallback for 10.7 and 10.8 is covered only by tests: whether 10.8 answers a POST with 405 or 404 was not measured, and both get the GET. Codes were approved with the lab's admin API key, standing in for the person in the Jellyfin dashboard.
+
+**Next.**
+- Which build carries this is Chad's call. Draft changelog line, not yet in `content/changelog.json`: "Jellyfin Quick Connect works on Jellyfin 12."
+- The Roku port should start Quick Connect with POST too.
+
+## 2026-10-19 (publish Jellyfin TV guide post)
+
+**Shipped.** Nothing until this lands on main. Vercel then deploys `https://www.nostalgex.app/blog/jellyfin-tv-guide-own-library`.
+
+**Why.** Chad's daily schedule, one post per morning. This one sat as a draft dated 2026-10-14.
+
+**Changed.** Front matter only: `draft: false`, `date` and `updated` both 2026-10-19. Article copy is unchanged. The HTML comment block of build notes at the end stays in the Markdown because `scripts/build-blog.mjs` runs `stripHtmlComments` before rendering, so those notes never reach the public HTML. No links added to `/blog/apple-tv-channel-surfing-apps` or `/blog/make-plex-feel-like-cable-tv`; those pages are still drafts. The live links already in the post (`/`, `/jellyfin`, `/web-tuner`, `/blog/tunarr-ersatztv-alternative-apple-tv`) stay as they were. `npm run blog:render` writes the new URL into `public/sitemap.xml`; there is no RSS/Atom feed. Images stay on R2.
+
+**Half-done.** The other drafts are still drafts: `apple-tv-channel-surfing-apps`, `make-plex-feel-like-cable-tv`, `plex-virtual-channels-own-movies`.
+
+**Next.** Nothing on this post. Indexing `/jellyfin` in Search Console is Chad's, from the build notes.
+
+## 2026-10-18 (TOON TOWN: no more Middle-earth)
+
+**Shipped.** Nothing yet. Branch `channels/toon-town-gate`: the web gets it when main is pushed, Apple TV with the next build, Docker with the next `tuner-v*` tag.
+
+**Why.** TOON TOWN was airing The Hobbit. The channel is for live action and cartoon hybrids, and its only test was the TMDB keyword "live action and animation", which TMDB also puts on all three Hobbit films and all three Lord of the Rings films (CGI and motion capture).
+
+**Changed.** `channels.json` v39: TOON TOWN counts the keyword only on a title that is also Animation, Family or Comedy (`keywordsRequireAnyGenre`, already in both engines). Comedy is in the list because the 2002 Scooby-Doo and Detective Pikachu are real hybrids with neither Animation nor Family in Plex. Three new cases in `scripts/filter-golden.json`.
+
+**Measured.** Against the 113 movies in the shared metadata cache with that keyword: 100 still qualify, the 6 Middle-earth films, Okja and a few others drop out, and the two R-rated titles Comedy lets back in are already stopped by the channel's G to PG-13 rule. On one real library, 45 films carry the keyword: the 6 Middle-earth films drop, the rest stay. Both engines pass all 46 golden cases; with the gate removed the Hobbit case fails.
+
+## 2026-10-18 (Apple TV: retro mode is stronger, and on in full screen)
+
+**Shipped.** Nothing yet. Branch `retro/medium`, for the next build.
+
+**Why.** Retro mode read as too subtle. Full screen had no scanlines at all (the old comment called them too distracting), so in full screen retro mode was the crop, the vignette and a tracking line now and then.
+
+**Changed.** Three looks were tried side by side on a TV and the middle one won. Scanlines at 0.18 (were 0.12), in the guide and now in full screen too. A darker vignette: corners 0.78, top and bottom 0.58, sides 0.48 (were 0.7, 0.5, 0.4). Flicker on 8% of the 80 ms ticks, dipping to 0.76 to 0.88 (was 5%, 0.80 to 0.90). The tracking line on 45% of its checks at 0.22 brightness (was 30%, 0.15). The numbers live in `RetroLook` in `CRTOverlayView.swift`, so the Roku port can match them. The web tuner's retro mode is its own effect and is unchanged.
+
+**Measured.** Unit tests pass. Checked by eye on an Apple TV 4K, in the guide and in full screen.
+
+## 2026-10-18 (Plex: Blu-ray DD+ 7.1 plays on Apple TV)
+
+**Shipped.** On main, for the next Apple TV build.
+
+**Why.** Some films never played on Apple TV: The Wild Robot, Bob Marley: One Love, and about ten more in one library. Plex's decision looked fine (video copied, "EAC3 7.1" copied, MPEG-TS), the TV read about a megabyte and hung up, and the server never refused anything. These are Blu-ray "DD+ 7.1" tracks: every audio frame is an AC-3 5.1 core followed by an E-AC-3 extension frame, labelled E-AC-3 but never a plain E-AC-3 frame. AVPlayer on tvOS rejects that (CoreMedia -12979) within about two seconds. The Mac's player plays it on the core, so a Mac-only check misses it. True E-AC-3 7.1 and Plex's own 7.1 encodes play, so eight channels is not the problem.
+
+**Changed.** Both Plex client profiles (the everyday one and the Dolby Vision remux) cap EAC3 at 6 channels: `add-limitation(scope=videoAudioCodec&scopeName=eac3&type=upperBound&name=audio.channels&value=6)`. Plex then re-encodes only that audio to AC-3 5.1 and still copies the video. The scope has to be `videoAudioCodec`; `audioCodec` is silently ignored. EAC3 5.1 is still copied as before. The cost: a title that reached the TV as 7.1 now arrives as 5.1.
+
+**Measured.** The app's exact request reproduced against the real server: the affected titles fail with -12979 in a tvOS 26.1 simulator, EAC3 5.1 controls play in under a second, and with the cap all affected titles play (ready in 0.5 to 2.4 s). Unit test pins the cap and its scope in both profiles. On a real Apple TV 4K (living room, 2026-10-19), the app's own playback soak over 15 EAC3 titles (12 with the AC-3 core, 3 controls): before the cap 5 of 15 played (10 of the 12 failed, the 3 controls and 2 of the 12 played); with the cap 15 of 15 played, first picture in 1.5 to 3.2 s, each held 15 s with no stalls.
+
+Also found: a file whose audio track runs far past its video (one film: 97 min of picture, 219 min of audio, the rest digital silence) gets a slot the length of the audio, so most of its airing is a frozen frame. That one is the file, fixed by remuxing it; the app has no check yet for a clock that moves with no new frames.
+
+## 2026-10-18 (TIS THE SEASON: Christmas episodes, MISTLETOE, TURKEY DAY)
+
+**Shipped.** Nothing yet. Branch `channels/holiday-season`, six commits on 680b99a, not pushed. Apple TV needs an App Store build; the web gets it when main is pushed, Docker with the next `tuner-v*` tag.
+
+**Why.** An audit of the bundle against a test library (1,787 films, 8,770 episodes, 1,127 music videos, with the shared TMDB enrichment attached) found it thin and in places wrong:
+- The two TV channels never aired an animated show. Episode titles did not open the Animation lock the way a title list does, so the Christmas episodes of Bluey, The Simpsons, Family Guy, Animaniacs and Darkwing Duck aired nowhere.
+- Episode titles alone missed most Christmas episodes and let a few wrong ones in. Friends has five in the test library and two say so in the title. "Roman Holiday" (Emily in Paris, a trip to Rome), Full House "Jingle Hell" (an advertising jingle) and "Stuck in a Merry Scary" (Halloween) were on the holiday channels.
+- HALLMARK matched the shared 114 title list plus a runtime shape. It found 7 films and missed anything not on the list, The Princess Switch trilogy among them. The name was also a real network's.
+- The holiday lock read show names and song titles as well as film titles, so a show with Santa in its name and any Christmas song on a music video were locked to movie channels that can never air them, and aired nowhere. Its words were not 95% Christmas either (below).
+- Rocky IV was on SANTA'S LIST. HOLIDAZE missed Home Alone 2, which Plex titles "Home Alone 2: Lost in New York", and the one Hanukkah film, Eight Crazy Nights, was on no holiday channel.
+
+**Changed.**
+- Episode rules, both engines (`AppState+Channels.swift`, `nostalgex-channel-filter.cjs`). They read an item's own title: the episode title for an episode, the title for a film, so a half hour special stored as a film matches like an episode. Beside `episodeTitleContains` there is now `episodeSummaryContains`, `episodeSeasonalTitleContains` with `episodeAirWindow` (a word that only counts for an episode first aired inside the window, which wraps the new year), and `episodeTitleExcludes`. An episode-curated channel opens the Animation lock, nothing else widens it, and a manifest claim cannot get past it. The web now skips the content block for these channels as Swift did.
+- The web tuner gives episodes `originallyAvailableAt` (episode, else show) on Plex, Jellyfin and Emby, which Apple TV already had.
+- `matchTmdbGenres`: a channel's genre tests also read the item's TMDB genres. A Plex listing carries two genres per film; The Princess Switch reads "Comedy, Family" on Plex and "Romance, Comedy" on TMDB. Lock genre tests stay on the server's genres.
+- Exclusive rules take an optional `type` and `source`. The holiday lock is films in a movie library only, and now names the two TV channels so specials stored as films can air there.
+- TIS THE SEASON is eight channels and moves as one block to CH145 to 152, after SCREAM, because 137 is SCREAM's and a bundle has to be one unbroken run (ChannelNumberingTests). Ids did not change, so per-channel settings carry over. The bundle has never been in season.
+  - CH149 MISTLETOE (id 412, was HALLMARK): cozy Christmas romances. A holiday word in the title or a Christmas TMDB keyword (christmas, christmas romance, christmastime, christmas eve and a few more; never bare "holiday", which TMDB uses for vacations), then Romance on Plex or TMDB, rated G to TV-PG or NR, 1980 on, 70 to 120 minutes, no animation.
+  - CH150 CHRISTMAS SPECIALS and CH151 KIDS CHRISTMAS TV: strong title words (Christmas, Xmas, Hanukkah, Chrismukkah, Festivus, Santa Claus, Secret Santa, Krampus, Nativity, Deck the Halls and others), seasonal words (Holiday, Santa, Merry, Jingle, Noel, Grinch, Scrooge, Snowman, Elf) only for an episode aired Nov 25 to Jan 7, Christmas words in the summary, place name excludes (Santa Monica, Santa Fe, Christmas Island and more), and 65 minutes or less. Ratings split as before; Not Rated goes to CHRISTMAS SPECIALS, so A Charlie Brown Christmas has a TV home. Minimum 5 items.
+  - CH152 TURKEY DAY (id 422): Thanksgiving episodes. Thanksgiving, Friendsgiving or Slapsgiving in the title or Thanksgiving in the summary; Turkey, Pilgrim and Gobble count in November only. Minimum 5.
+- The holiday lock's title words are the ones that measured 95% or more Christmas across TMDB films with 25 or more votes: Christmas 98.8%, Xmas, Mistletoe, Noel, Rudolph, Frosty, Jingle, Hanukkah, Yuletide, Winter Wonderland. Off it: Holiday 66% (Mr. Bean's Holiday, Roman Holiday), Santa 87% (Santa Sangre, Santa Fe Trail), Grinch 60% (Halloween Is Grinch Night), Merry 80%, Snowman 80%, Scrooge, Nutcracker and Reindeer (Reindeer Games, freed like Die Hard). Santa Claus, Santa Clause and Holiday Special are lock phrases, and five films that lost their word are exact titles. Rocky IV, Gremlins, Batman Returns, Trading Places, The Family Man, While You Were Sleeping and The Shop Around the Corner are no longer locked; HOLIDAZE keeps them as editorial picks. The channels still match the dropped words; only the lock stopped hiding them.
+- Smaller: Home Alone 2's full title and Eight Crazy Nights on HOLIDAZE, Eight Crazy Nights on the shared title list, Roman Holiday, Mr. Bean's Holiday and Summer Holiday excluded from the holiday movie channels, Rocky IV off the shared title list.
+- 30 new golden cases in `scripts/filter-golden.json` (73 in all), positive and negative. CHANNELS.md renders the new rules and bundles split across blocks. The bundle page names the two new channels.
+
+**Measured.** On the test library through the web filter, before and after: HOLIDAZE 42 to 44, SANTA'S LIST 39 to 38, NAUGHTY LIST 17 to 18, NOSTALGEX CHRISTMAS 16 to 15, HALLMARK 7 to MISTLETOE 11, CHRISTMAS SPECIALS 29 to 75 (Friends 5, Family Guy 10, Home Improvement 8, The O.C.'s three Chrismukkahs, Simpsons Roasting on an Open Fire, A Charlie Brown Christmas), KIDS CHRISTMAS TV 23 to 55 (Bluey, Animaniacs, Darkwing Duck, the 1966 Grinch, Mickey's Christmas Carol), TURKEY DAY 69 (all nine Friends Thanksgivings). Every other channel is unchanged except what the lock freed: Reindeer Games, Rocky IV and While You Were Sleeping are back on 13 year-round channels. Read by hand, the summary path lets in a few borderline episodes (a Big Bang Theory birthday episode with a Christmas letter subplot, a New Year's Eve How I Met Your Mother); SNL and Whose Line, which mention Christmas in sketch lists, stay out because the News and Reality locks keep them off. The same 11,684 items run through `AppState.filterItems` in a throwaway XCTest: 138 of 139 channels identical item for item to the web filter, all eight holiday channels identical; the one difference is ANIMATION, where the web counts Plex's studio as a production company and Swift does not (existing, not touched here). MISTLETOE against 2,085 TMDB Christmas films since 1990: 900 pass, 761 of them TV movies, 23 more from TV movie companies, most of the rest streaming rom-coms; 784 of 799 Christmas TV movie romances pass (98%). NostalgexTests: 768 tests, 758 passed, 0 failed, 10 skipped (opt-in live harnesses), plus 32 Swift Testing tests. `npm test`, `npm run build` and `npm run build:selfhost` pass. Golden negative control: 21 of the first 29 new cases fail on the v38 engine and config.
+
+**Unverified.** Nothing ran on an Apple TV or in a browser against a real server; the web loader change was checked by syntax and the filter by tests. No Jellyfin or Emby library was used, so the air dates from PremiereDate are unmeasured. The test library has no Christmas music videos and no classic Hollywood Christmas films. An episode with no air date of its own takes the show's, as Apple TV already did, so an undated episode of a show that premiered in December counts as in season.
+
+**Next.**
+- Whether to spotlight TIS THE SEASON from November (`activeMonths: [11, 12]`), so TURKEY DAY is offered while it is in season. Left at December; `SeasonalBundleTests` pins it.
+- Draft changelog bullets, not in `content/changelog.json`: "TIS THE SEASON is eight channels. MISTLETOE is the cozy made for TV Christmas romance, and TURKEY DAY plays every Thanksgiving episode you own." / "CHRISTMAS SPECIALS and KIDS CHRISTMAS TV find the Christmas episodes of your shows by title, summary and air date, cartoons included, plus half hour specials like A Charlie Brown Christmas." / "Films that are only set at Christmas, like Reindeer Games and Rocky IV, are back on their other channels, and a show with Santa in its name is no longer hidden." / "The holiday channels are now 145 to 152, right after SCREAM."
+- Roku port: own-title episode rules, the three new episode keys and the air window (episodes need `originallyAvailableAt`), the Animation lock for episode-curated channels, the episode gate on manifest claims, `matchTmdbGenres`, and lock `type`/`source`.
+- The SCREAM lock could take the same `type`/`source` scope, so a song titled exactly "Scream" stays on HIGH ROTATION.
+- OSCAR WINNERS matches "Rocky" as a word, so every Rocky sequel qualifies; Rocky IV now shows it.
+
+## 2026-10-16 (blog screenshot sizes)
+
+**Shipped.** Nothing until this lands on main. The live pages pick it up on the next Vercel deploy.
+
+**Why.** Ten in-post screenshots on the media bucket are full 1280x720 frames now. `scripts/media-sizes.json` still had the old crop heights (412 for the grid crops, 565 for the guide crops, 560 for one TEEN MOVIES frame). The blog build stamps those numbers onto `<img width>` and `<img height>`, so a stale cache would reserve a short box and then jump when the file loaded.
+
+**Changed.** Those ten records now say height 720. Widths left at 1280. No keys were missing. Covers stay 1200x630. No image files added; the files on the bucket already measure 1280x720 (checked four of the ten by Range request). `node scripts/build-blog.mjs` re-ran: four live posts and four drafts all render `width="1280" height="720"` on those figures. The sitemap blog block moved below the channels block, because the script always re-inserts it just before `</urlset>`. URLs and lastmod dates are unchanged.
+
+**Half-done.** Six of the ten images live in draft posts (`apple-tv-channel-surfing-apps`, `jellyfin-tv-guide-own-library`, `make-plex-feel-like-cable-tv`, `plex-virtual-channels-own-movies`). They take the new sizes when those posts publish.
+
+**Next.** Nothing. The other six remote files were not re-fetched this session.
+
+## 2026-10-16 (web tuner: sleep timer, playback information, and Emby as its own choice)
+
+**Shipped.** On nostalgex.app and in the Docker image `tuner-v1.0.1`, merged from branch `web/sleep-info-emby`. The tvOS app is untouched.
+
+**Why.** Three Apple TV features the web tuner and the Docker image did not have. And Emby in the browser never worked: the connect page said Emby "connects through the Jellyfin option", but that path asked Emby for `/UserViews`, which is Jellyfin's spelling. Measured on Emby 4.8.11.0, 4.9.5.0 and 4.10.1.0: 404 on all three, so the library load failed the moment it started.
+
+**Changed.**
+- Sleep timer, matching tvOS: OFF, 15 MIN, 30 MIN, 1 HR. SLEEP in the rail and SLEEP TIMER in the phone drawer open a small picker; Settings > PLAYBACK has the same choices inline. The time left shows on the rail and drawer. At zero, "STILL WATCHING?" with a 20 second countdown; any click, tap or key keeps watching (the key is taken before the shortcuts, so it never changes channel). Left alone, it does what tvOS does: reports the stop, stops the video, ends the server's stream, leaves full screen, shows the guide. The web adds one line on the picture ("Pick a channel to start watching again.") because a stopped video in a browser has nothing else to explain it, and picking the same channel in the guide starts it again. A library refresh never restarts it. The timer survives channel changes and a reload turns it off. Logic in `scripts/nostalgex-sleep-timer.js`.
+- Playback information, matching the tvOS panel from PR #26. INFO in the rail, sharing a row with SLEEP, the I key, PLAYBACK INFO in the phone drawer, and a row at the bottom of Settings > PLAYBACK (VIEW). Nothing in full screen, which is the browser's own. A ninth full-width rail button pushed Instagram out of sight at most desktop and TV sizes, so SLEEP and INFO are half-width side by side; the countdown is capped at 59:59 so it fits, and the short-window steps start at 892px and 779px instead of 760px and 700px, because 1280x800 already ran 43px over and 1440x760 7px with eight controls. Measured at 13 desktop sizes from 1920x1080 to 1366x700, 960x540, iPad both ways and iPhone: nothing clipped, no rail scroll. Same rows and sentences: BACKEND, PLAYBACK (Direct Play / Server stream / Loading), QUALITY AT TUNE (what the browser asked for: Server default on Plex, Up to 120 Mbps on Jellyfin and Emby; the web tuner has no quality setting), PLAYER SIZE from the video element, SOURCE METADATA from allowlisted codec names, FALLBACK in plain words (server stream chosen, direct play failed, or an hls.js retry). RECOVERY REQUEST never shows on the web: there is no 1080p rung. It holds no URL, token, address, session or item id. Each programme has a generation and each try an attempt; only the current one can mark it ready. Building the tuner-level test found that the panel said "No fallback used." while a server stream was still being negotiated after a failed direct play; the attempt now starts at the decision, as on tvOS. Plex items keep `videoCodec` and `audioCodec` from the scan so the panel can name them; Plex's direct play choice still goes by container.
+- Connect with Emby on the connect page, with its own form (no Quick Connect, Emby has none), Emby wording in errors and EMBY SERVER in Settings > SERVER. What differs from Jellyfin mirrors `EmbyAPIService.swift`: libraries from `/Users/{id}/Views`; after a failed direct play PlaybackInfo is asked with `EnableDirectPlay` and `EnableDirectStream` both false (Emby 4.10.1.0 offers the same MP4 again with only the first off, measured); the server name comes from `/System/Info/Public` because Emby's sign-in result has no `User.ServerName`. Header, sign-in body, `/Items`, static stream, subtitle VTT, watch state and the encode stop are shared, and were measured to work on Emby. Subtitles and audio language now run for Emby too (an external `.srt` came back as WebVTT).
+- Emby users saved as `jellyfin` from before are migrated, not asked to sign in again: start-up reads `/System/Info/Public` (Jellyfin says `ProductName: "Jellyfin Server"`; Emby has no ProductName and lists `LocalAddresses`) and switches the saved sign-in to `emby`. If that can't be read, a 404 on `/UserViews` then a 200 on `/Users/{id}/Views` does the same. Sign-in runs the same check, so either button lands on the right backend. Still one backend at a time.
+- Jellyfin is unchanged: same `/UserViews`, same PlaybackInfo body, Quick Connect, same error text except one em dash replaced with a full stop. Docs: WEB-TUNER-FEATURES.md, and the "Jellyfin option" line removed from the connect page, README, emby.html, self-host.html and llms.txt.
+
+**Measured.** `npm test` green: new `test:sleep-timer` (42, including the tuner's own sleep section run against a fake DOM and two negative controls), `test:playback-info` (14, the Swift test vectors), `test:jellyfin-urls` 22 to 41 (Emby URL shapes and Jellyfin unchanged), `test:web-tune-ownership` 25 to 35 scenarios plus a negative control for the late-callback guard, `test:reporting-controls` 24 to 28 (Emby reports through `/Sessions/Playing`). `npm run build` and `npm run build:selfhost` pass. Headless Chrome against a lab Emby 4.10.1.0 with synthetic test files: on the Docker image over plain http and on the hosted build behind a local https front with the site's CSP, sign-in, `/Users/{id}/Views` 200, 18 items, a direct play channel (H.264 + AAC MP4) and a server stream channel both played, HLS segments all 200 (120 and 54), the encode stopped with a 204 on channel change and at sleep expiry, no Emby ffmpeg left running. An http LAN address on the https page gets the local network message. Jellyfin 12.2.0 lab on the Docker image: `/UserViews` 200, stays Jellyfin, direct play and server stream play, wrong password still says INCORRECT USERNAME OR PASSWORD. UI pass at 1440x900, 1280x720 (zoom 0.875), 960x540 at pixel ratio 2 with a fine pointer (zoom 0.6667), iPhone 15 Pro and iPad Pro 11 both ways: the rail fits with eight controls and nothing clipped (at 1440x900 it ran 7px over until the short-window gaps came down by a pixel), picker, chips, panel and prompt all on screen, keep watching by click or tap, expiry, re-tune.
+
+**Unverified.** Nothing on a real TV browser, iPhone or iPad: the phone and tablet runs were Chrome's emulation, so iOS Safari's own full-screen player (closed before the prompt shows) is untested. No Plex server was used, so the Plex codec fields and the panel on Plex are unmeasured. Emby subtitles were checked at the HTTP level, not watched. Full-screen expiry is covered by the fake-DOM test, not a real browser.
+
+**Next.**
+- Batch test on nostalgex.app and in Docker: Connect with Emby, the sleep timer to expiry once, the info panel on a server stream.
+- Found while testing, not fixed: joining a server stream mid-programme stalls on a file with long gaps between keyframes when the server copies the video. A lab file with a keyframe every 10.4 s stalled on 6 of 7 joins (the first segment starts at the next keyframe, past the join point, and hls.js won't jump a start gap over 2 s); a 2 s keyframe file played 12 of 12. Same device profile on Jellyfin, not measured there.
+
+## 2026-10-16 (horror all year, four new channels, locks that match whole titles)
+
+**Shipped.** The web tuner on nostalgex.app since the branch was merged and pushed, and the Docker image `tuner-v1.0.1`. Apple TV still needs an App Store build. The channel ideas are @tydude001's, from discussion #29.
+
+**Why.** tydude asked for horror outside October. On Apple TV a seasonal bundle has stayed on in any month since 1.0.26 (`activeMonths` only decides the October invite and the guide lead), but the web tuner and the Docker image still built a seasonal bundle's channels only in its month, so SCREAM looked October only. tydude also spotted that the SCREAM lock, which keeps the Scream and Halloween films on SCREAM ADULTS, would have to be shared with a SLASHER channel. Looking at the lock showed it matched substrings, which hid unrelated films.
+
+**Changed.**
+- Web and Docker: a bundle you switched on builds its channels in every month, as on Apple TV. Before, a returning visitor with SCREAM on got 0 of its channels outside October, and TIS THE SEASON 0 of 7 outside December. The Settings row says "SPOTLIGHTED OCT" instead of "(OFF SEASON)". `npm run test:library-load` runs the production loader and plex-tuner.html's own season check under a pinned clock for seven months; the old code fails 10 of its 13 checks.
+- Exclusive locks, both engines: `editorialTitles` match the whole title, `titleContains` matches whole words (the same rule as a channel's `titleContains`), and a lock reads the item's own title, never a music video's artist. The web used to match artist plus title by substring and Swift title only by substring, so they disagreed. The SCREAM lock is now an exact list of the Scream and Halloween films (22 titles) and is shared by SCREAM ADULTS and SLASHER (`channelIDs: [132, 415]`). The holiday lock keeps its word list; "Santa" no longer catches Santana and "Holiday" no longer catches the horror anthology Holidays. Kicking & Screaming and Hubie Halloween are free again.
+- Shared golden vectors for the channel filter, `scripts/filter-golden.json` (43 cases), run by the new `FilterGoldenTests` (Swift, against the bundled config and manifest) and by `npm run test:filter-golden`. A deliberately wrong case fails the Swift test, so it is not passing vacuously.
+- SCREAM grows from 4 to 8 channels, still off by default, offered in October and switchable in any month: CH141 SLASHER (the franchise titles, or Horror with a TMDB slasher keyword), CH142 HORROR COMEDY (Horror and Comedy, no kids ratings), CH143 FOUND FOOTAGE (the found footage keyword on Horror or Sci-Fi, or the franchise titles; hidden under 3 films), CH144 WORLD HORROR. One horror bundle, not a second year-round one: a bundle without `activeMonths` is switched on at first load for anyone who owns a horror film. TIS THE SEASON gets the same web fix and lock fix, no new channels, December spotlight unchanged.
+- New channels where tydude suggested: CH84 MYSTERY BOX TV in CASE FILES (the TV side of MYSTERY), CH55 CRINGE TV in PRIME TIME, CH118 A24 in NETWORKS. Numbers keep every bundle one unbroken block (CASE FILES 84 to 89, PRIME TIME 40 to 55, NETWORKS 118 to 129, SCREAM 137 to 144).
+  - MYSTERY BOX TV is 30 shows by TMDB id (Lost, Twin Peaks, The X-Files, Dark, FROM, Severance and more), a `handCurated` block in the tuner's exemplars, every id checked against TMDB. Titles collide (Lost in Space, Dark Matter), TMDB keywords on these shows are thin (Lost has three), and Plex lists two genres per show, so a keyword or genre gate would miss most of them. It includes Horror only to open the genre lock for its own shows.
+  - CRINGE TV: The Office, Curb, Peep Show, Nathan for You, The Rehearsal, How To with John Wilson and others by title, or a Comedy with a TMDB cringe keyword (cringe, awkward, socially awkward, embarrassment and a few more). Genre alone never qualifies. Not the mockumentary keyword, which covers Modern Family and Parks and Recreation.
+  - A24 by studio and production company. Like the other studio channels it skips the genre locks, so A24 horror airs there with SCREAM off.
+- WORLD HORROR data. It needs each film's original language and the app has none. Checked what is in reach: the shared `media_enrichments` table has 15 columns and none is language or country; Plex section listings carry `Country` on every film (1,787 of 1,787 in a test library), but country is not language, and Jellyfin and Emby need an extra field requested, which is six parsers on two platforms; OMDb has Language but 1,000 lookups a day shared by everyone; TMDB has `original_language` on the document the app already fetches, but cached rows would never be refetched, so it needs a Supabase column plus a backfill. Chosen instead: the language test runs offline. `scripts/channel-keyword-tuner/discover-world-horror.mjs` lists every TMDB horror film not in English with 25 or more votes (2,004 films, 57 languages, two sort orders unioned so paging cannot drop any) and writes them as manifest claims; the channel is `manifestOnly`. No app code, no Supabase change, no SQL. Cost: `channels-memberships.json` grows from 926 KB to 1.28 MB (107 KB to 138 KB gzipped). New releases need a rerun, and a full tuner regeneration needs it rerun afterwards, like `discover-standup.mjs` (tuner README).
+- The Apple TV October dialog no longer says "for the rest of the month"; it says the package stays on until you switch it off.
+- "130+ channels" replaces the hand written "131 channels" across the site pages, five blog posts, README, REPOSITORY-LAYOUT, llms.txt and the App Store metadata. Generated text keeps exact counts, and `render-lineup.mjs` now also writes the lineup header's no-JS counts. `bundles:render:strict` fails if a page claims more channels than `channels.json` has or names an exact count that is wrong. README and REPOSITORY-LAYOUT no longer say the Apple TV app fetches an updated `channels.json` at runtime: it asks the media server, which never has one.
+- `channels.json` is v38, 138 channels.
+
+**Measured.** On a test library of 1,787 films, 8,769 episodes and 1,131 music videos, through the web filter: SLASHER 10 films, HORROR COMEDY 6, FOUND FOOTAGE 2 (hidden), WORLD HORROR 0 (hidden), MYSTERY BOX TV 16 episodes of 1 show, CRINGE TV 0 (hidden), A24 5 films. SCREAM KIDS 13, FRIGHT NIGHT 49, SCREAM ADULTS 18 and NOSTALGEX HORROR 17 are unchanged, and the 8 SCREAM channels carry the same 69 distinct titles the 4 did. Every holiday channel is unchanged. Elsewhere only the lock fix moved anything: one film back on four channels, four music videos back on HIGH ROTATION. NostalgexTests: 797 tests, 787 passed, 0 failed, 10 skipped (opt-in live harnesses), run serially; with parallel clones two simulator clones refused to launch ("installing or uninstalling") on a busy machine while every test still passed on the other three. `npm test`, `npm run build` and `npm run build:selfhost` pass. The built web tuner in headless Chromium with a pinned clock and a synthetic library: on November 5 a returning visitor with SCREAM on gets its channels built, the row reads SPOTLIGHTED OCT and the guide starts at CH1; on October 20 SCREAM leads the guide from CH137; on July 4 TIS THE SEASON builds; no page errors.
+
+**Unverified.** Nothing has run on an Apple TV, and the web tuner was not driven against a real server. WORLD HORROR and CRINGE TV have nothing to air in the test library, so only the golden vectors cover them. Whether Plex tags shows like FROM as Horror is unknown; MYSTERY BOX TV allows it either way. After the app update, Apple TV shows the new channels only after the next library refresh or Settings > Rescan library, because launch restores channel rules from the library snapshot.
+
+**Next.**
+- Which build carries this is Chad's call. It needs an App Store build for Apple TV; the web gets it when main is pushed and Docker with the next `tuner-v*` tag. Draft changelog bullets, not yet in `content/changelog.json`: "SCREAM is eight channels now: SLASHER, HORROR COMEDY, FOUND FOOTAGE and WORLD HORROR join, and you can switch it on in any month. Thanks to @tydude001." / "New channels: MYSTERY BOX TV in CASE FILES, CRINGE TV in PRIME TIME and A24 in NETWORKS. Thanks to @tydude001." / "Films that only sound like Halloween or Christmas ones, like Kicking & Screaming, are back on the channels they belong on."
+- Roku port: the SCREAM lock uses `channelIDs: [132, 415]`, WORLD HORROR and MYSTERY BOX TV are `manifestOnly`, and lock `titleContains` is whole words now.
+- Locks still hide two kinds of item, as before: a music video whose song is titled exactly "Scream", or any Christmas song, is locked to movie channels that never air music videos; a show with Santa as a word in its name is locked to the holiday movie channels. One fix would be that a lock never applies to an item none of its channels can air.
+- Blog posts that say SCREAM "adds four horror channels" want a refresh once the app update is out.
+
+## 2026-10-16 (Emby: sound and picture drift apart after tuning in mid-programme)
+
+**Shipped.** Nothing yet. Branch `fix/emby-avsync-ts`, not merged, not in any build.
+
+**Report.** On Discord: Emby, Apple TV 4K (1st generation), 1.0.26. On some channels the sound and the picture drift apart and never catch up.
+
+**Cause, measured.** Every mid-programme join on Emby restarts the server's encode at the join segment: the app loads the stream and seeks, and Emby starts ffmpeg again there ("Starting transcoding because segmentGap is 39 ... requestedIndex=41"). When the video is copied and the audio is not (DTS, TrueHD, FLAC: anything AVPlayer cannot decode), the copied video starts at the keyframe before the join point and the audio exactly at it. In fMP4 segments both tracks are stamped from zero and the gap is kept only as an edit list in the init segment, which AVPlayer does not apply. The sound then runs early by the distance back to the previous keyframe, up to a whole GOP, until the programme ends. A programme watched from its start is fine, which is why only some channels showed it.
+
+**How it was measured.** A Mac harness plays the same URLs the app requests in AVPlayer, timestamps flash frames through `AVPlayerItemVideoOutput` and beeps through a capture of its own audio mapped to the item's timebase, and reports sound minus picture. Synthetic files with one flash and one beep per second, a test Emby 4.10.1.0, a join at 247.3 s, segment responses held 400 ms to stand in for a real network. The harness reads +25 to +36 ms on a file played from its start, so that band is "in sync".
+
+| Source | fMP4 + seek (today) | TS + seek (branch) |
+|---|---|---|
+| H.264 + DTS 5.1, 2 s GOP | -1720 ms | +35 ms |
+| H.264 + FLAC, 5 s GOP | -731 ms | +24 ms |
+| H.264 + TrueHD 5.1, 10.4 s GOP | about -6.2 s | +24 ms |
+| H.264 + AC3, audio 0.5 s late in the file | -487 ms | +9 ms |
+| MPEG-2 + AC3 (video re-encoded, audio copied) | +511 ms | +24 ms |
+| H.264 + AC3, both copied | -59 to -69 ms | +9 to +19 ms |
+| H.264 + AAC, both copied | -49 ms | +14 ms |
+| MPEG-4 ASP + MP3, AVI (video re-encoded, MP3 copied) | does not open (-11829) | -5 ms |
+
+Emby 4.8.11.0 and 4.9.5.0 in Docker measure the same (H.264 + DTS -1720 / +35 ms, H.264 + FLAC -731 / +24 ms). The hand-built fallback and the 1080p rung on TS: +35 ms. TS played from the start: +36 ms.
+
+**Changed.** Emby HLS is MPEG-TS whenever the video can only come out as H.264, and fMP4 only when it may come out as HEVC, which AVPlayer will not render from TS. TS carries the source timestamps, so the player lines the tracks up itself, restart or not. One decision, `JellyfinPlaybackResolver.embySegmentContainer`, used by all three Emby HLS requests: the PlaybackInfo device profile, the hand-built fallback after a failed direct play, and the 1080p rung. A TS request offers H.264 only, so the server can never put HEVC in it. The join is still a client seek.
+
+**Tests.** `EmbySegmentContainerTests` (10): the decision table, the PlaybackInfo profile, the fallback and capped URLs, the client seek, direct play, and Jellyfin unchanged. NostalgexTests: 792 passed, 0 failed, 10 skipped (opt-in live harnesses). `npm test` green.
+
+**Rejected.**
+- A start time instead of the seek. Emby would accept one: `StartTimeTicks` on PlaybackInfo comes back as `#EXT-X-START`, its segment URLs carry only `PlaySessionId`, and every request answered 200 on 4.8.11.0, 4.9.5.0 and 4.10.1.0. It does not help: AVPlayer fetches init.mp4 first, which starts the encode at zero, and the join segment restarts it anyway (-1723 ms). Even an encode started at the join point before AVPlayer asked for anything played -1784 ms out on fMP4, because the gap is still only in the edit list.
+- Re-encoding the video on a join (`AllowVideoStreamCopy=false`). In sync when the audio is transcoded (+62 to +73 ms), but the gap flips when the audio is copied (H.264 + AC3 +1829 ms, H.264 + AAC about +6.2 s), it costs a full video encode, and Emby 4.10.1.0 cannot transcode 10-bit sources at all.
+
+**Side effects, measured.** With no pacing (the player outrunning the encoder on localhost) the fMP4 join never played: Emby restarted ffmpeg for every segment, 42 restarts in 20 s and 2 frames decoded. TS played the same join in sync with 2 restarts. On a long-GOP file a TS seek can land up to a GOP after the requested time (10.4 s GOP: playback began at 252.2 s for a 247.3 s join).
+
+**Not changed.** Jellyfin: the same fMP4 join is in sync on Jellyfin 12.2.0 (H.264 + DTS +35 ms, H.264 + FLAC +24 ms), so it keeps fMP4. Plex and every direct play are untouched. The web tuner already asks Jellyfin and Emby for TS (H.264, AAC stereo): +35 and +24 ms through AVPlayer on the same Emby, and -2 to -12 ms between PTS in the TS it receives.
+
+**Unverified.** Not run on an Apple TV yet; macOS AVFoundation is close to tvOS for HLS but not the same, and an Apple TV passing AC3 to a receiver adds its own latency. HEVC with a transcoded audio track still streams as fMP4 and still drifts: H.265 + DTS -1720 ms, 10-bit H.265 + TrueHD -1731 ms, on all three Emby versions. EAC3 with Atmos in TS has not been tried. A file whose library entry has no video codec keeps fMP4 on an HEVC-capable device.
+
+**Next.** On an Apple TV 4K (1st generation), the reporter's model: tune into an H.264 MKV with DTS or TrueHD mid-programme on Emby and check by eye. For HEVC, the cheap next step is preferring an AC3/EAC3/AAC track in the viewer's language when the file has one, so the audio is copied and starts with the video.
+
+## 2026-10-16 (PR #25 merged: Show Now Playing and Mark Watched are separate)
+
+**Shipped.** Merged to main, not released. PR #25 by @w6trp splits the one Report Playback switch into SHOW NOW PLAYING and MARK WATCHED, on the Apple TV (Settings > CONNECTION) and in the web tuner (Settings > PLAYBACK).
+
+**Why.** Report Playback did two jobs: putting the channel in the server's Now Playing, and counting a programme as watched. People want one without the other, and counting a surf-past as a watch was the complaint the first version was built to avoid.
+
+**Changed.** Both switches are off for new installs, the same opt-in default as before. An existing Report Playback choice carries over to both, and an explicit new off is kept. Mark Watched counts a programme only when you join in its first 15% and watch at least 75% of it. On Plex, Now Playing alone sends no position or watched updates. On Jellyfin and Emby, if the app cannot read the existing watch state first, it skips reporting for that session rather than writing a zero resume position, which could wipe real progress. Both switches sync through iCloud like the old one. The detail is in `Nostalgex/docs/plex-session-reporting.md`.
+
+**Measured.** NostalgexTests on main with this merged: 749 passed, 0 failed (9 opt-in live harnesses skipped). Web: 24 new reporting-control checks and the watch-state golden cases pass. The README conflict with the reworked README was resolved in the README's favour; the switches are named in its privacy list.
+
+**Unverified.** On a physical Apple TV: the two rows in Settings, the carry-over from an existing Report Playback choice, and a Jellyfin or Emby session where the watch state can't be read.
+
+## 2026-10-16 (Plex: a Latin-1 file name no longer fails the whole library)
+
+**Shipped.** Nothing yet. Branch `plex-utf8-repair`, for the next TestFlight build.
+
+**Why.** A Plex user on 1.0.26 (48), tvOS 26.6 and Plex Media Server 1.43.4 could not load their library: LINEUP finished, LIBRARY stopped about halfway through section 1 of 2 with "Your server returned unexpected data" and `NSCocoaErrorDomain 4864`. Rebuilding the Plex database, refreshing metadata, updating Plex and reinstalling the app changed nothing.
+
+**Cause, reproduced.** Measured in Docker on Plex Media Server 1.43.4.10903 and 1.42.2.10156: an unmatched item whose file or folder name holds a byte that is not UTF-8 (an é written in Latin-1, the single byte 0xE9) gets that raw byte copied into the JSON `title`, or into `summary`. The page is then not UTF-8, and JSONDecoder refuses it: "The given data was not valid JSON", `NSCocoaErrorDomain 4864`, underlying 3840, empty coding path, so nothing says which item. A section page (`/library/sections/{key}/all?includeGuids=1`, 500 items, 150 on a slow link) was one strict decode, so that ended the section and the scan. The same byte only in fields the app never reads (the file path, image alt text) does not fail the page, because the decoder converts a string only when it is read.
+
+**Changed.**
+- Every Plex response is checked for valid UTF-8 before decoding. A valid response is decoded untouched. Otherwise each byte that is not part of a well-formed UTF-8 sequence is read as Windows-1252 (0xE9 becomes é, 0x93 and 0x94 become curly quotes), every valid sequence is copied as it is, and the result is decoded. A stray byte is always 0x80 or above, so the repair cannot add a quote, backslash or control character to the JSON. One log line through `InstallDiagnostics` names the request path and page and the number of bytes repaired: `PLEX UTF-8 /library/sections/1/all?...&X-Plex-Container-Start=500: repaired 5 byte(s) that were not UTF-8, read as Windows-1252`.
+- Applied on every Plex read: section pages, the sections list, the episode sweep (`type=4`), `allLeaves`, collections, collection children, `/identity`, plex.tv `resources` (server names) and the Plex Continue Watching read, which used `try?` and would have skipped its cleanup in silence. The PIN requests carry no names and are unchanged.
+- Safety net, per item only: a Metadata item the model cannot decode is skipped and logged with its ratingKey and the path of the field that failed (`PLEX DECODE ...: skipped item ratingKey=202 at MediaContainer.Metadata[1]: expected Array<Any> at MediaContainer.Metadata[1].Media`), and the rest of the page loads. Field decoding is unchanged: no type coercion, because no other shape has been seen on a real server (a test library of 11,787 items and 15 lab edits all decoded with the 1.0.26 models). A broken container or a body that is not JSON still fails as before.
+
+**Measured.**
+- Three synthetic lab pages (`NostalgexTests/Fixtures/`, a file named `Café Society (2016).mp4` written in Latin-1, nothing from a real library) throw 4864 on the strict decode on the tvOS 26.1 simulator, and now decode with every item kept and the title "Café Society", not a replacement character. No model change was needed for that.
+- A 500-item page (542 KB) on a Mac: 6.9 to 7.4 ms to decode in 1.0.26, 7.1 to 7.2 ms on the branch, 7.5 ms with one stray byte repaired. The UTF-8 check alone is 0.03 ms; the repair copy 0.4 ms.
+- NostalgexTests: 745 tests, 736 passed, 0 failed, 9 skipped (opt-in live harnesses), including 15 new (`PlexUTF8RepairTests` 11, `PlexSkippedItemTests` 4). `npm test` green.
+
+**Not changed.** The web tuner. Its scan reads pages with `Response.json()`, which decodes UTF-8 with replacement characters instead of failing: measured on the minimal fixture with Node 26's fetch, which follows the same Fetch spec as browsers, the page parses and the title reads "Caf\uFFFD Society". So its scan does not stop, though the accent is lost.
+
+**Unverified.** Not run against the reporter's own server or on an Apple TV. The repair guesses Windows-1252 for any stray byte; a name written in another single-byte encoding would load, with the wrong accented letter.
+
+**Next.** Ship in the next build and ask the reporter to confirm the library loads.
+
+## 2026-10-16 (playback: a channel where nothing plays stops)
+
+**Changed.** On branch `telemetry/signal-budget`, not merged, not in any build.
+- Each failed programme sends `playback.error` once. The retry and transcode-failed paths sent it twice, as `player_failed` when AVPlayer failed and again from the error card (measured: two per failure on both paths). The card is now the one report, so the code on the wire matches the words on screen. A failure the viewer tunes away from before its card shows still reports once, for the channel it failed on. A starved direct-play stream with no server stream to fall back to used to skip with no report; it now reports `stalled`.
+- A channel where nothing plays used to show the card, skip after 5 seconds, fail, and go round again for as long as the TV was on: a request to the server and a `playback.error` every 5.0 seconds (measured). Now, after 5 failures in a row on one channel with no picture in between, the channel stops. The card says "Nothing on this channel will play right now", gives the last reason, and "Try another channel, or select this one again to retry." The player item and any server transcode are torn down and nothing more is requested until `selectChannel` runs again: the viewer tunes, selects the channel again (selecting the current channel in the guide now retries instead of going full screen), the app returns to the foreground, or a library reload re-selects it.
+- Why 5: one bad file, or a few in a row, still skip and carry on as before. If half a channel played, five failures in a row would come up about one time in 32; with four in five playing, about one in 3,000. Reaching five takes about 20 seconds when there is nothing to request and a few minutes on the slowest failure (a 4K server stream gets 40 seconds before the watchdog gives up).
+- Only a picture confirmed by the startup watchdog resets the count. Reaching ready does not, because a file the device opens but cannot decode reaches ready with a black screen.
+- The count lives in `Services/ChannelFailureRun.swift` and is advanced in one function, `recordFailedItem`, which every failure path calls. The recovery ladder and the attempt ownership checks are unchanged.
+
+**Measured.** `PlaybackFailureRunTests`: a channel of items with no stream stops at the fifth failure, after five requests, and makes none over the next 600 ms. One bad programme among good ones (generated H.264) shows its card and the next programme plays. Four failures and then a playing programme: the watchdog's picture check resets the count at its 15-second deadline. Tuning away, selecting the stopped channel again, or re-selecting it as foreground return does each start a fresh count. Through the analytics gate, five failures with one code send one `playback.error`, and the session summary counts five.
+
+**Web tuner.** Already stops after three failures in a row (`MAX_CONSECUTIVE_FAILURES` in `plex-tuner.html`), so it does not loop. Its count resets only when a frame plays, not on a channel change, so after one channel parks, the next channel's first failure parks it too. Left alone.
+
+**Privacy policy.** Effective date October 16, 2026 in `Nostalgex/PRIVACY_POLICY.md` and `privacy.html`. Move both if the build ships later; `privacy.html` goes live when main is pushed.
+
+**Unverified.** Not run on a physical Apple TV. The stopped card has not been looked at on a TV.
+
+## 2026-10-16 (app analytics: a signal budget)
+
+**Changed.** On branch `telemetry/signal-budget`, not merged, not in any build. Every analytics event now passes through one gate, `Nostalgex/Analytics/AnalyticsGate.swift`, before it reaches TelemetryDeck. No playback or guide code changed. TelemetryDeck counts every signal, and the app sent them in step with remote presses and hours watched rather than once per device, so the count climbed steeply with the users the 1.0.26 launch brought in.
+
+**Measured.** `TelemetryVolumeHarness` drives the real AppState and AVPlayer load path in the simulator and records every event, then replays the same stream through the gate.
+- 20 channel changes with real (generated H.264) playback: 61 events, 3 per change (`channel.tuned`, `playback.ready`, `playback.stopped`). After the gate: 3 in total.
+- One channel with 4-second programmes for 30 seconds: 2 events per programme boundary (`playback.ready` and `playback.stopped`). A channel left on all night does this at every boundary, every 3 to 4 minutes on the music video channels.
+- A channel where nothing plays, with nobody at the remote: `playback.error` every 5.0 seconds, about 720 an hour, until someone tunes away. The retry and transcode failure paths send `playback.error` twice per failure (once as `player_failed`, again from the error card). After the gate: one per backend and code.
+- 200 changes on a lineup that cannot play: 400 events, 3 after the gate.
+
+**Rules, per visit** (one foreground session, closed by `app.session.ended`; a visit that never backgrounds gets a fresh allowance every 4 hours):
+- `channel.tuned`: first per backend and method. `playback.ready`: first per backend and delivery. `playback.error`: first per backend and code. `playback.transcode_fallback`: first per backend.
+- `playback.stopped`: programmes on the same channel are added into one stay; stays under 60 seconds (surfing) are not sent; at most 12 stays per window. Watch time per channel survives.
+- Every other name has a cap (settings 20, connect and library 5, rate and QR 1) and the window has a ceiling of 60. `app.launch` and `app.session.ended` always go out.
+- `app.session.ended` now carries `tunes`, `playbackStarts`, `playbackErrors`, `suppressed` as ranges (0, 1, 2-5, 6-20, 21-50, 51-200, 201+) and the `backend` in use.
+
+**Estimate per device per day.** Same before for 1.0.26 and main: the call sites did not change between them. "Visit overhead" is `TelemetryDeck.Session.started` + `app.session.ended` per visit, `app.launch` once, and a library refresh (started + completed).
+- Light viewer, one visit, one hour, 10 changes, 2 programme boundaries. Before: overhead 5 + `channel.tuned` 10 + `playback.ready` 13 (launch tune, 10 changes, 2 boundaries) + `playback.stopped` 13 (10 changes, 2 boundaries, 1 on background) = 41. After: 5 + tuned 2 (guide, next) + ready 1 + about 5 stays of a minute or more = 13.
+- Heavy surfer, two visits, 4 hours, 200 changes, 10 boundaries, 4 stalls (2 ending in a skip). Before: overhead 7 + 2 launch tunes + 200 x 3 + 10 x 2 + stalls about 12 (4 fallbacks, 2 x 2 errors, 4 reloads) + 2 background stops = about 643. After: 7 + tuned up to 8 + ready 4 + about 20 stays + fallback 2 + error 2 = about 43.
+- A channel left playing overnight: before, 2 per programme (about 720 a day on a music video channel, about 130 on a sitcom channel); after, 2 per 4-hour window. A failing channel left alone: before about 720 an hour; after, one per window.
+
+**Not changed.** TelemetryDeck SDK 2.14.0 defaults. Its only automatic signals are `TelemetryDeck.Session.started` (cold launch, and a return after 5 minutes or more away) and `TelemetryDeck.Acquisition.newInstallDetected` (once per install); session length is kept on the device and sent as parameters, not as extra signals. Debug builds still send, tagged as test signals.
+
+**Dashboard effect.** Charts that count `channel.tuned`, `playback.ready`, `playback.error` or `playback.stopped` per event now count visits in which that kind happened at least once. Totals live on `app.session.ended`. Privacy policy (`Nostalgex/PRIVACY_POLICY.md`, `privacy.html`) updated to say so; `privacy.html` deploys when main is pushed.
+
+**Unverified.** Not run on a physical Apple TV. Not checked against the live TelemetryDeck dashboard: which signal dominates the real count is inferred from the harness and the code, and the dashboard's breakdown by signal type is what confirms it. TelemetryDeck's docs do not say whether test-mode signals count toward the plan limit.
+
+**Open.** `channel.tuned` per channel is down to the first tune of each method per visit; watch time per channel (`playback.stopped`, summed) is the channel popularity number now. `library.load.completed` sends the exact `itemCount`, which is more precise about a library's size than it needs to be; a range would do. The TelemetryDeck app ID is in the public `Info.plist` and shared scheme, so anyone who builds the repo reports into the same app (Debug as test signals, their own Release builds as live ones).
+
+**Next.** Confirm the top signal names on the dashboard, then merge and ship with the next build.
+
+## 2026-10-16 (PR #26 merged: playback information on Apple TV)
+
+**Shipped.** Merged to main, not released. PR #26 by @w6trp adds PLAYBACK INFORMATION to the Now Playing panel, at the bottom under the sleep timer. It goes out with the next TestFlight build.
+
+**Why.** When someone writes in because a channel won't play, the first questions are which server, whether it is direct play or a server stream, and why it fell back. This puts those answers on the screen while the problem is happening: backend, playback type, quality at tune, any recovery request, player size, source codecs and the fallback reason in plain words. The display model only accepts enums, fixed codec labels and bounded numbers, so no URL, token, server address or raw error text can reach it. Late callbacks are checked against the generation, attempt and current player item, so a channel change cannot paint the old programme's details over the new one.
+
+**Changed from the first version.** Rebased onto #27's recovery flow by its author. The row moved from the PICTURE section to the bottom of the panel, since most people open it for retro and quality. Delivered Codecs and Stream Bitrate were dropped, because nothing fills them yet and rows that always say Unknown read as broken.
+
+**Measured.** NostalgexTests on the merged tree: 730 tests, 721 passed, 0 failed, 9 skipped (opt-in live harnesses), up 25 from #27. Device build for tvOS succeeds. The PR's first CI run never reached the tests: the runner's simulator could not launch the test host.
+
+**Unverified.** The panel on a physical Apple TV: row placement, remote focus, Back returning to the row, VoiceOver.
+
+**Next.** #25 (separating Now Playing reports from watched counts) is the last open PR from @w6trp; it needs a rebase now that #26 and #27 are in.
+
+## 2026-10-16 (homepage: four ways to watch, README refresh, tuner release notes)
+
+**Shipped.** On nostalgex.app: a "Three ways to tune in. A fourth is on the way." section above How it works, with one tile each for Apple TV, the web tuner, the Docker container and a Roku preview. The hero puts its video straight under the headline on tablets and phones. GitHub release `tuner-v1.0.0` for the container, published as not latest so the repo's Latest badge stays on the Apple TV app (`v1.0.26`).
+
+**Changed.**
+- The section started as cards with device drawings. They read as busy and the four cards were hard to tell apart, so it is now solid colour tiles (yellow, cyan, pink) with a large ink logo, a name and one line, and a dashed tile with a Coming sticker for Roku. Docker and Roku joined the footer's not-affiliated line since their marks are on the page.
+- On stacked layouts the hero video sat after the paragraph, both buttons and the note, a full screen down. `.hero-copy` becomes `display: contents` at 1024px and below so the video can be ordered second.
+- The self-host page and README wrote the address as `http://<that-machine>:8080`. Browsers render that, but text extractors and AI readers strip the angle brackets and print `http://:8080`, so it is `YOUR-SERVER-IP` now.
+- README: 1.0.26 and what it rolled up, Emby officially supported, the tip jar (replacing "no in-app purchases"), a shorter Docker quick start pointing at /self-host, iCloud and REPORT PLAYBACK in what leaves your network, an Other platforms section, and the `--` stand-ins replaced.
+
+**Next.** PR #26 waits on @w6trp's rebase onto #27; #25 after it. The Roku port goes onto a real Roku for a sideload test.
+
+## 2026-10-16 (web tuner from a TV browser, and the container goes public)
+
+**Shipped.** The web tuner changes below, on nostalgex.app and in the first public container image, `ghcr.io/chadmueller/nostalgex` from tag `tuner-v1.0.0`. The `/self-host` page is published.
+
+**Why.** The container was run on a Google TV in TV Bro. A test page on the TV measured what the browser gives a page: a 960x540 viewport at pixel ratio 2, `pointer: fine`, and a remote that moves an on-screen cursor and sends OK as a touch click. No arrow key, Escape or Back reached the page; Back only shows and hides the browser's own buttons. So the tuner drew its desktop layout at twice the size it was designed for, and everything that needed a key was out of reach.
+
+**Changed.** All in the shared page, so the hosted tuner and the container stay identical.
+
+- Small landscape screens with a mouse pointer scale the page (`zoom` 0.875 up to 1280x720, 0.6667 up to 1099x620) so it lays out like a desktop window about 1440px wide. `zoom` scales viewport units too, so the body and the settings panel are sized back up. At 960x540: the rail fits through Instagram, the channel tag clears the corner logo, the guide shows 7 rows instead of 4. Phones and tablets (`pointer: coarse`) and desktop windows above 1280x720 are unchanged, measured.
+- Settings has a CLOSE button. It had no clickable exit at all, including on phones and tablets.
+- In full screen, a click or OK on the picture shows the info bar with CH -, CH +, SOUND and EXIT FULL SCREEN.
+- At TV sizes the guide footer's key hints become UP and DOWN page buttons. Cursor edge-scrolling scrolls whatever is under the cursor, and the top of the screen is the video, so the guide could scroll down but never back up.
+- Sound remembers the viewer's choice. The page still starts muted, and a saved "on" comes back on the first click or key, the earliest a browser allows. A first press on a sound control is left to that control.
+- The connect screen's scanline overlay is gone and retro mode's flicker and scanlines run only once a channel plays. The connect screen had five looping animations, two of them full screen at 80ms and 150ms, and the loading screen flickered whole every 150ms. On the TV the cursor lagged and colours washed out. The picture's retro look is unchanged.
+- The video has a 1x1 transparent poster. Android's web view otherwise paints a grey box with a large play icon over the video between channels.
+- The connect page scales the same way, so both Connect buttons are above the fold at 960x540.
+
+**Measured.** Click-only runs in Chrome at 960x540 against a real Plex server: Settings opens and closes, the guide pages down and back to the top, full screen fills the screen, CH + and CH - change channel, EXIT leaves, no page errors. Sound memory checked in four cases with the video never pausing. `npm test` green; both CSPs allow the `data:` poster. On the TV itself: layout, rail clicks, full screen controls and the guide buttons confirmed by eye.
+
+**Unverified.** Surround audio on the TV. Fire TV Silk, Samsung and LG browsers. An arm64 server running the image.
+
+**Next.** A real Android TV app is the fix for the remaining TV-browser limits; the web tuner will not get Back or the D-pad from TV Bro. The container now follows the web tuner: tag `tuner-vX.Y.Z` when a batch of tuner changes is worth shipping to self-hosters.
+
+## 2026-10-16 (PR #27 merged after a hardware pass)
+
+**Shipped.** PR #27 by @w6trp is merged to main: native playback recovery belongs to one attempt at a time, and a server reply that arrives after its attempt was superseded only stops its own session. Not in a release yet. It goes out with the next TestFlight build.
+
+**Measured.** Debug build of the merged tree on an Apple TV 4K (3rd generation), against a Plex server on the LAN, with Plex's `/transcode/sessions` polled every 3s.
+
+- Recovery still recovers. Stopping the server transcode from outside the app gave a 20s stall, then the starvation ladder resumed the same item at the same position on a fresh session capped at 1080p. One transcode on the server afterwards.
+- A second forced stop, on the stream that was already capped, advanced to the next scheduled item after an error banner. Same path, same behaviour as main before the merge.
+- 78 channel changes in about three minutes, 39 of them server transcodes, many superseded mid-handshake. Every stop played the selected channel and no late reply replaced the player.
+- Nine transcode sessions were visible at 3s resolution. Five were stopped by the app within 3 to 12 seconds. Three idle stubs (progress 0, speed 0, no duration) were never stopped and Plex reaped each one at its own 180s idle timeout. The ninth was the channel left playing.
+- NostalgexTests on the merged tree: 705 passed, 0 failed, 9 skipped.
+
+**Unverified.** Whether main before the merge leaves the same idle stubs; the same run against the old build would settle it. Jellyfin and Emby recovery under #27 were not exercised on hardware.
+
+**Next.** Trace the idle stubs (most likely a decision or start request that reaches Plex after its stop) once the comparison says whether they are new. PR #26 next, then #25.
+
+## 2026-10-16 (PR #28: current-main rebase and test sensitivity)
+
+**Shipped.** Updated `fix/web-tune-ownership` for PR #28 on current main `bfb4453`. No app release, installation or deployment.
+
+**Changed.** Rebased the rapid-tune patch and retained the upstream Roku relay, tablet rail, phone drawer and inline-player work. Both sides of the development-log conflict are preserved, including the earlier reconciliation entry. The production tuner is byte-for-byte unchanged from the previous PR head; this follow-up changes tests and this log only.
+
+The race harness now enters through populated `switchChannel` paths, including A to B to A, and exercises the production advancement function. It executes the registered document/native fullscreen callbacks and pointer, touch and key retry callbacks. Rejected play promises leave the fixture paused. Fixture element ids must exist in the production HTML; schedule time, rendering, media and network remain controlled fixtures.
+
+**Measured.** All 25 production-function scenarios pass. Four in-memory negative controls each fail the expected behavioral assertion when request ownership, queued-gesture protection, old-manifest protection or native-fullscreen resume is removed. Missing mutation targets are errors, not successful negative controls. The complete npm suite, including the upstream Roku relay smoke checks, and both hosted and self-host builds pass. The offline native suite passes 698 tests with zero failures; six live/opt-in harness classes were excluded. Both inline tuner scripts parse, the harness passes syntax checks and the diff has no whitespace errors.
+
+**Half-done.** These are mocked DOM/media callback tests, not a real-browser or WebKit acceptance pass. Phone/tablet layout, actual codec playback, CORS and live server cleanup remain unverified. Fresh GitHub Actions will validate the pushed head; the known fork-only Vercel preview gate is unchanged.
+
+**Next.** Review #28 first. The native recovery, playback-information and reporting-controls PRs remain on hold in that order; native recovery needs hardware acceptance and reporting controls need a Settings/defaults decision.
+
+## 2026-10-15 (the relay accepts a Roku client)
+
+**Changed.** `X-Nostalgex-Client: roku` is now accepted by `api/tmdb.js`, alongside
+`tvos`, `web` and `selfhost`. A community Roku port is being built against the same
+`channels.json` and filter rules (discussion #8), and without this it cannot fill the
+channels that need TMDB keywords or IMDb ratings. One line plus a smoke test.
+
+Roku needs nothing else: `roUrlTransfer` is not a browser, so it sends no Origin, gets
+no CORS treatment, and reads the body regardless. The path allowlist, the edge cache
+and the no-logging promise are unchanged, so a Roku client is the same shape of traffic
+as an Apple TV.
+
+**Watch.** OMDb's free tier is 1,000 requests a day across every client together, and a
+backfill has come close to it before. The shared Supabase cache and a 7 day edge cache
+absorb most of it, but a third client population is worth keeping an eye on.
+
+## 2026-10-15 (/self-host page, branch)
+
+**Changed.** All on branch `self-host-page`, unmerged and not deployed. Nothing
+about the container itself changed; this is the page that explains it.
+
+- New `/self-host` page (`self-host.html`, rewritten to `/self-host` in
+  `vercel.json`, registered in `vite.config.js` next to the other static pages).
+  It is the human version of the README's "Run it on your server": what the
+  container is for, who does not need it, what you need, the commands, what
+  leaves your network, where it works, and where it does not. The README is for
+  people who already run Docker; this is for someone deciding whether to bother.
+- Every command on the page is byte-for-byte the README's, checked by diffing
+  the page's `<pre><code>` blocks against `README.md`. Three of the four match
+  verbatim; the fourth is the two-line `NOSTALGEX_ENRICHMENT: "off"` snippet,
+  which matches `docker/compose.yaml` and the values `docker/40-config.sh`
+  accepts. The claims about what the container contacts were checked against
+  `scripts/nostalgex-enrichment.js` (only TMDB and IMDb ids go to the relay and
+  Supabase), `docker/nginx.conf`, `Dockerfile` (port 8080, uid 101) and
+  `.github/workflows/docker.yml` (amd64 and arm64, no armv7).
+- The device table is generated. `content/self-host.json` holds the rows and
+  `scripts/render-self-host.mjs` renders them between markers, the same
+  arrangement as `render-changelog.mjs`. It runs in `npm run build` and a
+  `--check` mode runs in `npm test`, so the committed HTML cannot drift from the
+  data. Statuses are deliberately graded: desktop browsers say Works because
+  they were tested; iPhone and iPad say Should work, because the layout is built
+  and checked in a headless browser but has never run on real hardware; TV
+  browsers say Untested, because there are no results at all.
+- On a phone both tables stack into labelled cards instead of scrolling
+  sideways. The third column is the honest column ("not confirmed on hardware
+  yet"), and hiding it behind a horizontal drag defeated the point of the page.
+  Page styles are scoped under `.page-selfhost` in the global stylesheet.
+
+**Half-done.** The page is deliberately not published. `published: false` in
+`content/self-host.json` keeps it `noindex`, keeps it out of `public/sitemap.xml`
+and `public/llms.txt`, and puts a note at the top saying the image is not on GHCR
+yet. It is reachable by URL only: nothing in the nav or the footer links to it.
+Flipping that flag to `true` and running `npm run build` publishes it, which is
+the whole switch. That is meant to happen the day the image goes public, not
+before.
+
+**Next.** Publish the image, flip the flag, and decide separately whether
+`/self-host` earns a nav or footer link. The iPhone and iPad row should become
+Works or something worse once someone opens it on a real phone, and the TV
+browser row needs a Fire TV before it can say anything at all.
+
+## 2026-10-15 (PR #28: upstream reconciliation)
+
+**Shipped.** Updated `fix/web-tune-ownership` for PR #28. No app release or deployment.
+
+**Changed.** Merged upstream `1ae5dc4` so the tablet control rail is retained alongside rapid-tune ownership. Only the development log conflicted; both the upstream and feature entries are preserved. No ownership behavior was changed during reconciliation.
+
+**Measured.** The complete npm suite, hosted build and self-host build passed on the reconciled tree, including all 17 rapid-tune race scenarios. Native source and bundled channel inputs are unchanged from upstream, so this web-only update did not need a new native run. The staged diff has no whitespace errors.
+
+**Half-done.** Real-browser playback and live server cleanup are still unverified. Fresh GitHub Actions will validate the updated PR head after push.
+
+**Next.** Await upstream review. Combining this with the independent reporting controls remains a separate integration step.
+
+## 2026-10-15 (PR #27: upstream reconciliation)
+
+**Shipped.** Updated `fix/playback-recovery-ownership` for PR #27. No app release, installation or deployment.
+
+**Changed.** Merged upstream `1ae5dc4` so the tablet control rail is retained. Only the development log conflicted; both the upstream and feature entries are preserved. Native recovery behavior was unchanged during reconciliation, and the PR remains independent of the other playback changes.
+
+**Measured.** The full offline native suite passed 705 tests with zero failures on tvOS Simulator. Six live/opt-in harness classes were excluded. The complete npm suite, hosted build and self-host build passed on the reconciled tree. The staged diff has no whitespace errors.
+
+**Half-done.** Apple TV callback timing, real backend resource usage and live server session teardown remain unverified. Fresh GitHub Actions will validate the updated PR head after push.
+
+**Next.** Await upstream review. Combining the separate playback PRs remains an integration step before release.
+
+## 2026-10-15 (Web tuner: the control rail comes back on tablets, branch)
+
+**Changed.** All on branch `tablet-rail`, unmerged and undeployed.
+
+- The web tuner shows the desktop control rail on tablets again instead of the
+  MENU button and the drawer. The drawer was the right call on a phone, where
+  six controls cost a row of the guide, but on an iPad it hid SOUND, FULL
+  SCREEN, RETRO, SETTINGS, APPLE TV, BUY ME A COFFEE and INSTAGRAM behind a tap
+  for no reason. Where the rail shows, the top bar, the MENU button and the
+  drawer are all `display: none` and the fixed corner wordmark comes back, so
+  there is never a second way to the same controls, and nothing in the drawer is
+  focusable by keyboard either.
+- Gated on the width the rail needs, not on device names, following the
+  `pointer: coarse` pattern already in the file so no laptop and no narrow
+  desktop window can match. Portrait needs 700px: a phone in portrait is at most
+  about 440px and a folding phone opens to 674px, while the narrowest tablet in
+  portrait is 744px. Landscape needs 1000px, with the same `min-height: 501px`
+  and `max-width: 1366px` as the tablet-landscape block it overrides; the
+  narrowest tablet in landscape is 1133px and an unfolded folding phone is
+  841px.
+- Tablet portrait stacks, so the rail had no column to stand in and all three
+  arrangements were built and measured at 834x1194 before choosing. Rail beside
+  the info panel under a full-width video: the video keeps 834x469 but the row
+  under it grows from 148px to 467px and the guide falls from 12 rows to 5. The
+  full desktop side layout: the video drops to 444px wide, narrower than the
+  guide under it. Rail beside the video with the info panel full width
+  underneath, which is what shipped: the video goes from 834x469 to 694x390, the
+  row is the rail's height instead of the rail's height added to the video's,
+  and the guide rises from 12 rows to 15. That trades 17% of the video's width
+  for three guide rows and seven controls on screen.
+- Rail controls are 44px minimum on touch, where the desktop rail packs a button
+  into 36px, paid for out of the padding and the gaps. Without the compaction
+  the rail was 24px taller than its row at 1133x744 and scrolled. The rail also
+  swaps to the short labels the drawer used, because [M] and [F] mean nothing on
+  a tablet with no keyboard, and `:hover` is neutralised under `hover: none` so a
+  tapped button does not stay lit.
+- Rotating a tablet out of a drawer layout now closes an open drawer, since the
+  rotation takes the MENU button away and would otherwise leave the sheet and
+  its scrim on screen with nothing to dismiss them.
+
+**Measured.** `npm test` and `npm run build` green. Headless Chrome against the
+built `dist/`, at iPhone portrait and landscape, a 360x800 Android, iPad mini,
+iPad and iPad Pro in both orientations, 1440x900, 1280x800, 1440x700, 1100x760
+and 1920x1080. Guide rows fully visible, before to after: iPad portrait 12 to
+15, iPad mini portrait 12 to 14, iPad Pro portrait 14 to 16, and all three
+landscape sizes unchanged at 10, 8 and 12 because the rail takes its width from
+the video rather than from the guide. All seven controls reachable on every
+tablet size with the smallest tap target 44px, the rail fitting its row with no
+internal scroll anywhere, no horizontal page scroll, no page errors, and SOUND,
+RETRO and SETTINGS all driven by a real tap.
+
+Desktop, TV and phones are unchanged, proved by dumping the rect and 36
+computed properties of every element in the player at eight sizes from a build
+of `main` and a build of the branch. The only differences are animation phase
+(the retro scanlines, the VHS tracking bar, the coffee steam) and the live
+progress bars, plus one new `<span class="v-btn-short">APPLE TV</span>` that is
+`display: none` and 0x0 everywhere outside the tablet rail. The first-run build
+screen measures identically to main at both iPad sizes.
+
+**Half-done.** Branch only, not merged. Not tried on a real iPad and not in
+Safari: everything above is headless Chromium with touch emulation, so the
+`pointer: coarse` matching, the safe-area insets and iOS's own tap handling are
+unverified on hardware. A touch screen wider than 1366px in landscape still
+falls through to the desktop rail with its 36px targets and keyboard hints; that
+is the same gap the tablet block already had, left alone so a 1920px TV browser
+reporting a coarse pointer keeps the desktop layout.
+
+**Next.** Chad to look at it on the iPad, in both orientations, and say whether
+portrait's narrower video is the right trade for the controls and the extra
+guide rows. If it is, merge and ship with the next web tuner deploy.
+
+## 2026-10-14 (Web rapid-tune ownership, local review branch)
+
+**Shipped.** Nothing published. This patch is prepared locally on
+`fix/web-tune-ownership` for separate review.
+
+**Changed.** An offline harness reproduced the production race: selecting A then
+B, with PlaybackInfo resolving B then A, left A attached to the player. Subtitle
+responses could likewise append A after B. Each tune now owns a generation,
+request identity, cancellation signal, and captured connection context. Results
+must still own the current selection after asynchronous work before changing the
+player, tracker, or active server session. Returning to the same channel and
+item does not revive an old request.
+
+- Retiring a tune aborts its resolver, destroys its HLS loader, removes native
+  metadata listeners, and cancels failure/stall timers. Queued media, HLS, gesture
+  retry and subtitle callbacks also check ownership before acting.
+- Late resolver results release only their captured server session, including
+  Jellyfin/Emby active encodings. Cleanup does not use mutable connection
+  credentials or a device-wide stop. A reused active session id is protected.
+  Selecting a channel with no program now retires the outgoing playback.
+- Subtitle loads have separate cancellation and generations, including body-read
+  awaits and preference reloads for the same item.
+- Added `npm run test:web-tune-ownership` to the standard test chain. Its 17
+  offline scenarios execute production functions with controlled promises,
+  mocked network/media/DOM, and fetches deliberately ignoring abort signals.
+  All 17 passed. Existing web player smoke passed all 12 assertions; Jellyfin
+  URL smoke passed 26. The new script passed `node --check`, both inline tuner
+  scripts parsed without execution, and `git diff --check` passed. The complete
+  npm suite and both hosted and self-hosted builds also passed. The native
+  source tree and bundled channel inputs are identical to pinned upstream
+  `9dd308b`, whose offline native suite passed 698 tests; no native source
+  change required a new native run for this web-only patch.
+
+**Half-done.** Local branch only. No live Plex, Jellyfin or Emby requests, browser
+media playback, CORS checks, or device testing were performed. Session deletion
+is best effort; when cancellation prevents receiving a server-assigned session
+id, the client cannot explicitly delete that unknown id. Activity-reporting
+features and pause controls are outside this patch.
+
+**Next.** Review the local diff and complete real-browser validation before
+choosing whether to publish. Verify rapid tuning with native HLS and
+HLS.js, subtitles, connection changes, and server-side session cleanup.
+
+## 2026-10-14 (playback recovery ownership, local review branch)
+
+**Shipped.** Nothing published or installed. Changes are on
+`fix/playback-recovery-ownership` for review.
+
+**Changed.** Retries and fallback players now have an attempt token in addition
+to the channel load generation. Status events, seek completions, startup
+watchdogs and error probes check the exact player item before acting. Delayed
+loads, negotiations and watchdogs are owned tasks and are cancelled on
+replacement or disconnect. The starvation monitor and startup watchdog share
+one pending server-stream negotiation. A cancelled request that still returns a
+session stops that exact session instead of installing it. Initial-load offset
+state is updated only after the request is still current. The existing
+`resolveServerStream` behavior and retry delays are preserved.
+
+Measured. Seven focused offline tests pass against AppState's production
+recovery callbacks with AVPlayerItem and a controlled backend, including
+repeated starvation verdicts, overlapping watchdog recovery, late replies,
+rapid channel changes, cancelled debounce and preparation. The full offline
+native suite passes 705 tests with zero failures (676 XCTest and 29 Swift
+Testing). Swift syntax and whitespace checks pass. No user credentials or real
+media-server state were used.
+
+**Half-done.** The branch is local and unpublished. Actual Apple TV playback,
+backend resource usage and server session teardown are unverified.
+
+**Next.** Review the patch, then verify rapid surfing and slow-server recovery
+on hardware before publication.
+
+## 2026-10-14 (Docker web tuner: caught up with main, branch)
+
+**Changed.** All on branch `docker-selfhost`, still unmerged and unpublished.
+
+- `origin/main` merged in. The branch was cut from 1.0.26 (47) and predated the
+  whole mobile web tuner pass, so the image would have handed self-hosters the
+  old desktop-only tuner. That was the reason Docker was put on hold, so this had
+  to come first. The two tuner pages merged with no conflict: main rewrote layout
+  and playback, the branch touched sign-in plumbing and added marker comments,
+  and the hunks did not overlap. Four files conflicted (`vite.config.js`,
+  `package.json`, `.github/workflows/ci.yml`, `docs/DEVLOG.md`) and kept both
+  sides. The self-host build asserts that no remote script, stylesheet, font or
+  image survives, so the new drawer and touch markup could not quietly bring the
+  CDN back.
+- The channel hub's hero screenshot is measured on first render instead of at
+  module import. `vite.config.js` now imports `scripts/build-bundles.mjs` for the
+  hosted site, the self-host build loads the same config, and its Docker context
+  carries only the two tuner pages, so measuring at import failed the image build
+  before any tuner work started.
+
+Measured. `npm ci`, `npm test` and both builds green. `dist/` still differs from
+main only in the `location.protocol` guards, the `randomUUID` fallback, the
+relative tuner links and the two self-host branches in the shared scripts. No
+marker line reaches `dist/`. In `dist-selfhost/` every `https://` in a `src` or
+`href` is a user-facing link (App Store, GitHub, Instagram, Buy Me a Coffee,
+plex.tv/link); no subresource is remote. Image 26.5 MB compressed on amd64 and
+26.8 MB on arm64, built multi-arch, both run on a Mac (amd64 emulated).
+
+In headless Chrome against the running container on a LAN http origin, driving a
+scratch Jellyfin 12.2:
+
+- Phone layout is in the image. At 393x852 the video container is 393x221, the
+  video element carries `playsinline` and `webkit-playsinline`, the bottom
+  toolbar is `display: none`, the MENU button is 86x44, the drawer opens to 300px
+  and closes on Escape and on a tap outside, and the page has 0px of horizontal
+  scroll. Same at 360x800, 834x1194 and both landscape sizes; the desktop rail
+  comes back at 1440x900. Guide scrolls and tunes at every size, no page errors.
+- A channel played from the http origin, at phone size as well as desktop, 2 to
+  24 seconds to picture and still running at 2:36.
+- Hosts contacted while connecting and playing: with `NOSTALGEX_ENRICHMENT=off`,
+  only the container and the media server, nothing else at all. With it on, the
+  same plus the Supabase metadata cache.
+- Enrichment gating measured directly, since the scratch library has no TMDB ids
+  and never reaches the metadata layer on its own. Driving the page's own
+  enrichment entry with three TMDB ids: with enrichment on, three records came
+  from the Supabase cache and no other host was contacted; with it off, the run
+  skipped, logged why, and made no request beyond `config.json`. Music lookups
+  report off in both.
+- Plex PIN request, QR render and polling work from the http origin: nine
+  plex.tv requests, no CORS failure, no other host.
+
+**Half-done.** The relay change is still not deployed, so a cache miss cannot be
+filled from a self-host origin today. Every TMDB id in the measurement above was
+a cache hit, so the relay path itself is still unproven from a container. Plex
+sign-in was still not completed from an http origin, only the PIN handshake.
+TV browsers are still untested (no Fire OS device). No arm64 hardware run; arm64
+was only built and inspected, not executed on an arm64 server. The plan's second
+egress test, the container and a media server on an `--internal` Docker network,
+has not been run; the proof so far is the browser request log. No GHCR image, no
+tag, no `/self-host` page.
+
+**Next.** Deploy the relay and prove a cache miss fills from a container. Then
+the Phase 0 TV pass, which needs a Fire TV device. Publishing (tag, image,
+making the package public, the page and the posts) waits on Chad.
+
+## 2026-10-14 (1.0.26 released)
+
+**Shipped.** 1.0.26 (48) is live on the App Store, released manually after Apple
+approved it. The three tips (Popcorn, TV Dinner, Pizza Night) were approved with
+it, so the tip jar works for the first time. The jump from 1.0.23 means the
+release notes cover 1.0.24 through 1.0.26.
+
+Apple's two review queues disagreed: the full App Store review passed while the
+TestFlight beta review for the same binary was still waiting, a day after
+submission. Build 48 was never distributed to the external groups. 49 takes that
+slot instead.
+
+**Changed.** `content/changelog.json` marks 1.0.26 `released: true`, so the site
+shows it. 1.0.24 and 1.0.25 stay `false`: those versions only ever existed in
+TestFlight, and their changes are inside the 1.0.26 notes. The privacy page's
+playback reporting paragraph now covers the Apple TV app, not just the web tuner,
+because 1.0.26 is where position-free Plex reporting shipped. Effective date moved
+to October 14, 2026.
+
+**Next.** Build 49: the Emby fallback stream fix, the Jellyfin and Emby stall
+retry fix, and collections that hold TV shows. All three are on main and none are
+in 48. The two playback ones are pre-existing faults, present in 1.0.23 as well,
+so 1.0.26 does not regress anyone; they want a hardware pass before 49 ships.
+
+## 2026-10-13 (Docker web tuner, branch)
+
+**Changed.** All on branch `docker-selfhost`, not main, nothing published.
+
+- `npm run build:selfhost` builds web-tuner.html (also as index.html) and plex-tuner.html
+  into `dist-selfhost/` with hls.js, qrcodejs and the fonts vendored from pinned npm
+  packages (the files match the jsDelivr SRI hashes), analytics removed, and marketing
+  chrome, newsletter and the email promo cut out between `selfhost:` markers. The hosted
+  build deletes the marker lines only: `dist/` was byte-identical after that commit.
+- The tuner now works from a plain http page: a getRandomValues fallback for
+  `crypto.randomUUID` (missing on http, which broke the Plex client id), bare Jellyfin
+  hosts default to http:// when the page is http, and the mixed-content flag and copy
+  only apply on https. Tuner links are relative. On the hosted site these are guarded
+  by `location.protocol`; `dist/` differs only in those lines.
+- Enrichment stays on in the container (nine or more channels need it) and is the only
+  outside traffic besides plex.tv. `NOSTALGEX_ENRICHMENT=off` turns it off; the tuner
+  reads `config.json`, written at container start, and treats a missing file as off.
+  MusicBrainz and Deezer lookups are off in the self-host build.
+- The TMDB relay accepts `X-Nostalgex-Client: selfhost` from any http(s) origin, since a
+  LAN address can't be listed. Listed origins, the path allowlist and edge caching are
+  unchanged. The self-host build calls www, because the apex 308s and a CORS preflight
+  can't follow a redirect.
+- Dockerfile (nginx-unprivileged 1.30 alpine, uid 101, port 8080), nginx config (.cjs
+  as JavaScript, http-friendly CSP, no HSTS), compose example, a `tuner-v*` GHCR release
+  workflow and a PR docker smoke in ci.yml.
+
+Measured on a Mac (colima, arm64; amd64 built and run under Rosetta): image 26.8 MB
+compressed. In headless Chrome on a LAN http origin against a scratch Jellyfin 12.2,
+the connect form signed in over http and a channel played (H.264/AAC, 1080p). Hosts
+contacted: with enrichment off, only the container and the media server; with it on,
+also the Supabase cache and www.nostalgex.app. Plex PIN request and polling from the
+http origin worked (plex.tv CORS allows it); sign-in was not completed.
+
+**Half-done.** The relay change is not deployed, so today the live relay refuses
+self-host origins (verified: the preflight gets no allow-origin) and enrichment from
+the container only gets what is already in the shared cache. TV browsers untested
+(no Fire OS device yet). No GHCR image, no tag, no `/self-host` page.
+
+**Next.** Deploy the relay, set the `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+repo variables, tag `tuner-v1.0.0-rc1` for a private image, then the Phase 0 TV pass.
+
 ## 2026-10-13 (web tuner: controls behind one menu on touch)
 
 **Shipped.** Nothing. The work is on the branch `web-tuner-drawer`, not merged.

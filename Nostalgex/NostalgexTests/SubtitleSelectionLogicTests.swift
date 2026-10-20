@@ -151,4 +151,40 @@ final class SubtitleSelectionLogicTests: XCTestCase {
             preferredAudioLowercased: "en"
         ))
     }
+
+    // MARK: - Server language codes against the setting
+
+    func testPrimaryLanguageReadsEveryCodeAServerUses() {
+        XCTAssertEqual(SubtitleSelectionLogic.primaryLanguage("eng"), "en")
+        XCTAssertEqual(SubtitleSelectionLogic.primaryLanguage("EN"), "en")
+        XCTAssertEqual(SubtitleSelectionLogic.primaryLanguage("en-US"), "en")
+        XCTAssertEqual(SubtitleSelectionLogic.primaryLanguage("ger"), "de", "bibliographic code, common in MKV")
+        XCTAssertEqual(SubtitleSelectionLogic.primaryLanguage("deu"), "de", "terminology code, what Jellyfin 12.2 reports")
+        XCTAssertEqual(SubtitleSelectionLogic.primaryLanguage("fre"), "fr")
+        XCTAssertEqual(SubtitleSelectionLogic.primaryLanguage("chi"), "zh")
+        XCTAssertEqual(SubtitleSelectionLogic.primaryLanguage("zh-Hans"), "zh")
+        XCTAssertEqual(SubtitleSelectionLogic.primaryLanguage("pt-BR"), "pt")
+        for nothing in [nil, "", "und", "zz9"] as [String?] {
+            XCTAssertNil(SubtitleSelectionLogic.primaryLanguage(nothing), String(describing: nothing))
+        }
+    }
+
+    func testSameLanguage() {
+        XCTAssertTrue(SubtitleSelectionLogic.sameLanguage("eng", "en"))
+        XCTAssertTrue(SubtitleSelectionLogic.sameLanguage("ger", "deu"))
+        XCTAssertTrue(SubtitleSelectionLogic.sameLanguage("por", "pt-BR"))
+        XCTAssertFalse(SubtitleSelectionLogic.sameLanguage("spa", "en"))
+        XCTAssertFalse(SubtitleSelectionLogic.sameLanguage("und", "en"), "unknown never matches")
+        XCTAssertFalse(SubtitleSelectionLogic.sameLanguage(nil, "en"))
+    }
+
+    func testCurrentSubtitleLanguageFollowsTheSetting() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "SubtitleSelectionLogicTests.\(UUID().uuidString)"))
+        let locale = Locale(identifier: "fr_FR")
+        XCTAssertEqual(SubtitleSelectionLogic.currentSubtitleLanguage(defaults: defaults, locale: locale), "fr", "unset follows the device")
+        defaults.set("__system__", forKey: SubtitleSelectionLogic.subtitleLanguageDefaultsKey)
+        XCTAssertEqual(SubtitleSelectionLogic.currentSubtitleLanguage(defaults: defaults, locale: locale), "fr")
+        defaults.set("de", forKey: SubtitleSelectionLogic.subtitleLanguageDefaultsKey)
+        XCTAssertEqual(SubtitleSelectionLogic.currentSubtitleLanguage(defaults: defaults, locale: locale), "de")
+    }
 }

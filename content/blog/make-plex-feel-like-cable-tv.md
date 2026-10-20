@@ -33,13 +33,13 @@ Plex has its own Live TV section, but it's built around Plex's streaming channel
 - When you tune in, you drop into whatever is airing right now, in the middle of a movie, like real TV.
 - The lineup refreshes through the day from what's in your library.
 
-There are 131 channels in 14 bundles, sorted like the back of a cable bill. NOSTALGEX has things like SAT MORNING CARTOONS, 90S SITCOMS, VHS VAULT, TEEN MOVIES, and BUDDIES (home of our [Friday night buddy cop channel](/blog/best-90s-buddy-cop-movies-channel)). KIDZ ZONE has channels like DIZNEY TOONS. There are decade channels, franchise channels, and seasonal ones too, like SCREAM for October (here's our [Halloween slasher lineup](/blog/90s-slasher-movies-halloween-marathon)) and TIS THE SEASON for December. What actually shows up depends on your library. No westerns, no Westerns channel.
+There are 130+ channels in 14 bundles, sorted like the back of a cable bill. NOSTALGEX has things like SAT MORNING CARTOONS, 90S SITCOMS, VHS VAULT, TEEN MOVIES, and BUDDIES (home of our [Friday night buddy cop channel](/blog/best-90s-buddy-cop-movies-channel)). KIDZ ZONE has channels like DIZNEY TOONS. There are decade channels, franchise channels, and seasonal ones too, like SCREAM for October (here's our [Halloween slasher lineup](/blog/90s-slasher-movies-halloween-marathon)) and TIS THE SEASON for December. What actually shows up depends on your library. No westerns, no Westerns channel.
 
 ## What Nostalgex Is (and Isn't)
 
 It's a front end for your own server. It does not host, stream, or supply any media. Every frame comes off your machine.
 
-It's also free, with no ads in the app and no Nostalgex account. The Apple TV app, the web tuner, and the channel rules are all open source on GitHub under the MIT license. Sign in and playback happen directly between your device and your server, and the app reads your library without adding, renaming, moving, or deleting anything.
+It's also free, with no Nostalgex account to make. The Apple TV app, the web tuner, and the channel rules are all open source on GitHub under the MIT license. Sign in and playback happen directly between your device and your server, and the app reads your library without adding, renaming, moving, or deleting anything.
 
 And it's plug and play. Connect your server and Nostalgex builds every channel and every schedule from your library on its own. No playlists, no programming, nothing to set up. The movies you already own just start airing.
 

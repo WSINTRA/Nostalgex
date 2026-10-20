@@ -74,6 +74,58 @@ final class SeasonalPromptTests: XCTestCase {
         SeasonalPrompt.record(.never, bundleID: "seasonal", now: date(2026, 10, 2), defaults: defaults)
         XCTAssertEqual(offer(date(2026, 12, 10))?.id, "tis-the-season")
     }
+
+    // MARK: TIS THE SEASON from a week before US Thanksgiving
+
+    private var thanksgivingLineup: [ChannelBundle] {
+        [bundle("nostalgex", months: nil), bundle("seasonal", months: [10]),
+         ChannelBundle(id: "tis-the-season", name: "TIS THE SEASON", description: nil, channelIDs: [1],
+                       activeMonths: [12], seasonStart: SeasonStart(relativeTo: "usThanksgiving", days: -7))]
+    }
+    private func holidayOffer(_ now: Date) -> String? {
+        SeasonalPrompt.bundleToOffer(bundles: thanksgivingLineup, enabledBundleIDs: [], now: now) {
+            SeasonalPrompt.isSilenced(bundleID: $0, now: now, defaults: defaults)
+        }?.id
+    }
+
+    func testHolidayInviteStartsAWeekBeforeThanksgiving() {
+        // Thanksgiving 2026 is Nov 26.
+        XCTAssertNil(holidayOffer(Calendar.current.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 23, minute: 59))!))
+        XCTAssertEqual(holidayOffer(date(2026, 11, 19)), "tis-the-season")
+        XCTAssertEqual(holidayOffer(date(2026, 12, 31)), "tis-the-season")
+        XCTAssertNil(holidayOffer(date(2027, 1, 1)))
+        XCTAssertEqual(holidayOffer(date(2026, 10, 31)), "seasonal", "SCREAM keeps October")
+    }
+
+    /// "This year" is the calendar year. The season runs Nov to Dec 31, inside one year,
+    /// so a "no" on the first day holds to the end and next November asks again.
+    func testNotThisYearOnTheFirstDayHoldsThroughDecember() {
+        SeasonalPrompt.record(.notNow, bundleID: "tis-the-season", now: date(2026, 11, 19), defaults: defaults)
+        XCTAssertNil(holidayOffer(date(2026, 11, 26)))
+        XCTAssertNil(holidayOffer(date(2026, 12, 31)))
+        XCTAssertNil(holidayOffer(date(2027, 11, 17)), "2027's start is Nov 18")
+        XCTAssertEqual(holidayOffer(date(2027, 11, 18)), "tis-the-season")
+    }
+
+    func testNotThisYearLastDecemberDoesNotSilenceThisNovember() {
+        SeasonalPrompt.record(.notNow, bundleID: "tis-the-season", now: date(2025, 12, 10), defaults: defaults)
+        XCTAssertNil(holidayOffer(date(2025, 12, 31)))
+        XCTAssertEqual(holidayOffer(date(2026, 11, 19)), "tis-the-season")
+    }
+
+    func testDontAskAgainInNovemberIsForGood() {
+        SeasonalPrompt.record(.never, bundleID: "tis-the-season", now: date(2026, 11, 20), defaults: defaults)
+        XCTAssertNil(holidayOffer(date(2026, 12, 10)))
+        XCTAssertNil(holidayOffer(date(2027, 11, 18)))
+        XCTAssertNil(holidayOffer(date(2030, 11, 21)))
+    }
+
+    func testHolidayHeadlineOnlySaysDecemberInDecember() {
+        let holiday = thanksgivingLineup[2]
+        XCTAssertEqual(SeasonalPrompt.headline(for: holiday, now: date(2026, 11, 19)), "THE HOLIDAYS ARE HERE. DECK THE CHANNELS.")
+        XCTAssertEqual(SeasonalPrompt.headline(for: holiday, now: date(2026, 12, 1)), "IT'S DECEMBER. DECK THE CHANNELS.")
+        XCTAssertEqual(SeasonalPrompt.headline(for: thanksgivingLineup[1], now: date(2026, 10, 1)), "IT'S OCTOBER. ARE YOU READY TO SCREAM?")
+    }
 }
 
 /// Guards the promise that nothing is added to a lineup without an answer.

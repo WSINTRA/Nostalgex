@@ -25,6 +25,13 @@
 //     TMDB upsert carries the TMDB columns only, so it never touches OMDb columns
 //     an Apple TV wrote; the OMDb upsert carries the OMDb columns only.
 //
+// Self-hosted (the Docker image, `<meta name="nostalgex-build" content="selfhost">`):
+//   - the relay is https://www.nostalgex.app/api/tmdb, asked as
+//     `X-Nostalgex-Client: selfhost`, which the relay accepts from any origin
+//   - config.json, written by the container from NOSTALGEX_ENRICHMENT, decides
+//     whether any of this runs. It has to say `"enrichment": true`; anything else,
+//     including a missing or unreadable file, means no Supabase or relay request.
+//
 // The attached record lives at `item.enrichment`, in the shape
 // scripts/nostalgex-channel-filter.cjs `enrichedValue()` reads (camelCase, the
 // Swift MediaEnrichment property names).
@@ -42,6 +49,9 @@
     'tmdb_genres', 'franchise_id', 'franchise_name', 'fetched_at',
   ];
   const DEFAULT_RELAY = 'https://nostalgex.app/api/tmdb';
+  // The apex answers with a redirect, and a CORS preflight cannot follow one.
+  const SELFHOST_RELAY = 'https://www.nostalgex.app/api/tmdb';
+  const SELFHOST_CLIENT_VALUE = 'selfhost';
   const OMDB_PER_LOAD = 50;
   const OMDB_CONCURRENCY = 4;
   const OMDB_COLUMNS = [
@@ -404,7 +414,7 @@
     const kind = work.mediaType === 'tv' ? 'tv' : 'movie';
     const url = `${cfg.relayURL}?path=${kind}/${work.tmdbID}`;
     try {
-      const res = await fetchImpl(url, { headers: { Accept: 'application/json', [CLIENT_HEADER]: CLIENT_VALUE } });
+      const res = await fetchImpl(url, { headers: { Accept: 'application/json', [CLIENT_HEADER]: cfg.clientValue || CLIENT_VALUE } });
       if (res.status !== 200) return { status: res.status, json: null };
       return { status: 200, json: await res.json() };
     } catch (err) {
@@ -417,7 +427,7 @@
     if (!IMDB_ID.test(String(imdbID))) return { status: 400, json: null };
     const url = `${cfg.relayURL}?path=omdb/${imdbID}`;
     try {
-      const res = await fetchImpl(url, { headers: { Accept: 'application/json', [CLIENT_HEADER]: CLIENT_VALUE } });
+      const res = await fetchImpl(url, { headers: { Accept: 'application/json', [CLIENT_HEADER]: cfg.clientValue || CLIENT_VALUE } });
       let json = null;
       try { json = await res.json(); } catch (err) { json = null; }
       return { status: res.status, json };
@@ -516,10 +526,33 @@
     const supabaseURL = metaContent(doc, 'nostalgex-supabase-url').replace(/\/+$/, '');
     const anonKey = metaContent(doc, 'nostalgex-supabase-anon-key');
     const relayOverride = metaContent(doc, 'nostalgex-tmdb-relay');
+    if (metaContent(doc, 'nostalgex-build') === 'selfhost') {
+      return {
+        supabaseURL, anonKey,
+        relayURL: relayOverride || SELFHOST_RELAY,
+        clientValue: SELFHOST_CLIENT_VALUE,
+        selfhost: true,
+      };
+    }
     const host = (loc && loc.hostname) || '';
     const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '';
     const relayURL = relayOverride || (isLocal ? DEFAULT_RELAY : '/api/tmdb');
     return { supabaseURL, anonKey, relayURL };
+  }
+
+  /**
+   * Self-host only: true when the container's config.json turns enrichment on.
+   * Fails closed, so `NOSTALGEX_ENRICHMENT=off` holds even if the file cannot be read.
+   */
+  async function selfhostEnrichmentOn(fetchImpl) {
+    try {
+      const res = await fetchImpl('config.json', { cache: 'no-store' });
+      if (!res || res.status !== 200) return false;
+      const conf = await res.json();
+      return !!conf && conf.enrichment === true;
+    } catch (err) {
+      return false;
+    }
   }
 
   function missingConfiguration(cfg) {
@@ -559,6 +592,13 @@
       return { records, stats, omdb, skipped: true };
     }
     const fetchImpl = opts.fetch || global.fetch.bind(global);
+    if (cfg.selfhost && !(await selfhostEnrichmentOn(fetchImpl))) {
+      if (!loggedSkip) {
+        console.log('[Enrichment] Off: config.json does not turn it on (NOSTALGEX_ENRICHMENT=off)');
+        loggedSkip = true;
+      }
+      return { records, stats, omdb, skipped: true };
+    }
     const cache = opts.cache || memoryCache();
     const nowMs = opts.now ? opts.now() : Date.now();
     const cancelled = opts.isCancelled || (() => false);
@@ -719,6 +759,7 @@
     indexedDBCache,
     memoryCache,
     configFromPage,
+    selfhostEnrichmentOn,
     missingConfiguration,
     enrichLibrary,
   };

@@ -150,7 +150,46 @@ struct PlexAPIService: MediaBackend {
             print("[Plex90] Plex returned markup/XML instead of JSON (HTTP \(http.statusCode)). Prefix: \(String(data: data.prefix(240), encoding: .utf8) ?? "?")")
             throw APIError.receivedMarkupInsteadOfJSON(statusCode: http.statusCode)
         }
-        return try JSONDecoder().decode(T.self, from: data)
+        let report = PlexDecodeReport()
+        let decoded = try decodeRepaired(T.self, from: data, report: report)
+        for line in report.logLines(context: Self.logContext(http.url)) {
+            InstallDiagnostics.note(line)
+        }
+        return decoded
+    }
+
+    /// Bytes that are not UTF-8 (a Latin-1 file name Plex copied into a title) fail the
+    /// whole document, so they are repaired first (PlexUTF8Repair). A valid response skips
+    /// the repair and decodes exactly as before.
+    static func decodeRepaired<T: Decodable>(_: T.Type, from data: Data, report: PlexDecodeReport) throws -> T {
+        var data = data
+        if let fixed = PlexUTF8Repair.repair(data) {
+            data = fixed.data
+            report.repairedBytes = fixed.repairedBytes
+        }
+        let decoder = JSONDecoder()
+        decoder.userInfo[.plexDecodeReport] = report
+        return try decoder.decode(T.self, from: data)
+    }
+
+    /// A section page and the sections list, decoded exactly as a scan decodes them.
+    /// Internal so tests can feed fixture JSON through the real models.
+    static func decodeSectionPage(_ data: Data, report: PlexDecodeReport = PlexDecodeReport()) throws -> (totalSize: Int?, items: [PlexRawItem]) {
+        let page = try decodeRepaired(SectionItemsResponse.self, from: data, report: report).MediaContainer
+        return (page.totalSize, page.Metadata ?? [])
+    }
+
+    static func decodeSections(_ data: Data, report: PlexDecodeReport = PlexDecodeReport()) throws -> [PlexSection] {
+        try decodeRepaired(SectionsResponse.self, from: data, report: report).MediaContainer.Directory ?? []
+    }
+
+    /// Path and paging query for a log line. Plex auth rides in headers, but a token in the
+    /// query is stripped all the same.
+    private static func logContext(_ url: URL?) -> String {
+        guard let url, var c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return "?" }
+        c.queryItems = c.queryItems?.filter { !$0.name.lowercased().contains("token") }
+        let query = c.percentEncodedQuery.map { "?\($0)" } ?? ""
+        return c.path + query
     }
 
     // MARK: - Connection test
@@ -690,6 +729,7 @@ struct PlexAPIService: MediaBackend {
     ///   H.264). Profile 8 in an MKV is re-encoded by the server regardless; that is Plex.
     /// - Lossy audio targets only. Offering ALAC made the server turn TrueHD into ALAC at
     ///   negative speed: picture, no sound, then nothing.
+    /// - EAC3 capped at 6 channels (`eac3ChannelCap`).
     static func clientProfileExtra(hevcCapable: Bool, offersHEVC: Bool) -> String {
         let hevc = hevcCapable && offersHEVC
         let video = CodecSupport.directPlayVideoCodecs(hevcCapable: hevc)
@@ -700,6 +740,7 @@ struct PlexAPIService: MediaBackend {
             + "+add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=fmp4&videoCodec=\(mp4Video)&audioCodec=\(audio))"
             + "+add-limitation(scope=videoCodec&scopeName=*&type=upperBound&name=video.width&value=3840&replace=true)"
             + "+add-limitation(scope=videoCodec&scopeName=*&type=upperBound&name=video.height&value=2160&replace=true)"
+            + eac3ChannelCap
         if hevc {
             profile += "+add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.width&value=3840&replace=true)"
                 + "+add-limitation(scope=videoCodec&scopeName=hevc&type=upperBound&name=video.height&value=2160&replace=true)"
@@ -707,6 +748,14 @@ struct PlexAPIService: MediaBackend {
         }
         return profile
     }
+
+    /// Blu-ray "DD+ 7.1" is an AC-3 5.1 core with E-AC-3 extension frames, and AVPlayer
+    /// refuses it (CoreMedia -12979) about a second after Plex starts copying it: The Wild
+    /// Robot, Bob Marley: One Love and ten more in one library. True E-AC-3 7.1 plays, so the
+    /// channel count is not the problem, but the label can't tell the two apart. Capped at 6,
+    /// Plex re-encodes just that audio to AC-3 5.1 and still copies the video. Must be scope
+    /// `videoAudioCodec`: `audioCodec` is silently ignored. Measured 2026-10-18.
+    static let eac3ChannelCap = "+add-limitation(scope=videoAudioCodec&scopeName=eac3&type=upperBound&name=audio.channels&value=6)"
 
     /// Query for `/video/:/transcode/universal/start.m3u8`. No `videoDecision=transcode`:
     /// that flag forced a full video re-encode on every file that could not direct play,
@@ -835,6 +884,7 @@ struct PlexAPIService: MediaBackend {
         let audio = CodecSupport.transcodeAudioCodecs.sorted().joined(separator: ",")
         let profile = "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mp4&videoCodec=h264,hevc&audioCodec=\(audio))"
             + "+add-limitation(scope=videoTranscodeTarget&scopeName=hevc&scopeType=videoCodec&context=all&protocol=hls&type=upperBound&name=video.bitDepth&value=10)"
+            + eac3ChannelCap
         items.append(.init(name: "X-Plex-Platform", value: "Generic"))
         items.append(.init(name: "X-Plex-Client-Profile-Extra", value: profile))
         components.queryItems = items
@@ -1061,7 +1111,7 @@ struct PlexAPIService: MediaBackend {
         headers.forEach { req.setValue($1, forHTTPHeaderField: $0) }
 
         let (data, _) = try await Self.session.data(for: req)
-        let resources = try JSONDecoder().decode([PlexResource].self, from: data)
+        let resources = try JSONDecoder().decode([PlexResource].self, from: PlexUTF8Repair.prepared(data, context: "plex.tv /api/v2/resources"))
         let servers = resources.filter { $0.provides.contains("server") }
 
         let discovered = await withTaskGroup(of: DiscoveredServer?.self) { group -> [DiscoveredServer] in
@@ -1290,6 +1340,15 @@ private struct SectionItemsResponse: Decodable {
         /// responses). Absent on endpoints that don't paginate (e.g. `/allLeaves`).
         let totalSize: Int?
         let Metadata: [PlexRawItem]?
+
+        private enum CodingKeys: String, CodingKey { case totalSize, Metadata }
+
+        /// An item that fails to decode is skipped and logged; the page still loads.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            totalSize = try c.decodeIfPresent(Int.self, forKey: .totalSize)
+            Metadata = try c.decodeIfPresent([PlexSkippableItem<PlexRawItem>].self, forKey: .Metadata)?.compactMap(\.value)
+        }
     }
 }
 

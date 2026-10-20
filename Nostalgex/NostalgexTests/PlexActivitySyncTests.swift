@@ -25,10 +25,11 @@ final class PlexActivitySyncTests: XCTestCase {
     func testSyncPlexActivityToggle_persistsToUserDefaults() {
         let defaults = UserDefaults.standard
         let key = AppState.syncPlexActivityDefaultsKey
-        let original = defaults.object(forKey: key)
+        let keys = [key, AppState.showNowPlayingDefaultsKey, AppState.markWatchedDefaultsKey]
+        let saved = keys.compactMap { key in defaults.object(forKey: key).map { (key, $0) } }
         defer {
-            if let original { defaults.set(original, forKey: key) }
-            else { defaults.removeObject(forKey: key) }
+            keys.forEach { defaults.removeObject(forKey: $0) }
+            saved.forEach { defaults.set($0.1, forKey: $0.0) }
         }
 
         let state = AppState()
@@ -41,7 +42,7 @@ final class PlexActivitySyncTests: XCTestCase {
 
     // With no Plex API the tracker must be completely inert: no timeline, no scrobble.
     // This is what makes the OFF default actually stop Continue Watching entries, since
-    // AppState passes a nil API whenever sync is off.
+    // AppState supplies explicit off flags while retaining the backend for live toggles.
     func testPlaybackTrackerWithoutAPI_neverScrobbles() {
         let item = PlexMediaItem(
             id: "1",

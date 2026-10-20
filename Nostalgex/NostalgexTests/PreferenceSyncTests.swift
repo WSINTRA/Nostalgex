@@ -514,14 +514,51 @@ final class PreferenceSyncAppStateTests: XCTestCase {
         XCTAssertNil(store.values["plex_token"])
     }
 
-    // Every Settings choice syncs, Playback included (owner's call, 2026-10-13).
-    func testReportPlaybackSyncsBothWays() {
-        state.syncPlexActivity.toggle()
-        XCTAssertEqual(store.values[PreferenceSync.reportPlaybackKey] as? Bool, state.syncPlexActivity)
-        let target = !state.syncPlexActivity
-        store.values[PreferenceSync.reportPlaybackKey] = target
-        sync.handleExternalChange(reason: NSUbiquitousKeyValueStoreServerChange, changedKeys: [PreferenceSync.reportPlaybackKey])
-        XCTAssertEqual(state.syncPlexActivity, target)
+    func testIndependentReportingChoicesSyncBothWaysWithoutEcho() {
+        state.setPlaybackReporting(showNowPlaying: true, markWatched: false)
+        XCTAssertEqual(store.values[PreferenceSync.nowPlayingKey] as? Bool, true)
+        XCTAssertEqual(store.values[PreferenceSync.markWatchedKey] as? Bool, false)
+        XCTAssertEqual(store.values[PreferenceSync.reportPlaybackKey] as? Bool, false)
+        let writes = store.writes.count
+        store.values[PreferenceSync.nowPlayingKey] = false
+        store.values[PreferenceSync.markWatchedKey] = true
+        sync.handleExternalChange(reason: NSUbiquitousKeyValueStoreServerChange,
+                                  changedKeys: [PreferenceSync.nowPlayingKey, PreferenceSync.markWatchedKey])
+        XCTAssertFalse(state.showNowPlaying)
+        XCTAssertTrue(state.markWatched)
+        XCTAssertEqual(store.writes.count, writes)
+    }
+
+    func testChangingOneReportingChoicePublishesTheCompletePairAfterMigration() {
+        state.setPlaybackReporting(showNowPlaying: true, markWatched: true)
+        // A legacy opt-in has migrated locally, but its v2 keys are not in iCloud yet.
+        store.values.removeValue(forKey: PreferenceSync.nowPlayingKey)
+        store.values.removeValue(forKey: PreferenceSync.markWatchedKey)
+        state.markWatched = false
+        XCTAssertEqual(store.values[PreferenceSync.nowPlayingKey] as? Bool, true)
+        XCTAssertEqual(store.values[PreferenceSync.markWatchedKey] as? Bool, false)
+        XCTAssertEqual(store.values[PreferenceSync.reportPlaybackKey] as? Bool, false)
+    }
+
+    func testIncomingLegacyTrueCannotOverrideExplicitNewOff() {
+        state.setPlaybackReporting(showNowPlaying: true, markWatched: false)
+        store.values[PreferenceSync.reportPlaybackKey] = true
+        sync.handleExternalChange(reason: NSUbiquitousKeyValueStoreServerChange,
+                                  changedKeys: [PreferenceSync.reportPlaybackKey])
+        XCTAssertTrue(state.showNowPlaying)
+        XCTAssertFalse(state.markWatched)
+    }
+
+    func testDelayedLegacyCloudChoiceFillsOnlyMissingNewChoices() {
+        UserDefaults.standard.removeObject(forKey: PreferenceSync.nowPlayingKey)
+        UserDefaults.standard.removeObject(forKey: PreferenceSync.markWatchedKey)
+        store.values[PreferenceSync.reportPlaybackKey] = true
+        sync.handleExternalChange(reason: NSUbiquitousKeyValueStoreInitialSyncChange,
+                                  changedKeys: [PreferenceSync.reportPlaybackKey])
+        XCTAssertTrue(state.showNowPlaying)
+        XCTAssertTrue(state.markWatched)
+        XCTAssertEqual(UserDefaults.standard.object(forKey: PreferenceSync.nowPlayingKey) as? Bool, true)
+        XCTAssertEqual(UserDefaults.standard.object(forKey: PreferenceSync.markWatchedKey) as? Bool, true)
     }
 
     func testStreamQualityIsASyncedString() {

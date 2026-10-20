@@ -6,7 +6,8 @@
  *
  * ENRICHMENT DATA (important):
  * tvOS reads TMDB/OMDb enrichment off `MediaEnrichment` (keywords, networks,
- * productionCompanies, imdbRating, imdbVotes, rtScore, metacriticScore, awards).
+ * productionCompanies, imdbRating, imdbVotes, rtScore, metacriticScore, awards, and
+ * tmdbGenres for a channel with `matchTmdbGenres`).
  * On the web an item may carry the same values either flat on the item or under
  * `item.enrichment` — `enrichedValue()` reads both. The browser tuner attaches
  * `item.enrichment` from scripts/nostalgex-enrichment.js (shared Supabase cache,
@@ -95,13 +96,39 @@ function manifestClaimsChannel(item, channelID, manifest) {
 }
 
 /**
- * Mirrors Swift `ExclusiveRule.matches` — editorial title, title substring, genre.
- * Both sides match on the year-stripped title as well as the raw one, so a Plex
- * title carrying a " (YYYY)" suffix is caught either way (Channel.swift:204).
+ * Mirrors Swift `ExclusiveRule.matches` (Models/Channel.swift). Keep them in step;
+ * scripts/filter-golden.json is read by both.
+ *
+ * A lock looks at the item's own title: the film or show name, the song for a
+ * music video, never the artist. Year suffix " (YYYY)" stripped, case ignored.
+ *   - editorialTitles: the exact title (raw or stripped)
+ *   - titleContains: whole words, the same boundary rule as a channel's
+ *     `titleContains` (titleContainsWord). It used to be a raw substring test, so
+ *     "Scream" locked Kicking & Screaming away from every channel it belongs on and
+ *     "Santa" caught Santana. The web also matched the artist, Swift did not.
+ *   - genres: substring of a genre tag, unchanged
+ *
+ * A lock can be scoped with `type` (movie|episode) and `source` (movie|tv|musicVideo).
+ * When set, the lock only applies to items of that type and library source. The
+ * holiday lock is `type: movie, source: movie`: it reads a film's title, so a show
+ * whose name has a holiday word (Santa Clarita Diet) and a Christmas song on a music
+ * video were locked to movie channels that can never air them, and aired nowhere.
  */
-function exclusiveRuleMatches(titleLower, itemGenres, rule) {
-  if ((rule.editorialTitles || []).some((t) => titleLower === t.toLowerCase())) return true;
-  if ((rule.titleContains || []).some((t) => titleLower.includes(t.toLowerCase()))) return true;
+function exclusiveRuleApplies(item, rule) {
+  if (rule.type && (item.type || "movie") !== rule.type) return false;
+  if (rule.source && (item.librarySource || "movie") !== rule.source) return false;
+  return true;
+}
+
+function exclusiveRuleMatches(item, itemGenres, rule) {
+  if (!exclusiveRuleApplies(item, rule)) return false;
+  const raw = String(item.title || "").toLowerCase();
+  const title = stripYearSuffix(raw).trim();
+  if ((rule.editorialTitles || []).some((t) => {
+    const candidate = t.toLowerCase();
+    return title === candidate || raw === candidate;
+  })) return true;
+  if ((rule.titleContains || []).some((t) => titleContainsWord(title, t))) return true;
   const g = rule.genres || [];
   if (g.length && itemGenres.some((ig) => g.some((rg) => ig.includes(rg.toLowerCase())))) return true;
   return false;
@@ -152,12 +179,99 @@ function enrichedList(item, key) {
 }
 
 /**
+ * True when no channel may take `item`, whatever its rules: on Emby, a Dolby Vision profile 5
+ * file (`item.doviProfile === 5`, from Emby's ExtendedVideoSubType, see point 11 in
+ * nostalgex-jellyfin-urls.js). Emby 4.10.1.0 sends profile 5 to a browser re-encoded with no
+ * tone mapping and to the Apple TV with no Dolby Vision signalling, so both draw it green and
+ * purple, and no request changes that (measured 2026-10-19). Profile 8 keeps an HDR10 base
+ * layer and stays. Plex and Jellyfin are untouched. An unknown profile (null) is kept.
+ * The item stays in the library; only channel pools leave it out.
+ * Mirrors ChannelEligibility.isLeftOffChannels in Nostalgex/Nostalgex/Services/ChannelEligibility.swift.
+ * @param {object} item
+ * @param {string} [backend] 'plex', 'jellyfin' or 'emby' (the tuner's mediaBackend)
+ */
+function isLeftOffChannels(item, backend) {
+  return backend === "emby" && !!item && item.doviProfile === 5;
+}
+
+/** `items` without the ones isLeftOffChannels leaves out, in the same order. */
+function onChannels(items, backend) {
+  if (backend !== "emby") return items;
+  return items.filter((it) => !isLeftOffChannels(it, backend));
+}
+
+/**
+ * Episode rules. Mirrors AppState+Channels.swift (`hasEpisodeRules`, `episodeRulesMatch`);
+ * scripts/filter-golden.json pins both.
+ *
+ * They read an item's OWN title: the episode title for an episode, the title (year
+ * suffix stripped) for anything else, so a half-hour special stored as a film ("A
+ * Charlie Brown Christmas") matches the same way an episode does. Whole words, case
+ * ignored, the same boundary rule as `titleContains`.
+ *   - episodeTitleContains: a word in the own title
+ *   - episodeSummaryContains: a word in the item's summary
+ *   - episodeSeasonalTitleContains: a word in the own title that only counts for an
+ *     episode first aired inside `episodeAirWindow` ({ from: "MM-DD", to: "MM-DD" },
+ *     inclusive, wrapping the new year when from > to). "Holiday" in December is
+ *     The Holiday Armadillo; "Roman Holiday" in September is a trip to Rome. Films
+ *     never take this path: the web carries no release date for them.
+ *   - episodeTitleExcludes: a word in the own title that vetoes the item
+ * A channel with any of the first three is episode-curated: an item must match one of
+ * them, and nothing else widens it.
+ */
+function hasEpisodeRules(r) {
+  return ["episodeTitleContains", "episodeSummaryContains", "episodeSeasonalTitleContains"]
+    .some((k) => Array.isArray(r?.[k]) && r[k].length > 0);
+}
+
+function ownTitleLower(item) {
+  if (item.type === "episode") return String(item.episodeTitle || "").toLowerCase();
+  return stripYearSuffix(String(item.title || ""));
+}
+
+/** "MM-DD" -> month * 100 + day, or null. */
+function parseMonthDay(s) {
+  const m = /^(\d{1,2})-(\d{1,2})$/.exec(String(s ?? "").trim());
+  return m ? Number(m[1]) * 100 + Number(m[2]) : null;
+}
+
+/** First-aired month * 100 + day from `originallyAvailableAt` (YYYY-MM-DD...), or null. */
+function airMonthDay(item) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(item.originallyAvailableAt || ""));
+  return m ? Number(m[2]) * 100 + Number(m[3]) : null;
+}
+
+function inAirWindow(item, window) {
+  const from = parseMonthDay(window?.from);
+  const to = parseMonthDay(window?.to);
+  const md = airMonthDay(item);
+  if (from == null || to == null || md == null) return false;
+  return from <= to ? md >= from && md <= to : md >= from || md <= to;
+}
+
+function episodeRulesMatch(item, r) {
+  const own = ownTitleLower(item);
+  const has = (list, hay) => Array.isArray(list) && hay.length > 0
+    && list.some((t) => titleContainsWord(hay, t));
+  if (has(r.episodeTitleExcludes, own)) return false;
+  if (has(r.episodeTitleContains, own)) return true;
+  if (Array.isArray(r.episodeSummaryContains) && r.episodeSummaryContains.length
+      && has(r.episodeSummaryContains, String(item.summary || "").toLowerCase())) return true;
+  if (item.type === "episode" && Array.isArray(r.episodeSeasonalTitleContains)
+      && r.episodeSeasonalTitleContains.length && inAirWindow(item, r.episodeAirWindow)
+      && has(r.episodeSeasonalTitleContains, own)) return true;
+  return false;
+}
+
+/**
  * @param {object} item — normalized pool item (title, genres[], type, tmdbID, …)
  * @param {{ id: number, rules?: object, category?: string }} channel
- * @param {{ manifest?: object, nowSec?: number }} [opts]
+ * @param {{ manifest?: object, nowSec?: number, backend?: string }} [opts]
  * @returns {false | { pass: true, via: 'rules' | 'manifest' | 'editorial' }}
  */
 function itemPasses(item, channel, opts = {}) {
+  // Emby Dolby Vision profile 5: on no channel, whatever the rules say.
+  if (isLeftOffChannels(item, opts.backend)) return false;
   const r = channel.rules || {};
   const category = channel.category || null;
   const manifest = opts.manifest || null;
@@ -168,18 +282,22 @@ function itemPasses(item, channel, opts = {}) {
   const titleLower = stripYearSuffix(
     [item.artist || "", item.title || ""].filter(Boolean).join(" "),
   );
-  const itemGenres = (item.genres || []).map((g) => String(g).toLowerCase());
+  // The server's genres. A lock's genre test always reads these, on both engines.
+  const plexGenres = (item.genres || []).map((g) => String(g).toLowerCase());
+  // `matchTmdbGenres`: this channel also sees the item's TMDB genres (enrichment
+  // `tmdbGenres`). A Plex listing carries two genres per film, so a Hallmark-style
+  // Christmas romance often reads "Family, Drama" while TMDB says "TV Movie,
+  // Romance, Family". Unenriched items fall back to the server's genres.
+  // Mirrors AppState+Channels.swift.
+  const itemGenres = r.matchTmdbGenres
+    ? [...new Set([...plexGenres, ...enrichedList(item, "tmdbGenres")])]
+    : plexGenres;
 
-  // Matches the EPISODE title rather than the show name — a Christmas special lives in
-  // "The One with the Holiday Armadillo", not in "Friends".
-  // Keep in sync with AppState+Channels.swift.
-  const episodeTitleLower = String(item.episodeTitle || "").toLowerCase();
-  const hasEpisodeTitleRule =
-    Array.isArray(r.episodeTitleContains) && r.episodeTitleContains.length > 0;
-  const matchesEpisodeTitleRule =
-    hasEpisodeTitleRule &&
-    episodeTitleLower.length > 0 &&
-    r.episodeTitleContains.some((t) => titleContainsWord(episodeTitleLower, t));
+  // Episode rules: an episode's own title and summary rather than the show name. A
+  // Christmas special lives in "The One with the Holiday Armadillo", not in "Friends".
+  // Keep in sync with AppState+Channels.swift (`episodeRulesMatch`).
+  const isEpisodeCurated = hasEpisodeRules(r);
+  const matchesEpisodeRules = isEpisodeCurated && episodeRulesMatch(item, r);
 
   const matchesTitleRule = (() => {
     if (!Array.isArray(r.titleContains) || !r.titleContains.length) return true;
@@ -204,7 +322,11 @@ function itemPasses(item, channel, opts = {}) {
   const hasStudioRule = Array.isArray(r.studios) && r.studios.length > 0;
   const isStudioChannel = hasStudioRule && !hasGenreInclude;
 
-  const hasTitleCurated = Array.isArray(r.titleContains) && r.titleContains.length > 0;
+  // Episode rules are a curated list the same way a title list is, so they open the
+  // Animation lock too: Bluey's and The Simpsons' Christmas episodes belong on the
+  // holiday TV channels.
+  const hasTitleCurated =
+    (Array.isArray(r.titleContains) && r.titleContains.length > 0) || isEpisodeCurated;
   const allowsAnimation =
     isStudioChannel || channelIncludesGenre(r, ANIMATION) || isKids || hasTitleCurated;
   const allowsHorror = isStudioChannel || channelIncludesGenre(r, HORROR);
@@ -256,6 +378,9 @@ function itemPasses(item, channel, opts = {}) {
     if (Array.isArray(r.titleContains) && r.titleContains.length && !matchesTitleRule) {
       return false;
     }
+    // Nor past the episode rules: a claim for an episode-curated channel still has to
+    // be a holiday episode. Keep in sync with AppState+Channels.swift.
+    if (isEpisodeCurated && !matchesEpisodeRules) return false;
     // titleExcludes outranks a manifest claim for the same reason genres.exclude does:
     // SCREAM ADULTS lists "Ring" for The Ring, and the manifest handed it The Lord of
     // the Rings: The Fellowship of the Ring. Keep in sync with AppState+Channels.swift.
@@ -296,7 +421,9 @@ function itemPasses(item, channel, opts = {}) {
   for (const rule of exclusiveRules) {
     const ids = rule.channelIDs || (rule.channelID != null ? [rule.channelID] : []);
     if (ids.includes(channel.id)) continue;
-    if (exclusiveRuleMatches(titleLower, itemGenres, rule)) return false;
+    if (!exclusiveRuleApplies(item, rule)) continue;
+    // Server genres only, as Swift's ExclusiveRule.matches reads item.genres.
+    if (exclusiveRuleMatches(item, plexGenres, rule)) return false;
     if (rule.manifestExclusive && manifest && ids.some((id) => manifestClaimsChannel(item, id, manifest))) {
       return false;
     }
@@ -334,8 +461,8 @@ function itemPasses(item, channel, opts = {}) {
   if (r.unwatchedOnly && ((item.viewCount || 0) > 0 || isNewRelease)) return false;
   if (r.rewatched && (item.viewCount || 0) < 3) return false;
 
-  // Episode-title channels are curated: the list is the allowlist, and nothing widens it.
-  if (hasEpisodeTitleRule && !matchesEpisodeTitleRule) return false;
+  // Episode-curated channels: the episode rules are the allowlist, and nothing widens it.
+  if (isEpisodeCurated && !matchesEpisodeRules) return false;
 
   const titleContains = matchesTitleRule;
 
@@ -478,6 +605,10 @@ function itemPasses(item, channel, opts = {}) {
   const isTitleCuratedChannel =
     hasTitleRule && !hasKeywordRule && !hasNetworkRule && !hasProdCoRule && !hasStudioRule;
 
+  // An episode-curated channel has already passed its allowlist and every gate above.
+  // Swift skips its content-matching block for these channels; so does this.
+  if (isEpisodeCurated) return { pass: true, via: "episode" };
+
   if (isTitleCuratedChannel) {
     // Title list is the allowlist (e.g. ADULT CARTOONS). Plex often tags these as
     // Comedy only — do not also require Animation/Animated in genres.include.
@@ -560,12 +691,13 @@ function filterPool(allItems, channel, opts = {}) {
   const manifest = opts.manifest ?? null;
   const nowSec = opts.nowSec ?? Math.floor(Date.now() / 1000);
   const exclusiveRules = opts.exclusiveRules ?? [];
+  const backend = opts.backend;
   const requiresAnimation = channelRequiresAnimationGenre(channel.rules || {});
   const seenShows = new Map();
   const items = [];
 
   for (const it of allItems) {
-    const raw = itemPasses(it, channel, { manifest, nowSec, exclusiveRules });
+    const raw = itemPasses(it, channel, { manifest, nowSec, exclusiveRules, backend });
     const hit = normalizePassResult(raw);
     if (!hit) continue;
 
@@ -607,11 +739,18 @@ function filterPool(allItems, channel, opts = {}) {
 const api = {
   itemPasses,
   filterPool,
+  isLeftOffChannels,
+  onChannels,
   parseTmdbIdFromPlex,
   passesYearRange,
   releaseYear,
   enrichedValue,
   titleContainsWord,
+  exclusiveRuleMatches,
+  exclusiveRuleApplies,
+  hasEpisodeRules,
+  episodeRulesMatch,
+  inAirWindow,
   channelRequiresAnimationGenre,
   itemHasAnimationGenre,
   GENRE_LOCKS: {

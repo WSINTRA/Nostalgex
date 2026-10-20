@@ -118,6 +118,12 @@ for (const file of TARGETS) {
   const fileUrl = new URL(`../${file}`, import.meta.url);
   let html = await readFile(fileUrl, "utf8");
   html = replaceBetweenMarkers(html, "<!-- LINEUP:START (auto-generated from channels.json — run scripts/render-lineup.mjs) -->", "<!-- LINEUP:END (auto-generated) -->", lineup);
+  // The no-JS fallbacks in the lineup header carry the exact counts. app.js
+  // recounts at runtime; this keeps the static HTML right as well, so nobody has
+  // to edit them by hand. Prose elsewhere says "130+ channels".
+  html = html
+    .replace(/(<span data-lineup-channels>)\d+(<\/span>)/, `$1${totalChannels}$2`)
+    .replace(/(<span data-lineup-bundles>)\d+(<\/span>)/, `$1${bundles.length}$2`);
   await writeFile(fileUrl, html, "utf8");
 }
 

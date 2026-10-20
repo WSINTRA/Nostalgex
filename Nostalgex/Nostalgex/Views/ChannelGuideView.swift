@@ -80,7 +80,9 @@ struct ChannelGuideView: View {
                                 }
                                 ForEach(Array(appState.channels.enumerated()), id: \.element.id) { index, channel in
                                     Button {
-                                        if appState.currentChannel?.id == channel.id {
+                                        // Selecting the channel that is on goes full screen, unless it
+                                        // stopped after repeated failures: then selecting it retries.
+                                        if appState.currentChannel?.id == channel.id, !appState.channelFailureRun.isStopped {
                                             appState.isFullScreen = true
                                         } else {
                                             appState.tuneChannelFromUser(channel, method: .guide, precomputedSchedule: schedules[channel.id])
@@ -729,7 +731,7 @@ private extension ChannelGuideView {
 
     var seasonalDialogTitle: String {
         guard let offer = appState.seasonalBundleOnOffer else { return "" }
-        return "Add \(offer.name) to your lineup for the rest of the month?"
+        return "Add \(offer.name) to your lineup? It stays on until you switch it off."
     }
 }
 
@@ -740,13 +742,7 @@ struct SeasonalInviteRow: View {
     let isFocused: Bool
     let rowHeight: CGFloat
 
-    private var headline: String {
-        switch bundle.id {
-        case "seasonal":        return "IT'S OCTOBER. ARE YOU READY TO SCREAM?"
-        case "tis-the-season":  return "IT'S DECEMBER. DECK THE CHANNELS."
-        default:                return "\(bundle.name) IS IN SEASON."
-        }
-    }
+    private var headline: String { SeasonalPrompt.headline(for: bundle, now: Date()) }
 
     /// Each season gets its own colour so the invite reads as part of that season rather
     /// than as a generic notice.

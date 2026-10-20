@@ -43,8 +43,8 @@ final class EmbyPlaySessionTests: XCTestCase {
         let q = Dictionary(uniqueKeysWithValues: (c.queryItems ?? []).map { ($0.name, $0.value) })
         XCTAssertEqual(q["MediaSourceId"], "mediasource_1666")
         XCTAssertEqual(q["api_key"], "TKN")
-        XCTAssertEqual(q["SegmentContainer"], "mp4")
-        XCTAssertNil(q["StartTimeTicks"], "Emby rejects a start time on segment requests too; the player seeks")
+        XCTAssertEqual(q["SegmentContainer"], "ts", "H.264 out, so TS; see EmbySegmentContainerTests")
+        XCTAssertNil(q["StartTimeTicks"], "the player seeks; a start time on Emby does not keep the sound in sync")
     }
 
     /// The protocol entry point is what any caller without its own id reaches.

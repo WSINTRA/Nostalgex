@@ -1,0 +1,27 @@
+# Allowlist: the self-host build needs the two tuner pages and what they load,
+# nothing else. Keeps the tvOS app, .env files and local data out of the context.
+*
+!package.json
+!package-lock.json
+!vite.config.js
+!web-tuner.html
+!plex-tuner.html
+!styles.css
+!app.js
+!logo/
+# public/*.json are symlinks to these three at the root.
+!channels.json
+!channels-memberships.json
+!franchises.json
+!public/
+public/*
+!public/channels.json
+!public/channels-memberships.json
+!public/franchises.json
+!scripts/
+!docker/
+scripts/devtools/
+scripts/.lineup-tmp.html
+**/.env*
+**/*.secret*
+**/Secrets*

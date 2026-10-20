@@ -94,6 +94,9 @@ enum AnalyticsLaunchKind: String, Sendable {
 /// Every signal the app can send. Closed enum on purpose so the wrapper is the only
 /// place event names or parameters live: `grep` for a signal name and you land here.
 ///
+/// "Can send", not "sends every time": `Analytics.track` passes each event through
+/// `AnalyticsGate`, which decides how many of each actually leave the device.
+///
 /// Renaming note (2026-09):
 /// The pre-analytics-rework catalog used `plex.connect.*` for Plex, Jellyfin, and Emby
 /// alike, with no way to tell them apart. Those names are gone; the replacements live
@@ -224,7 +227,11 @@ enum AnalyticsEvent: Sendable {
     /// return-to-foreground. Sent as `floatValue` so the dashboard can sum
     /// it directly for "total time in app". See the PR description for the
     /// recommendation on this vs TelemetryDeck's own Sessions chart.
-    case sessionEnded(activeSeconds: Double)
+    ///
+    /// `summary` is filled in by `AnalyticsGate` on the way out: the session's tune,
+    /// playback start and error counts, including the ones it did not send one by one.
+    /// Call sites never pass it.
+    case sessionEnded(activeSeconds: Double, summary: AnalyticsSessionSummary? = nil)
 
     // MARK: - Wire mapping
 
@@ -383,9 +390,9 @@ enum AnalyticsEvent: Sendable {
         case .signupQRShown(let backend):
             return ["placement": "settings", "backend": backend.rawValue]
 
-        case .sessionEnded:
+        case .sessionEnded(_, let summary):
             // activeSeconds rides as `floatValue`, matching playback.stopped.
-            return [:]
+            return summary?.wireParameters ?? [:]
         }
     }
 
@@ -397,7 +404,7 @@ enum AnalyticsEvent: Sendable {
         switch self {
         case .playbackStopped(_, _, _, _, let seconds):
             return seconds
-        case .sessionEnded(let seconds):
+        case .sessionEnded(let seconds, _):
             return seconds
         default:
             return nil

@@ -31,6 +31,7 @@
   "rewrites": [
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/support", "destination": "/support.html" },
+    { "source": "/self-host", "destination": "/self-host.html" },
     { "source": "/web-tuner", "destination": "/web-tuner.html" },
     { "source": "/plex", "destination": "/plex.html" },
     { "source": "/jellyfin", "destination": "/jellyfin.html" },

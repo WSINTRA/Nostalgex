@@ -1,9 +1,10 @@
 # Releasing Nostalgex
 
-Two things ship out of this repo and they ship independently:
+Three things ship out of this repo and they ship independently:
 
 - **The site** (`index.html`, `web-tuner.html`, `support.html`, `plex-tuner.html`) on Vercel.
 - **The tvOS app** (`Nostalgex/`) through App Store Connect.
+- **The Docker web tuner** (`ghcr.io/chadmueller/nostalgex`) from a `tuner-v*` tag.
 
 ---
 
@@ -24,6 +25,12 @@ grep -n "MARKETING_VERSION\|CURRENT_PROJECT_VERSION" Nostalgex/Nostalgex.xcodepr
 `TVOS_DEPLOYMENT_TARGET` is in the same file. It is currently **18.0**. If you raise it,
 the JSON-LD `operatingSystem` string in `index.html` and the App Store listing both have
 to move with it.
+
+**The web tuner** has its own number: `"tunerVersion"` in `package.json`, the same number as
+the `tuner-v*` tag cut from that commit. Settings shows it at the bottom, `WEB TUNER 1.0.3` on
+nostalgex.app and `WEB TUNER 1.0.3 · DOCKER` in the container, and both tuner pages carry it
+as `<meta name="nostalgex-tuner-version">`. package.json `"version"` is something else and
+nothing reads it.
 
 ---
 
@@ -57,11 +64,32 @@ uploaded is still free to reuse, but confirm that in TestFlight rather than assu
    node scripts/render-lineup.mjs   # LINEUP:START/END, from channels.json
    ```
    Note `npm run build` runs the changelog render but **not** the lineup render.
-3. Sanity-check the hand-written channel and bundle counts near the lineup header
-   (`data-lineup-channels`, `data-lineup-bundles`) still match `channels.json`.
-   They are no-JS fallbacks; `app.js` corrects them at runtime.
+3. Channel counts: `render-lineup.mjs` also writes the exact numbers into the
+   no-JS fallbacks near the lineup header (`data-lineup-channels`,
+   `data-lineup-bundles`), and `app.js` recounts at runtime. Prose on the site
+   says "130+ channels" so it does not go stale; `npm run bundles:render:strict`
+   fails if a static page claims more channels than `channels.json` has, or
+   names an exact count that is not the real one.
 4. Push to `main`. Vercel builds and deploys production on its own. No CLI step.
 5. Load nostalgex.app and the web tuner once and confirm nothing 404s.
+
+## Docker image release (web tuner)
+
+The container ships from a `tuner-vX.Y.Z` tag (`.github/workflows/docker.yml`), apart from
+the site and the app. Tag when a batch of tuner changes is worth shipping to self-hosters.
+
+1. **Bump `"tunerVersion"` in `package.json` to `X.Y.Z` in the commit you are about to tag.**
+   nostalgex.app shows the new number as soon as that commit is on `main`.
+2. `npm test`, `npm run build`, `npm run build:selfhost`, then
+   `npm run test:tuner-version:builds` (both builds carry `X.Y.Z`).
+3. Tag that commit and push the tag:
+   ```
+   git tag tuner-vX.Y.Z && git push origin tuner-vX.Y.Z
+   ```
+4. The workflow checks that the tag and `tunerVersion` agree and stops before pushing an
+   image if they don't. To recover: delete the tag (`git tag -d tuner-vX.Y.Z` and
+   `git push origin :refs/tags/tuner-vX.Y.Z`), commit the bump, tag again.
+5. Pull the image, open Settings, and check the bottom line reads `WEB TUNER X.Y.Z · DOCKER`.
 
 ## tvOS release
 

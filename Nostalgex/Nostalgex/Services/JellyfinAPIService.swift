@@ -492,6 +492,11 @@ struct JellyfinAPIService: MediaBackend, WatchActivityReporting {
     /// The PlaybackInfo POST. `serverStreamOnly` is the retry after a direct play failed;
     /// see `JellyfinPlaybackResolver.playbackInfoBody`.
     func playbackInfoRequest(for item: PlexMediaItem, serverStreamOnly: Bool) -> URLRequest? {
+        playbackInfoRequest(for: item, serverStreamOnly: serverStreamOnly, burningSubtitle: nil)
+    }
+
+    /// `burningSubtitle`: the forced track to burn in; see `JellyfinPlaybackResolver.forcedSubtitleToBurn`.
+    func playbackInfoRequest(for item: PlexMediaItem, serverStreamOnly: Bool, burningSubtitle: Int?) -> URLRequest? {
         guard var components = URLComponents(string: "\(serverURL)/Items/\(item.ratingKey)/PlaybackInfo") else {
             return nil
         }
@@ -508,7 +513,8 @@ struct JellyfinAPIService: MediaBackend, WatchActivityReporting {
         let body = JellyfinPlaybackResolver.playbackInfoBody(
             mediaSourceId: item.partKey ?? item.ratingKey,
             supportsHEVC: Self.deviceSupportsHEVC,
-            serverStreamOnly: serverStreamOnly
+            serverStreamOnly: serverStreamOnly,
+            burningSubtitle: burningSubtitle
         )
         guard let encoded = try? JSONEncoder().encode(body) else { return nil }
         req.httpBody = encoded
@@ -525,16 +531,28 @@ struct JellyfinAPIService: MediaBackend, WatchActivityReporting {
     }
 
     private func negotiatePlayback(for item: PlexMediaItem, serverStreamOnly: Bool) async -> PlaybackResolution? {
+        await negotiatePlayback(
+            for: item, serverStreamOnly: serverStreamOnly,
+            preferredSubtitleLanguage: SubtitleSelectionLogic.currentSubtitleLanguage(),
+            send: { try await Self.session.data(for: $0) }
+        )
+    }
+
+    /// The PlaybackInfo exchange, with how requests are sent as a parameter so tests can
+    /// answer them. A second request burns a forced subtitle track; see
+    /// `JellyfinPlaybackResolver.negotiate`.
+    func negotiatePlayback(
+        for item: PlexMediaItem,
+        serverStreamOnly: Bool,
+        preferredSubtitleLanguage: String,
+        send: JellyfinPlaybackResolver.PlaybackInfoSend
+    ) async -> PlaybackResolution? {
         let msid = item.partKey ?? item.ratingKey
         do {
-            guard let req = playbackInfoRequest(for: item, serverStreamOnly: serverStreamOnly) else {
-                return fallbackResolution(for: item)
-            }
-            let (data, response) = try await Self.session.data(for: req)
-            let info = try Self.decode(JellyfinPlaybackResolver.PlaybackInfoResponse.self, data: data, response: response)
-            return JellyfinPlaybackResolver.resolve(
-                info, serverURL: serverURL, apiKey: accessToken, itemId: item.ratingKey, mediaSourceId: msid,
-                serverStreamOnly: serverStreamOnly
+            return try await JellyfinPlaybackResolver.negotiate(
+                request: { playbackInfoRequest(for: item, serverStreamOnly: serverStreamOnly, burningSubtitle: $0) },
+                serverURL: serverURL, apiKey: accessToken, itemId: item.ratingKey, mediaSourceId: msid,
+                serverStreamOnly: serverStreamOnly, preferredSubtitleLanguage: preferredSubtitleLanguage, send: send
             ) ?? fallbackResolution(for: item)
         } catch {
             print("[Plex90] PlaybackInfo failed for \(item.ratingKey): \(error) — falling back to hand-built URL")
@@ -681,16 +699,36 @@ struct JellyfinAPIService: MediaBackend, WatchActivityReporting {
 
     struct QuickConnectInit: Sendable { let code: String; let secret: String }
 
+    /// How a sign-in request is sent. The app uses `session`; tests pass a recorder.
+    typealias SignInSend = @Sendable (URLRequest) async throws -> (Data, URLResponse)
+
     /// Starts a Quick Connect session; user approves `code` in their Jellyfin dashboard.
     static func quickConnectInitiate(serverURL: String) async throws -> QuickConnectInit {
+        try await quickConnectInitiate(serverURL: serverURL) { try await session.data(for: $0) }
+    }
+
+    /// Jellyfin 10.9 made Initiate a POST and kept GET as a legacy route; 12.0 removed the
+    /// GET, so 12.x answers it 405 (measured on 12.2.0). 10.7 and 10.8 have only the GET.
+    /// POST first, then GET only when the server says the method or route is wrong.
+    static func quickConnectInitiateRetriesWithGET(statusCode: Int) -> Bool {
+        statusCode == 405 || statusCode == 404
+    }
+
+    static func quickConnectInitiate(serverURL: String, send: SignInSend) async throws -> QuickConnectInit {
         guard let url = URL(string: "\(serverURL)/QuickConnect/Initiate") else {
             throw PlexAPIService.APIError.invalidResponse
         }
         var req = URLRequest(url: url)
         req.timeoutInterval = SignInRequest.timeout
+        req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue(authorizationHeader(deviceID: PlexAPIService.clientID, token: ""), forHTTPHeaderField: "Authorization")
-        let (data, response) = try await session.data(for: req)
+        var (data, response) = try await send(req)
+        if let status = (response as? HTTPURLResponse)?.statusCode,
+           quickConnectInitiateRetriesWithGET(statusCode: status) {
+            req.httpMethod = "GET"
+            (data, response) = try await send(req)
+        }
         let decoded = try decodeSignIn(QuickConnectResult.self, data: data, response: response)
         guard let code = decoded.Code, let secret = decoded.Secret else {
             throw PlexAPIService.APIError.invalidResponse
@@ -810,10 +848,13 @@ struct JellyfinItem: Decodable {
             let Width: Int?
             let Height: Int?
             let BitDepth: Int?
+            /// Emby only: "DoviProfile50", "DoviProfile81", "Hdr10", "None". Jellyfin does
+            /// not send it. See `EmbyAPIService.doviProfile(extendedVideoSubType:)`.
+            let ExtendedVideoSubType: String?
 
             enum CodingKeys: String, CodingKey {
                 case streamType = "Type"
-                case Codec, Profile, Width, Height, BitDepth
+                case Codec, Profile, Width, Height, BitDepth, ExtendedVideoSubType
             }
         }
 
@@ -822,6 +863,7 @@ struct JellyfinItem: Decodable {
         var videoProfile: String? { MediaStreams?.first(where: { $0.streamType == "Video" })?.Profile }
         var videoHeight: Int? { MediaStreams?.first(where: { $0.streamType == "Video" })?.Height }
         var videoBitDepth: Int? { MediaStreams?.first(where: { $0.streamType == "Video" })?.BitDepth }
+        var videoExtendedSubType: String? { MediaStreams?.first(where: { $0.streamType == "Video" })?.ExtendedVideoSubType }
     }
 
     /// Highest-quality source: max bitrate, tie-broken on video height. Falls back to the first

@@ -79,7 +79,7 @@ class AppState {
     private func reportPlaybackBackgrounded() {
         finishReportingBackgroundTask()
         guard let tracker = playbackTracker else { return }
-        let identifier = syncPlexActivity && !isDemoMode
+        let identifier = tracker.hasReportingWork && !isDemoMode
             ? UIApplication.shared.beginBackgroundTask(withName: "Finish playback report") { [weak self] in
                 self?.finishReportingBackgroundTask()
             }
@@ -450,38 +450,66 @@ class AppState {
         }
     }
 
-    static let syncPlexActivityDefaultsKey = "nostalgex_sync_plex_activity"
+    static let syncPlexActivityDefaultsKey = PlaybackReportingPreferences.legacyKey
+    static let showNowPlayingDefaultsKey = PlaybackReportingPreferences.nowPlayingKey
+    static let markWatchedDefaultsKey = PlaybackReportingPreferences.markWatchedKey
+    let playbackReportingScope = PlaybackReportingControlScope(showNowPlaying: false, markWatched: false)
+    private var applyingPlaybackReportingPair = false
 
-    /// When true, playback is reported to the connected server: Now Playing shows what's
-    /// on and a qualifying watch counts. Off = watch privately.
-    /// Same switch for Plex, Jellyfin, and Emby. Demo never reports.
-    ///
-    /// Defaults OFF. Opt in, don't opt out. When on, channel surfing never leaves items in
-    /// the household's Continue Watching row: Plex reports carry no position, and Jellyfin
-    /// and Emby get each program's prior state back (`PlaybackTracker`).
-    /// Rewatch channels still fill from plays the server already recorded.
-    var syncPlexActivity: Bool = AppState.resolveSyncPlexActivity(
-        stored: UserDefaults.standard.object(forKey: AppState.syncPlexActivityDefaultsKey)
-    ) {
+    /// Both choices default off. An explicit old Report Playback choice migrates
+    /// to both; either new choice, including false, wins over the old value.
+    var showNowPlaying: Bool = PlaybackReportingPreferences.loadAndMigrate(from: .standard).showNowPlaying {
         didSet {
-            UserDefaults.standard.set(syncPlexActivity, forKey: Self.syncPlexActivityDefaultsKey)
-            // Turning off mid-program: abandon the live tracker so the current item stops
-            // reporting immediately; it clears Now Playing (Plex) or restores UserData
-            // (Jellyfin, Emby). Turning on takes effect on the next item. Only the user
-            // changes this: a failed report backs off (`PulseBackoff`), never switches it off.
-            if !syncPlexActivity { playbackTracker?.abandon() }
-            if oldValue != syncPlexActivity {
-                Analytics.track(.settingChanged(key: "sync_plex_activity", value: syncPlexActivity ? "true" : "false"))
+            UserDefaults.standard.set(showNowPlaying, forKey: Self.showNowPlayingDefaultsKey)
+            preferenceSync.record(PreferenceSync.nowPlayingKey, value: showNowPlaying)
+            if oldValue != showNowPlaying {
+                Analytics.track(.settingChanged(key: "show_now_playing", value: showNowPlaying ? "true" : "false"))
             }
-            preferenceSync.record(PreferenceSync.reportPlaybackKey, value: syncPlexActivity)
+            playbackReportingChoiceChanged()
+        }
+    }
+    var markWatched: Bool = PlaybackReportingPreferences.loadAndMigrate(from: .standard).markWatched {
+        didSet {
+            UserDefaults.standard.set(markWatched, forKey: Self.markWatchedDefaultsKey)
+            preferenceSync.record(PreferenceSync.markWatchedKey, value: markWatched)
+            if oldValue != markWatched {
+                Analytics.track(.settingChanged(key: "mark_watched", value: markWatched ? "true" : "false"))
+            }
+            playbackReportingChoiceChanged()
         }
     }
 
-    /// Resolves the stored `syncPlexActivity` preference. The key is only written once the
-    /// user touches the toggle, so an explicit choice (either way) always wins and only
-    /// never-touched installs pick up the OFF default.
-    static func resolveSyncPlexActivity(stored: Any?) -> Bool {
-        (stored as? Bool) ?? false
+    /// Compatibility for debug callers and older clients. New UI never couples the
+    /// choices. The conservative legacy projection is ON only when both are ON.
+    var syncPlexActivity: Bool {
+        get { showNowPlaying && markWatched }
+        set { setPlaybackReporting(showNowPlaying: newValue, markWatched: newValue) }
+    }
+    static func resolveSyncPlexActivity(stored: Any?) -> Bool { (stored as? Bool) ?? false }
+
+    func setPlaybackReporting(showNowPlaying: Bool, markWatched: Bool) {
+        applyingPlaybackReportingPair = true
+        self.showNowPlaying = showNowPlaying
+        self.markWatched = markWatched
+        applyingPlaybackReportingPair = false
+        playbackReportingChoiceChanged()
+    }
+
+    private func playbackReportingChoiceChanged() {
+        guard !applyingPlaybackReportingPair else { return }
+        // Publish the complete pair even when only one row changed. A migrated
+        // true choice may not have reached iCloud under its new key yet.
+        UserDefaults.standard.set(showNowPlaying, forKey: Self.showNowPlayingDefaultsKey)
+        UserDefaults.standard.set(markWatched, forKey: Self.markWatchedDefaultsKey)
+        preferenceSync.record(PreferenceSync.nowPlayingKey, value: showNowPlaying)
+        preferenceSync.record(PreferenceSync.markWatchedKey, value: markWatched)
+        let legacy = showNowPlaying && markWatched
+        UserDefaults.standard.set(legacy, forKey: Self.syncPlexActivityDefaultsKey)
+        preferenceSync.record(PreferenceSync.reportPlaybackKey, value: legacy)
+        playbackReportingScope.update(showNowPlaying: !isDemoMode && showNowPlaying,
+                                      markWatched: !isDemoMode && markWatched)
+        playbackTracker?.updateReporting(showNowPlaying: !isDemoMode && showNowPlaying,
+                                         markWatched: !isDemoMode && markWatched)
     }
 
     /// Global subtitle language (`__system__` = follow Apple TV language).
@@ -522,7 +550,7 @@ class AppState {
         }
     }
 
-    private static let subtitleLanguageDefaultsKey = "nostalgex_subtitle_language"
+    private static let subtitleLanguageDefaultsKey = SubtitleSelectionLogic.subtitleLanguageDefaultsKey
 
     private static func loadPreferredSubtitleLanguageInitial() -> String {
         if let s = UserDefaults.standard.string(forKey: subtitleLanguageDefaultsKey), !s.isEmpty {
@@ -597,7 +625,10 @@ class AppState {
     var videoFrameProbe: AVPlayerItemVideoOutput?
     var currentChannel: Channel? = nil
     var currentItem: PlexMediaItem? = nil {
-        didSet { if currentItem?.ratingKey != oldValue?.ratingKey { refreshNowPlayingInfo() } }
+        didSet {
+            if currentItem == nil { playbackInformation = nil }
+            if currentItem?.ratingKey != oldValue?.ratingKey { refreshNowPlayingInfo() }
+        }
     }
     var currentPartIndex: Int = 0
     var currentPartBaseSeconds: Double = 0
@@ -635,6 +666,9 @@ class AppState {
     /// `loadCurrentItem`, cleared when the session ends. Rides on `playback.stopped`
     /// so watch time can be split by direct play vs transcode.
     var currentPlaybackDelivery: AnalyticsPlaybackDelivery? = nil
+
+    /// Sanitized, attempt-owned data for the in-player information screen.
+    var playbackInformation: PlaybackInformation?
 
     /// Guard so `playback.ready` fires once per session even though the ready path is
     /// entered again on transcode fallback / retry. Reset in `loadCurrentItem`.
@@ -680,7 +714,18 @@ class AppState {
     /// Lifetime observers (background/foreground) — never cleared by loadCurrentItem.
     private var _lifetimeObservers = Set<AnyCancellable>()
     var loadGeneration: Int = 0
-    var loadDebounceTimer: Timer?
+    /// A channel can replace its player without changing loadGeneration (retry/fallback).
+    /// Every asynchronous completion also belongs to this individual playback attempt.
+    @ObservationIgnored var playbackAttemptGeneration = 0
+    @ObservationIgnored var playbackRecoveryInFlight = false
+    @ObservationIgnored var playbackResolutionTask: Task<Void, Never>?
+    @ObservationIgnored var playbackWatchdogTask: Task<Void, Never>?
+    @ObservationIgnored var playbackSkipTask: Task<Void, Never>?
+    /// Programmes on the current channel that failed in a row. Counted in
+    /// `recordFailedItem`, reset by `selectChannel` and by a confirmed picture.
+    @ObservationIgnored var channelFailureRun = ChannelFailureRun()
+    /// How long a failure card stays up before the next programme. Tests shorten it.
+    @ObservationIgnored var errorCardSeconds: Double = 5
     var playbackTracker: PlaybackTracker?
     var dailyRefreshTask: Task<Void, Never>?
     /// Unix seconds when the library was last loaded. Drives 24h rolling cache

@@ -35,6 +35,9 @@ enum PlaybackFailure: Equatable, Sendable {
     case transcodingUnavailable(server: String)
     /// Something failed and the signals do not say what.
     case unknown(server: String)
+    /// `ChannelFailureRun.limit` programmes in a row failed on this channel, `last` being
+    /// the latest, so the channel has stopped trying. Never produced by `classify`.
+    indirect case channelStopped(last: PlaybackFailure)
 
     // MARK: - Classification
 
@@ -142,6 +145,7 @@ enum PlaybackFailure: Equatable, Sendable {
         case .noPlayableSource:   return "Nothing to play for this title"
         case .transcodingUnavailable: return "Your server won't convert this one"
         case .unknown:            return "This one wouldn't play"
+        case .channelStopped:     return "Nothing on this channel will play right now"
         }
     }
 
@@ -179,6 +183,17 @@ enum PlaybackFailure: Equatable, Sendable {
         case let .unknown(server):
             return "No reason came back from \(server) or from the player. "
                  + "Settings keeps the last few playback verdicts if it keeps happening."
+        case let .channelStopped(last):
+            return "\(ChannelFailureRun.limit) programmes in a row wouldn't play, so this channel "
+                 + "has stopped trying. Last reason: \(last.headline)."
+        }
+    }
+
+    /// The small line under the card: what happens next.
+    var nextStep: String {
+        switch self {
+        case .channelStopped: return "Try another channel, or select this one again to retry."
+        default:              return "Moving on to the next programme."
         }
     }
 
@@ -194,6 +209,8 @@ enum PlaybackFailure: Equatable, Sendable {
         case let .noPlayableSource(server):      return "\(server) returned no stream URL"
         case let .transcodingUnavailable(server): return "\(server) declined to transcode"
         case let .unknown(server):               return "\(server) failed with no usable signal"
+        case let .channelStopped(last):
+            return "channel stopped after \(ChannelFailureRun.limit) failures in a row; last: \(last.diagnosticSummary)"
         }
     }
 
@@ -204,6 +221,7 @@ enum PlaybackFailure: Equatable, Sendable {
         case .noPlayableSource:       return .noPlayableSource
         case .transcodingUnavailable: return .transcodingUnavailable
         case .serverTooSlow:          return .watchdogSkip
+        case let .channelStopped(last): return last.analyticsCode
         default:                      return .playerFailed
         }
     }
@@ -213,6 +231,7 @@ enum PlaybackFailure: Equatable, Sendable {
     var isServerSide: Bool {
         switch self {
         case .deviceCannotRender, .unknown: return false
+        case let .channelStopped(last): return last.isServerSide
         default: return true
         }
     }

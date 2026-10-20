@@ -265,7 +265,8 @@ enum LibrarySnapshotStore {
             visiblePools: allChannels.map(\.itemPool),
             bundleDefinitions: bundles.map {
                 ChannelBundleDefinition(id: $0.id, name: $0.name, description: $0.description,
-                                        channelIDs: $0.channelIDs, activeMonths: $0.activeMonths)
+                                        channelIDs: $0.channelIDs, activeMonths: $0.activeMonths,
+                                        seasonStart: $0.seasonStart)
             },
             enabledBundleIDList: Array(enabledBundleIDs).sorted(),
             exclusiveRuleJSON: exclusiveRules.map { $0.toExclusiveRuleJSON() },

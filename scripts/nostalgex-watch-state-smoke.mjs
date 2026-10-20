@@ -183,9 +183,11 @@ await check("jellyfin/emby: counted watch -> played once, no resume point", asyn
   deepStrictEqual(calls[0].body, { PlaybackPositionTicks: 0, PlayCount: 1, Played: true });
 });
 
-await check("jellyfin/emby: unreadable prior -> only clear the resume point", async () => {
-  const calls = await msRestore(null, false);
-  deepStrictEqual(calls[0].body, { PlaybackPositionTicks: 0 });
+await check("jellyfin/emby: unreadable prior -> no cleanup writes", async () => {
+  for (const counted of [false, true]) {
+    const calls = await msRestore(null, counted);
+    deepStrictEqual(calls, []);
+  }
 });
 
 // ── Ordering ──

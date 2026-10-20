@@ -32,7 +32,7 @@ How it works:
 Channels are built from what is actually in your library. If it is on your server, it can show up on a channel. Nostalgex does not host or supply any video. Everything plays from your own server.
 
 Features:
-- 131 themed channels in 14 packages
+- 130+ themed channels in 14 packages
 - Plex, Jellyfin, and Emby, with more than one server at a time
 - EPG-style channel guide with live schedules
 - Channel surfing with Siri Remote swipe gestures

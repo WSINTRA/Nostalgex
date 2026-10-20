@@ -8,23 +8,73 @@ Entry point: `plex-tuner.html`. All features here are **web tuner only** unless 
 
 | Feature | Plex | Jellyfin | Emby |
 |---------|------|----------|------|
+| Sign in on the connect page | Connect with Plex | Connect with Jellyfin (password or Quick Connect) | Connect with Emby (password) |
 | Channel guide + schedules | Yes | Yes | Yes |
 | Video playback | Yes | Yes | Yes |
-| Subtitles | No | Yes | No |
-| Audio language selection | No | Yes | No |
+| Subtitles | No | Yes | Yes |
+| Audio language selection | No | Yes | Yes |
 | Playback scrobbling (mark watched) | Yes | Yes | Yes |
 | Bookmark / saved auth | Yes | Yes | Yes |
+| Sleep timer | Yes | Yes | Yes |
+| Playback information | Yes | Yes | Yes |
 
-Plex and Jellyfin/Emby have parity on most things. Subtitles and audio language are Jellyfin-only because they rely on Jellyfin's `MediaStreams` API and `AudioStreamIndex` parameter. Plex handles these natively in its own player.
+One backend at a time. Jellyfin and Emby share the MediaBrowser code path; the few places Emby differs are listed under Emby below. Subtitles and audio language use the `MediaStreams` list and the `AudioStreamIndex` parameter, which both Jellyfin and Emby have (an external `.srt` came back as WebVTT from Emby 4.10.1.0). Plex handles these in its own player.
 
 ---
 
-## Subtitles (Jellyfin, fullscreen only)
+## Emby
+
+Its own choice on the connect page: **Connect with Emby**, username and password (Emby has no Quick Connect). On nostalgex.app the address has to be https, like Jellyfin; in the Docker container a plain `http://` address works. Settings > SERVER says EMBY SERVER.
+
+What is different from Jellyfin, mirroring `Nostalgex/Nostalgex/Services/EmbyAPIService.swift` (helpers and tests in `scripts/nostalgex-jellyfin-urls.js`):
+
+- **Libraries** come from `/Users/{id}/Views`. `/UserViews?userId=` is Jellyfin's spelling and answers 404 on Emby 4.8.11, 4.9.5 and 4.10.1 (measured), so Emby never loaded in the web tuner through the Jellyfin option.
+- **Retry after a failed direct play**: PlaybackInfo is asked with `EnableDirectPlay: false` and `EnableDirectStream: false`. With direct play off alone, Emby 4.10.1 still offers the file and no TranscodingUrl. Jellyfin's body is unchanged.
+- **Hand-built HLS** carries a `PlaySessionId` (shared with Jellyfin since 2026-10-13; Emby refuses every segment without one).
+- **Server name** comes from `/System/Info/Public`, because Emby's sign-in result has no `User.ServerName`.
+- Same as Jellyfin: the `MediaBrowser` Authorization header, `AuthenticateByName` with `{ Username, Pw }`, `/Items`, the static `stream.mp4` URL, subtitle VTT, `/Users/{id}/...` watch state, and `DELETE /Videos/ActiveEncodings`, which ends an Emby encode within a second on its own.
+
+**Sign-ins saved before the Emby option.** Emby users used to sign in through Connect with Jellyfin and were saved with `backend: 'jellyfin'`. They are migrated, not asked to sign in again: at start-up the tuner reads `/System/Info/Public` (Jellyfin says `ProductName: "Jellyfin Server"`, Emby has no ProductName and lists `LocalAddresses`) and switches the saved sign-in to `emby`. If that answer can't be read, a 404 on `/UserViews` followed by a 200 on `/Users/{id}/Views` does the same. The same check runs at sign-in, so Emby entered through the Jellyfin button (or the other way round) is saved as what it really is. Collections switched on before keep their keys (`jellyfin:<id>` for both).
+
+---
+
+## Sleep timer
+
+Same as the Apple TV app (`SleepTimerLogic` and the SLEEP TIMER rows of the Now Playing panel). Code: `scripts/nostalgex-sleep-timer.js`, wired in the SLEEP TIMER section of `plex-tuner.html`.
+
+- **Choices:** OFF, 15 MIN, 30 MIN, 1 HR.
+- **Where:** SLEEP in the rail (desktop, TV browsers, tablets) and SLEEP TIMER in the phone drawer both open a small picker; Settings > General > PLAYBACK has the same choices inline. The rail and drawer show the time left (`29:41`; capped at `59:59`, so a 1 HR timer starts there and the half-width rail button never shows hours), the picker shows ACTIVE on OFF or the time left on the running choice, as on Apple TV.
+- **At zero:** a "STILL WATCHING?" prompt with SLEEPING IN 0:20 counting down. Any click, tap or key keeps watching and uses the timer up (the key never reaches the shortcuts, so it can't change channel). Left alone for 20 seconds, playback stops the way tvOS does it: the server is told playback stopped, the video stops, the server's stream is ended, full screen closes and the guide shows. The picture says SLEEP TIMER ENDED / "Pick a channel to start watching again."; picking any channel, including the same one, starts again. Background library refreshes never restart it.
+- Survives channel changes. Not saved: a reload turns it off, like a relaunch on Apple TV. A hidden tab's late timers are caught up when it is visible again.
+- Works with clicks alone (TV Bro on Google TV), touch, mouse and keyboard. In full screen the prompt is drawn inside the full-screen element; iPhone's own player is closed first so the prompt can be seen.
+- No keyboard shortcut.
+
+---
+
+## Playback information
+
+Same panel as the Apple TV app (PR #26: `PlaybackInformation.swift`). INFO in the rail (beside SLEEP, the two share a row), the I key, PLAYBACK INFO in the phone drawer, and Settings > General > PLAYBACK > Playback information > VIEW. Not in full screen: full screen is the browser's own. Refreshes every second while open; BACK, Escape or I closes it. Code: `scripts/nostalgex-playback-info.js`.
+
+| Row | Web tuner value |
+|-----|-----------------|
+| BACKEND | Plex, Jellyfin or Emby |
+| PLAYBACK | Direct Play or Server stream once the video element is playing, Loading before |
+| QUALITY AT TUNE | What the browser asked for: Server default on Plex (no limit sent), Up to 120 Mbps on Jellyfin and Emby. The web tuner has no quality setting |
+| RECOVERY REQUEST | Never shown: the web tuner has no 1080p compatibility retry |
+| PLAYER SIZE | `videoWidth × videoHeight` of the video element, once playing |
+| SOURCE METADATA | Video and audio codec from the library, allowlisted labels only (Plex items now keep `videoCodec` and `audioCodec` from the scan) |
+| FALLBACK | No fallback used. / Server streaming was selected for this source. / Direct Play failed. Trying a server stream. / The player could not open the stream. Retrying it once. (an hls.js recovery) |
+
+It never shows a URL, token, server address, session id or item id: the model only accepts fixed labels and bounded numbers. Each programme has a generation and each try at playing it an attempt; only the current attempt of the current programme can mark it ready, so a late event from an earlier programme or a replaced attempt can't describe the new one (tests in `web-tune-ownership-smoke.mjs`, with a negative control).
+
+---
+
+## Subtitles (Jellyfin and Emby, fullscreen only)
 
 Toggle with the **C** key while in fullscreen. Off by default.
 
 Subtitle track selection uses language preference (see Language settings below). The tuner:
-1. Fetches the subtitle stream from Jellyfin as WebVTT (server transcodes any format)
+1. Fetches the subtitle stream from Jellyfin or Emby as WebVTT (server transcodes any format)
 2. Wraps it in a blob URL and attaches as an HTML `<track>` element
 3. Clears on fullscreen exit
 
@@ -34,12 +84,12 @@ Subtitle track selection uses language preference (see Language settings below).
 
 ---
 
-## Audio language (Jellyfin only)
+## Audio language (Jellyfin and Emby)
 
 Set in **Settings → General → Language → Audio language**. Default is Auto (server picks the default track).
 
 When a preferred language is set:
-- The matching audio stream index is passed to Jellyfin's `PlaybackInfo` endpoint for transcoded content
+- The matching audio stream index is passed to the server's `PlaybackInfo` endpoint for transcoded content
 - For direct-play streams, `AudioStreamIndex` is appended to the stream URL
 - Changing the language while watching restarts the current item with the new track
 
@@ -71,6 +121,7 @@ Auth is persisted to `localStorage` under `plex90_saved_auth` (set on first conn
 Saved auth shape:
 - **Plex**: `{ backend, token, userToken, serverUrl, serverName }`
 - **Jellyfin**: `{ backend, token, serverUrl, serverName, jellyfinUserId, jfUrl, jfUser }`
+- **Emby**: the Jellyfin shape with `backend: 'emby'` (`jellyfinUserId` holds the Emby user id)
 
 ---
 
@@ -83,7 +134,7 @@ Saved auth shape:
 | M | Mute / unmute |
 | F | Fullscreen |
 | B | Toggle retro mode (4:3 + CRT scanlines) |
-| C | Toggle subtitles (Jellyfin, fullscreen only) |
+| C | Toggle subtitles (Jellyfin and Emby, fullscreen only) |
 | G | Fullscreen + guide overlay |
 | H | Open settings |
 | Left / Right | Change channel (wraps at both ends). In Settings, switch tabs |

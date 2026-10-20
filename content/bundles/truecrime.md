@@ -18,11 +18,11 @@ faq:
 
 Case Files is the bundle for the night where everyone agrees on one thing and it is a documentary about a man who definitely did it.
 
-Five channels. TRUE CRIME is the real cases: the docuseries, the cold cases, the interview footage. CRIME FLICKS is the fiction side, mob movies and heists and detectives. THRILLERS is the tension channel, where it does not have to be a crime so long as somebody is in trouble. MYSTERY is the gentler end, the whodunit you can follow with half your attention. CRIME TV is the procedural shelf, the shows with a hundred and eighty episodes that nobody watches in order.
+Six channels. TRUE CRIME is the real cases: the docuseries, the cold cases, the interview footage. CRIME FLICKS is the fiction side, mob movies and heists and detectives. THRILLERS is the tension channel, where it does not have to be a crime so long as somebody is in trouble. MYSTERY is the gentler end, the whodunit you can follow with half your attention. CRIME TV is the procedural shelf, the shows with a hundred and eighty episodes that nobody watches in order. MYSTERY BOX TV is the opposite kind of show: one big question, a season of clues, and a finale everyone argues about. Lost, Twin Peaks, Dark, Severance.
 
 That last one is the reason this bundle exists in this shape. Procedurals are the most channel shaped thing anybody owns. Nobody sits down to watch episode four of season six on purpose. You put one on because it is on, which is exactly what the guide does: it builds a schedule out of what you own, starts the episode before you walk in, and keeps going.
 
-Everything here is your library. Nostalgex reads your Plex or Jellyfin server, sorts what is there into these five channels, and plays it back on a real clock. No titles come with the app. If your crime shelf is all documentaries and no fiction, you get TRUE CRIME and nothing else, because a channel waits until there is enough on your server to fill it rather than showing you an empty slot.
+Everything here is your library. Nostalgex reads your Plex or Jellyfin server, sorts what is there into these six channels, and plays it back on a real clock. No titles come with the app. If your crime shelf is all documentaries and no fiction, you get TRUE CRIME and nothing else, because a channel waits until there is enough on your server to fill it rather than showing you an empty slot.
 
 One small warning: this is the bundle most likely to eat an evening. A documentary channel that never asks you to pick the next one is how three hours disappear. Keep it on a channel you can leave.
 

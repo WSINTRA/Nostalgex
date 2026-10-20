@@ -97,7 +97,7 @@
       "backend": "mediaServer",
       "counted": false,
       "prior": null,
-      "steps": ["userData position=0"]
+      "steps": []
     },
     {
       "name": "Jellyfin/Emby: watched through the gate",
@@ -111,7 +111,7 @@
       "backend": "mediaServer",
       "counted": true,
       "prior": null,
-      "steps": ["userData position=0"]
+      "steps": []
     }
   ]
 }

@@ -220,7 +220,7 @@ export function renderHead({
     `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`,
     `<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">`,
     `<link rel="stylesheet" href="${escapeAttr(stylesHref)}">`,
-    `<script defer data-site="nostalgex" src="https://statsngraphs.lol/s.js"></script>`,
+    `<script async data-site="nostalgex" src="https://statsngraphs.lol/s.js"></script>`,
   ].join("\n");
 
   // jsonLd may be a single object or an array; emit one script tag per entry.

@@ -162,9 +162,8 @@ enum WatchCleanupPlan {
     /// Jellyfin and Emby. Both bump PlayCount on the start report and store the stop
     /// position, so the restore writes the exact prior values back.
     static func mediaServer(prior: PriorWatchState?, countedWatch: Bool) -> [WatchCleanupStep] {
-        guard let prior else {
-            return [.setUserData(position: 0, playCount: nil, played: nil, lastPlayedDate: nil)]
-        }
+        // An unreadable baseline must never turn into a destructive resume reset.
+        guard let prior else { return [] }
         if countedWatch {
             return [.setUserData(position: 0, playCount: prior.playCount + 1, played: true, lastPlayedDate: nil)]
         }
@@ -228,7 +227,7 @@ struct PlexWatchStateGuard: WatchStateGuarding {
 
     private func entries(_ req: URLRequest?) async -> [Container.Entry]? {
         guard let req, let (status, body) = await transport.send(req), (200...299).contains(status),
-              let decoded = try? JSONDecoder().decode(Container.self, from: body) else { return nil }
+              let decoded = try? JSONDecoder().decode(Container.self, from: PlexUTF8Repair.prepared(body, context: req.url?.path ?? "?")) else { return nil }
         return decoded.MediaContainer.Metadata ?? []
     }
 

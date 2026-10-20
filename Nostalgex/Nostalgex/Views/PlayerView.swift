@@ -34,9 +34,9 @@ struct PlayerView: View {
                 .ignoresSafeArea()
             }
 
-            // CRT overlay (no scanlines in fullscreen - too distracting)
+            // CRT overlay, scanlines included (RetroLook)
             if appState.retroMode {
-                CRTOverlayView(showScanlines: false)
+                CRTOverlayView()
                     .ignoresSafeArea()
             }
 

@@ -96,7 +96,7 @@ final class LiveContinueWatchingTests: XCTestCase {
     ) async rethrows -> Bool {
         var clock = Date()
         let queue = ReportQueue()
-        let tracker = PlaybackTracker(item: item, seekOffset: seekOffset, plexAPI: api, queue: queue, now: { clock })
+        let tracker = PlaybackTracker(item: item, seekOffset: seekOffset, plexAPI: api, showNowPlaying: true, markWatched: true, queue: queue, now: { clock })
         tracker.onPlaybackReady()
         for _ in 0..<(seconds / 10) {
             if realTime { try? await Task.sleep(nanoseconds: 10_000_000_000) }
@@ -252,7 +252,7 @@ final class LiveContinueWatchingTests: XCTestCase {
             librarySource: .movie
         )
         let tracker = PlaybackTracker(item: item, seekOffset: seekOffset, plexAPI: nil,
-                                      watchReporter: live.reporter, queue: queue, now: { clock })
+                                      watchReporter: live.reporter, showNowPlaying: true, markWatched: true, queue: queue, now: { clock })
         tracker.onPlaybackReady()
         for _ in 0..<(seconds / 10) {
             clock += 10

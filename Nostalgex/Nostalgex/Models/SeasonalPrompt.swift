@@ -18,7 +18,8 @@ enum SeasonalPrompt {
     }
 
     /// Storage keys. The season key carries the year so a "no" this October does not
-    /// silence next October.
+    /// silence next October. Every season ends by December 31 (TIS THE SEASON runs from a
+    /// week before US Thanksgiving), so one calendar year holds one season.
     static func neverKey(_ bundleID: String) -> String { "nostalgex_seasonal_never_\(bundleID)" }
     static func dismissedKey(_ bundleID: String, year: Int) -> String {
         "nostalgex_seasonal_dismissed_\(bundleID)_\(year)"
@@ -33,13 +34,30 @@ enum SeasonalPrompt {
         bundles: [ChannelBundle],
         enabledBundleIDs: Set<String>,
         now: Date,
+        calendar: Calendar = ChannelBundle.seasonCalendar,
         isSilenced: (String) -> Bool
     ) -> ChannelBundle? {
         bundles.first { bundle in
             bundle.activeMonths != nil
-                && bundle.isInSeason(on: now)
+                && bundle.isInSeason(on: now, calendar: calendar)
                 && !enabledBundleIDs.contains(bundle.id)
                 && !isSilenced(bundle.id)
+        }
+    }
+
+    /// The invite's headline. TIS THE SEASON starts in November, so it only says
+    /// December in December. Mirrors `inviteHeadline` in scripts/nostalgex-season.js.
+    static func headline(for bundle: ChannelBundle, now: Date,
+                         calendar: Calendar = ChannelBundle.seasonCalendar) -> String {
+        switch bundle.id {
+        case "seasonal":
+            return "IT'S OCTOBER. ARE YOU READY TO SCREAM?"
+        case "tis-the-season":
+            return calendar.component(.month, from: now) == 12
+                ? "IT'S DECEMBER. DECK THE CHANNELS."
+                : "THE HOLIDAYS ARE HERE. DECK THE CHANNELS."
+        default:
+            return "\(bundle.name) IS IN SEASON."
         }
     }
 

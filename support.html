@@ -27,7 +27,7 @@
 <meta name="twitter:description" content="How to connect Plex, Jellyfin or Emby to Nostalgex, fix https and CORS errors in the web tuner, and get the right movies onto the right channels.">
 <meta name="twitter:image" content="https://www.nostalgex.app/og-image-1200.png">
 
-<script defer data-site="nostalgex" src="https://statsngraphs.lol/s.js"></script>
+<script async data-site="nostalgex" src="https://statsngraphs.lol/s.js"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -104,6 +104,14 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "First, make sure you're on the latest version. Older builds couldn't play HEVC/H.265 or mkv and would sit on a black screen, and on tvOS 26 anything the server had to convert would freeze on one frame. 1.0.21 fixed both and was tested against MKV, MP4, AVI, AV1, VC-1, 4K and HDR files. A few seconds of the \"tuning\" screen at the start is normal too: anything that isn't directly playable gets transcoded by your server, and that takes a moment to spin up. If a channel never starts, check that transcoding is turned on (Jellyfin: Dashboard → Playback). If one specific title never plays but everything else does, it's almost always a file the server itself can't read (an unmounted drive is the usual culprit). Try it in Plex Web or the Jellyfin web player: if it fails there too, it isn't the app."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why is a Dolby Vision movie missing from my channels on Emby?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "If it's Dolby Vision profile 5 (common on web rips), Nostalgex leaves it off your channels when your server is Emby. Emby can't send profile 5 in a form the Apple TV or a browser shows right, so you'd get a green and purple picture. That goes for MKV and MP4 files alike. Nothing changes on your server, the file just doesn't air. Profile 8, HDR10 and everything else play as normal, and Plex and Jellyfin aren't affected."
           }
         }
       ]
@@ -265,8 +273,9 @@
     <ul>
       <li>Give your server an https address. A free tunnel like <a href="https://tailscale.com/kb/1312/serve">Tailscale Serve</a> or a <a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/">Cloudflare Tunnel</a> gets you one in about two commands, then paste that <code>https://</code> URL in.</li>
       <li>Or just use the Apple TV app, which reaches local <code>http</code>/raw-IP servers directly because native apps don't have this restriction.</li>
+      <li>Or <a href="/self-host">run the tuner on your own server</a>. That copy is served over plain http on your network, so it can reach a plain <code>http</code> Jellyfin or Emby box.</li>
     </ul>
-    <p>A plain http box on your LAN will always work in the Apple TV app and never in a browser tab. That's the one real difference between them.</p>
+    <p>A plain http box on your LAN works in the Apple TV app, and in a browser only if you <a href="/self-host">run the tuner on your own server</a>.</p>
         </section>
 
         <section class="doc-section" id="cors">
@@ -355,6 +364,10 @@ respond @options 204</code></pre>
 
     <details><summary>A channel is a black screen, or takes a while to start. What gives?</summary>
       <div><p>First, make sure you're on the latest version. Older builds couldn't play HEVC/H.265 or mkv and would sit on a black screen, and on tvOS 26 anything the server had to convert would freeze on one frame. 1.0.21 fixed both and was tested against MKV, MP4, AVI, AV1, VC-1, 4K and HDR files. A few seconds of the "tuning" screen at the start is normal too: anything that isn't directly playable gets transcoded by your server, and that takes a moment to spin up. If a channel never starts, check that transcoding is turned on (Jellyfin: Dashboard &rarr; Playback). If one specific title never plays but everything else does, it's almost always a file the server itself can't read (an unmounted drive is the usual culprit). Try it in Plex Web or the Jellyfin web player: if it fails there too, it isn't the app.</p></div>
+    </details>
+
+    <details><summary>Why is a Dolby Vision movie missing from my channels on Emby?</summary>
+      <div><p>If it's Dolby Vision profile 5 (common on web rips), Nostalgex leaves it off your channels when your server is Emby. Emby can't send profile 5 in a form the Apple TV or a browser shows right, so you'd get a green and purple picture. That goes for MKV and MP4 files alike. Nothing changes on your server, the file just doesn't air. Profile 8, HDR10 and everything else play as normal, and Plex and Jellyfin aren't affected.</p></div>
     </details>
         </section>
 

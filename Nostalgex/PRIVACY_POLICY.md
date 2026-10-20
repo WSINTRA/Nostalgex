@@ -1,16 +1,16 @@
 # Privacy Policy
 
-Effective: October 9, 2026
+Effective: October 18, 2026
 
 Nostalgex turns your own Plex, Jellyfin, or Emby library into live TV channels. We do not host, supply, or stream any media. Everything you watch comes off your own server.
 
-This policy covers two separate things: the Nostalgex app on Apple TV, and the nostalgex.app website. They collect different things, so they are described separately.
+This policy covers three separate things: the Nostalgex app on Apple TV, the Nostalgex app on Roku, and the nostalgex.app website. They collect different things, so they are described separately.
 
 ## Summary
 
-- No accounts. No ads. Nothing is sold or rented to anyone.
-- Your server address and login token stay on your Apple TV.
-- The app sends a small, fixed list of anonymous usage events so we can tell whether things are working. No names, no library contents, no titles.
+- No accounts. Nothing is sold or rented to anyone.
+- Your server address and login token stay on your Apple TV or Roku.
+- The Apple TV app sends a small, fixed list of anonymous usage events so we can tell whether things are working. No names, no library contents, no titles. The Roku app sends none.
 - The website uses two lightweight analytics scripts to count page visits.
 - Nothing we collect follows you into other companies' apps or across the web.
 
@@ -18,7 +18,7 @@ This policy covers two separate things: the Nostalgex app on Apple TV, and the n
 
 Nostalgex sends anonymous usage events to [TelemetryDeck](https://telemetrydeck.com), a privacy-focused analytics service, so we can tell whether the app is working: how often it installs and connects, whether playback starts and stays up, and which settings people actually use. Every event carries a `demo` flag so demo-mode exploration can be filtered out of the real numbers.
 
-This is the complete list of events the app can send.
+This is the complete list of events the app can send. Not every occurrence is sent: within one visit the app sends the first of each kind (for example one playback error per server type and reason code) and adds up the rest as counts on the end-of-visit event below.
 
 **Launch and credentials**
 
@@ -58,13 +58,13 @@ For channels Nostalgex builds from your own collections, `channelType` is `colle
 
 - A channel was tuned to by the user, with the channel number, the backend, the method (`guide`, `mini_strip`, `next`, or `previous`), and the channel identity above. Automatic re-selections (library load, snapshot restore, background refresh, foreground return) never fire this event
 - Playback became ready to play, with the channel number, the backend, whether the stream is direct play or a server-side transcode, and the channel identity above
-- Playback stopped, with the channel number, the backend, the delivery mode, the channel identity above, and the accumulated active watch time (a number of seconds — no titles, no scenes, no timestamps). Fires when the user changes channel, disconnects, backgrounds the app, or the sleep timer stops playback
+- Playback stopped, with the channel number, the backend, the delivery mode, the channel identity above, and the accumulated active watch time (a number of seconds — no titles, no scenes, no timestamps). Sent once per channel stay of at least a minute, with programmes on the same channel added together, when the user changes channel, disconnects, backgrounds the app, or the sleep timer stops playback
 - Playback errored, with the channel number, the backend, and one of a short fixed list of reason codes: `no_playable_source`, `transcoding_unavailable`, `player_failed`, `watchdog_skip`, `stalled`
 - Playback fell back to a server-side transcode after direct play failed, with the channel number and the backend
 
 **Session length**
 
-- The app moved to the background, carrying the number of wall-clock seconds it spent in the foreground since the last launch or return-to-foreground. No screen, activity, or content details — just the length of the visit. Used to measure total time in the app
+- The app moved to the background, carrying the number of wall-clock seconds it spent in the foreground since the last launch or return-to-foreground. No screen, activity, or content details — just the length of the visit. Used to measure total time in the app. It also carries, as ranges (0, 1, 2-5, 6-20, 21-50, 51-200, 201+), how many channel changes, playback starts and playback errors happened in the visit and how many events were counted but not sent, plus which kind of server (Plex, Jellyfin, Emby, or demo) was in use
 
 **Settings and app use**
 
@@ -123,11 +123,25 @@ These lookups use public identifiers and titles for the purpose of matching meta
 
 ## Sign-in
 
-Plex sign-in runs through Plex's own PIN system. We never see your Plex username or password. Jellyfin and Emby sign-in goes straight from the app to the server you typed in. Tokens are held in the Keychain on your Apple TV and are never sent to us.
+Plex sign-in runs through Plex's own PIN system. We never see your Plex username or password. Jellyfin and Emby sign-in goes straight from the app to the server you typed in. Tokens are held in the Keychain on your Apple TV and are never sent to us. On Roku, sign-in uses the same Plex code, and the token is kept in the app's own storage on the TV.
 
 ## Playback reporting
 
 The app can report what you are watching back to your own Plex, Jellyfin, or Emby server, so Continue Watching and play counts stay accurate. This is **off by default** and you turn it on in Settings under Playback Reporting. When it is on, the reports go only to the server you connected. They do not come to us.
+
+## The Roku app
+
+The Nostalgex app for Roku works with Plex only. It does not send usage analytics, and it does not use Roku's advertising identifier.
+
+It connects to:
+
+- plex.tv, to sign you in with Plex's own code and to find your servers. You enter the code at plex.tv/link, so the TV never sees your Plex password.
+- Your own Plex server, for your library and for playback. On your home network the app may reach the server at its local address over plain HTTP, the way Plex's own apps do at home. It only does that for a private home-network address, and your token travels in a request header, not in the address. Otherwise it uses HTTPS.
+- The metadata relay on nostalgex.app and the Supabase cache described above, to sort titles onto channels. It sends only public TMDB and IMDb ids. Metadata it fetches is written back to the cache under the title's TMDB id, the same as the Apple TV app and the web tuner. No library titles, account, server or device details go with it.
+
+The Roku app does not report what you watch to your Plex server and does not change anything in your library.
+
+On the TV it keeps your Plex token, a random ID for this install (Plex shows it in your list of devices), your server list, your channel packages and other settings, and a saved copy of your library and guide so it opens quickly. Signing out in Settings removes the token, the install ID, the server list, the saved library and guide, and the metadata cache. Removing the app removes your sign-in and settings; the saved copies sit in the Roku's own cache, which the Roku clears when it needs the room, so sign out first if you want them gone straight away.
 
 ## Tracking
 

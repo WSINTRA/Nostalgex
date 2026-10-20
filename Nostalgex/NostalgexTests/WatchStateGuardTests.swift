@@ -70,7 +70,7 @@ final class WatchStateGuardTests: XCTestCase {
 
     private func tracker(_ item: PlexMediaItem, _ transport: RecordingTransport, _ queue: ReportQueue) -> PlaybackTracker {
         let api = PlexAPIService(serverURL: "http://plex.test", token: "tok", serverID: "srv", reportTransport: transport)
-        return PlaybackTracker(item: item, seekOffset: 0, plexAPI: api, queue: queue, now: { [unowned self] in self.clock })
+        return PlaybackTracker(item: item, seekOffset: 0, plexAPI: api, showNowPlaying: true, markWatched: true, queue: queue, now: { [unowned self] in self.clock })
     }
 
     private func metadata(rk: String, type: String, viewOffset: Int? = nil, viewCount: Int? = nil, show: String? = nil) -> String {
@@ -223,6 +223,7 @@ final class WatchStateGuardTests: XCTestCase {
         let t = tracker(item(rk: "41418", minutes: 99, type: .movie), transport, queue)
 
         play(t, seconds: 30)
+        await queue.drain() // These reports reached the server before the opt-out.
         t.abandon()
         t.timelineTickForTesting()
         await queue.drain()
@@ -395,6 +396,15 @@ final class WatchStateGuardTests: XCTestCase {
         XCTAssertEqual(body?["PlaybackPositionTicks"] as? Int, 0)
         XCTAssertEqual(body?["PlayCount"] as? Int, 1)
         XCTAssertEqual(body?["Played"] as? Bool, true)
+    }
+
+    func testMediaServerRestoreWithoutPriorNeverWritesAResumeReset() async {
+        let transport = RecordingTransport()
+        for counted in [false, true] {
+            await mediaServerGuard(transport).restoreWatchState(
+                for: item(rk: "i1", minutes: 90, type: .movie), prior: nil, countedWatch: counted)
+        }
+        XCTAssertTrue(transport.calls.isEmpty)
     }
 
     // MARK: - Shared decision table (web tuner reads the same file)

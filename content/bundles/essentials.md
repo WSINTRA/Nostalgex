@@ -18,9 +18,9 @@ faq:
 
 Prime Time is the bundle for the stuff you actually watch on a Tuesday.
 
-The retro bundles are hunting a specific era. This one is not. Fifteen channels sort a normal library the way a cable package used to: SITCOMS and LOL for the comedy block, FLICKS and BLOCKBUSTER for movie night, DRAMA TV for the hour long shows, ROM COMS for when two people have to agree on something, FEEL GOOD TV for when nobody wants to think.
+The retro bundles are hunting a specific era. This one is not. Sixteen channels sort a normal library the way a cable package used to: SITCOMS and LOL for the comedy block, FLICKS and BLOCKBUSTER for movie night, DRAMA TV for the hour long shows, ROM COMS for when two people have to agree on something, FEEL GOOD TV for when nobody wants to think.
 
-Then the ones that do a specific job. DOCS and HISTORY & BIO are the channels you land on at eleven at night and are still watching at one. REALITY TV is there without apology. MAN CAVE is the loud end of the shelf. R RATED COMEDY is the stuff you would not have put on with your parents in the room. RECORD STORE is music films and concert docs. FRESH leans on what you added recently, and PREMIERES points at the newest thing in your library, which is the closest Nostalgex gets to saying "new tonight".
+Then the ones that do a specific job. DOCS and HISTORY & BIO are the channels you land on at eleven at night and are still watching at one. REALITY TV is there without apology. CRINGE TV is the comedy you watch through your fingers: The Office, Curb, Nathan for You. MAN CAVE is the loud end of the shelf. R RATED COMEDY is the stuff you would not have put on with your parents in the room. RECORD STORE is music films and concert docs. FRESH leans on what you added recently, and PREMIERES points at the newest thing in your library, which is the closest Nostalgex gets to saying "new tonight".
 
 What makes it the practical pick: it is the bundle most likely to fill a guide on day one. Every channel is assembled from your own Plex or Jellyfin server, so what you get depends entirely on what you own. The app reads the library, groups titles into channels, builds a real schedule and starts playing mid show, as if it had been on all afternoon. A library with four hundred movies and no TV at all still gets a working lineup here. The retro bundles would mostly come up empty.
 

@@ -672,6 +672,8 @@ extension AppState {
         playbackTracker = nil
         outgoing?.stop()
         cancelPINAuth()
+        invalidatePlaybackAttempt()
+        cancellables.removeAll()
         stopActiveTranscodeIfNeeded()
         player?.pause()
         player = nil

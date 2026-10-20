@@ -1,5 +1,5 @@
 {
-  "version": 37,
+  "version": 43,
   "exclusiveRules": [
     {
       "channelIDs": [
@@ -7,32 +7,31 @@
         409,
         410,
         411,
-        412
+        412,
+        413,
+        414
       ],
+      "type": "movie",
+      "source": "movie",
       "genres": [
         "Holiday",
         "Christmas"
       ],
       "titleContains": [
         "Christmas",
-        "Holiday",
         "Xmas",
-        "Santa",
-        "Grinch",
-        "Scrooge",
-        "Nutcracker",
-        "Reindeer",
-        "Snowman",
         "Mistletoe",
         "Noel",
-        "Merry",
         "Rudolph",
         "Frosty",
         "Hanukkah",
         "Kwanzaa",
         "Yuletide",
         "Winter Wonderland",
-        "Jingle"
+        "Jingle",
+        "Santa Claus",
+        "Santa Clause",
+        "Holiday Special"
       ],
       "editorialTitles": [
         "Home Alone",
@@ -60,7 +59,6 @@
         "Bad Santa 2",
         "The Night Before",
         "Scrooged",
-        "Gremlins",
         "Arthur Christmas",
         "The Muppet Christmas Carol",
         "Krampus",
@@ -70,11 +68,6 @@
         "Last Christmas",
         "The Christmas Chronicles",
         "The Christmas Chronicles 2",
-        "Trading Places",
-        "Batman Returns",
-        "Rocky IV",
-        "The Family Man",
-        "While You Were Sleeping",
         "The Family Stone",
         "Four Christmases",
         "Fred Claus",
@@ -83,7 +76,11 @@
         "Jingle Jangle",
         "A Boy Called Christmas",
         "Holiday Inn",
-        "The Shop Around the Corner"
+        "The Santa Clause 3: The Escape Clause",
+        "Trolls Holiday",
+        "Trolls Holiday in Harmony",
+        "The Bad Guys: A Very Bad Holiday",
+        "A Merry Little Ex-Mas"
       ]
     },
     {
@@ -97,17 +94,32 @@
       "manifestExclusive": true
     },
     {
-      "channelID": 132,
-      "titleContains": [
-        "Halloween",
-        "Scream"
+      "channelIDs": [
+        132,
+        415
       ],
+      "type": "movie",
+      "source": "movie",
       "editorialTitles": [
+        "Scream",
+        "Scream 2",
+        "Scream 3",
+        "Scream 4",
+        "Scream (2022)",
+        "Scream VI",
+        "Scream 7",
         "Halloween",
         "Halloween II",
         "Halloween III: Season of the Witch",
         "Halloween 4: The Return of Michael Myers",
+        "Halloween 5: The Revenge of Michael Myers",
+        "Halloween: The Curse of Michael Myers",
+        "Halloween 6: The Curse of Michael Myers",
+        "Halloween H20: 20 Years Later",
         "Halloween H20",
+        "Halloween: Resurrection",
+        "Halloween (2007)",
+        "Halloween II (2009)",
         "Halloween (2018)",
         "Halloween Kills",
         "Halloween Ends"
@@ -168,6 +180,7 @@
       "name": "CASE FILES",
       "description": "True crime, thrillers & mystery",
       "channelIDs": [
+        419,
         40,
         41,
         42,
@@ -194,7 +207,8 @@
         210,
         404,
         402,
-        403
+        403,
+        420
       ]
     },
     {
@@ -285,6 +299,7 @@
       "name": "NETWORKS",
       "description": "Channels by streaming service and studio",
       "channelIDs": [
+        421,
         120,
         121,
         122,
@@ -306,7 +321,11 @@
         131,
         141,
         132,
-        408
+        408,
+        415,
+        416,
+        417,
+        418
       ],
       "activeMonths": [
         10
@@ -315,7 +334,7 @@
     {
       "id": "tis-the-season",
       "name": "TIS THE SEASON",
-      "description": "Christmas and holiday channels",
+      "description": "Christmas, Thanksgiving and holiday channels",
       "channelIDs": [
         130,
         409,
@@ -323,11 +342,16 @@
         411,
         412,
         413,
-        414
+        414,
+        422
       ],
       "activeMonths": [
         12
-      ]
+      ],
+      "seasonStart": {
+        "relativeTo": "usThanksgiving",
+        "days": -7
+      }
     },
     {
       "id": "high-rotation",
@@ -964,6 +988,178 @@
         "yearRange": {
           "min": 1975,
           "max": 1999
+        }
+      }
+    },
+    {
+      "id": 415,
+      "number": 141,
+      "name": "SLASHER",
+      "colorHex": "#C0001A",
+      "category": "seasonal",
+      "minItems": 5,
+      "rules": {
+        "type": "movie",
+        "genres": {
+          "include": [
+            "Horror"
+          ],
+          "exclude": [
+            "Family",
+            "Children",
+            "Kids",
+            "Animation",
+            "Animated"
+          ]
+        },
+        "titleContains": [
+          "Scream",
+          "Halloween",
+          "Friday the 13th",
+          "Nightmare on Elm Street",
+          "Freddy vs",
+          "Freddy's Dead",
+          "Jason X",
+          "Jason Goes to Hell",
+          "Texas Chain Saw",
+          "Texas Chainsaw",
+          "Child's Play",
+          "Chucky",
+          "Terrifier",
+          "Final Destination",
+          "Sleepaway Camp",
+          "I Know What You Did",
+          "I Still Know What You Did",
+          "Urban Legend",
+          "My Bloody Valentine",
+          "Fear Street",
+          "Happy Death Day",
+          "Candyman",
+          "Wrong Turn"
+        ],
+        "titleExcludes": [
+          "Hubie",
+          "Scary Movie",
+          "Hollow Man"
+        ],
+        "keywords": [
+          "slasher",
+          "masked killer",
+          "teen slasher",
+          "final girl"
+        ],
+        "keywordsRequireAnyGenre": [
+          "Horror"
+        ],
+        "keywordGatedGenres": [
+          "Horror"
+        ]
+      }
+    },
+    {
+      "id": 416,
+      "number": 142,
+      "name": "HORROR COMEDY",
+      "colorHex": "#8BC34A",
+      "category": "seasonal",
+      "minItems": 3,
+      "rules": {
+        "type": "movie",
+        "genres": {
+          "include": [
+            "Horror"
+          ],
+          "requireAll": [
+            "Horror",
+            "Comedy"
+          ],
+          "exclude": [
+            "Family",
+            "Children",
+            "Kids",
+            "Animation",
+            "Animated"
+          ]
+        },
+        "contentRatings": [
+          "PG",
+          "PG-13",
+          "R",
+          "NC-17",
+          "TV-14",
+          "TV-MA",
+          "NR"
+        ],
+        "allowUnrated": true
+      }
+    },
+    {
+      "id": 417,
+      "number": 143,
+      "name": "FOUND FOOTAGE",
+      "colorHex": "#5D6D5F",
+      "category": "seasonal",
+      "minItems": 3,
+      "rules": {
+        "type": "movie",
+        "genres": {
+          "include": [
+            "Horror"
+          ],
+          "exclude": [
+            "Family",
+            "Children",
+            "Kids",
+            "Animation",
+            "Animated"
+          ]
+        },
+        "titleContains": [
+          "Blair Witch",
+          "Paranormal Activity",
+          "V/H/S",
+          "Grave Encounters",
+          "Hell House LLC",
+          "Lake Mungo",
+          "The Last Exorcism",
+          "The Taking of Deborah Logan",
+          "Trollhunter",
+          "As Above, So Below"
+        ],
+        "keywords": [
+          "found footage",
+          "found footage horror"
+        ],
+        "keywordsRequireAnyGenre": [
+          "Horror",
+          "Science Fiction"
+        ],
+        "keywordGatedGenres": [
+          "Horror"
+        ]
+      }
+    },
+    {
+      "id": 418,
+      "number": 144,
+      "name": "WORLD HORROR",
+      "colorHex": "#6A1B9A",
+      "category": "seasonal",
+      "minItems": 3,
+      "rules": {
+        "type": "movie",
+        "manifestOnly": true,
+        "genres": {
+          "include": [
+            "Horror"
+          ],
+          "exclude": [
+            "Family",
+            "Children",
+            "Kids",
+            "Animation",
+            "Animated"
+          ]
         }
       }
     },
@@ -2262,6 +2458,15 @@
           "Crash",
           "The Hurt Locker",
           "The Revenant"
+        ],
+        "titleExcludes": [
+          "Rocky II",
+          "Rocky III",
+          "Rocky IV",
+          "Rocky V",
+          "Rocky Balboa",
+          "Gladiator II",
+          "The Godfather Part III"
         ]
       }
     },
@@ -2850,6 +3055,24 @@
         "keywordsRequireAnyGenre": [
           "Crime"
         ]
+      }
+    },
+    {
+      "id": 419,
+      "number": 84,
+      "name": "MYSTERY BOX TV",
+      "colorHex": "#2E4053",
+      "category": "truecrime",
+      "minItems": 3,
+      "rules": {
+        "type": "episode",
+        "manifestOnly": true,
+        "genres": {
+          "include": [
+            "Mystery",
+            "Horror"
+          ]
+        }
       }
     },
     {
@@ -3566,7 +3789,7 @@
     },
     {
       "id": 130,
-      "number": 130,
+      "number": 145,
       "name": "HOLIDAZE",
       "colorHex": "#C41E3A",
       "category": "seasonal",
@@ -3603,6 +3826,7 @@
         "editorialOverrides": [
           "Home Alone",
           "Home Alone 2",
+          "Home Alone 2: Lost in New York",
           "Home Alone 3",
           "Elf",
           "Die Hard",
@@ -3696,14 +3920,20 @@
           "The Family Man",
           "About a Boy",
           "Bridget Jones's Diary",
-          "Daddy's Home 2"
+          "Daddy's Home 2",
+          "Eight Crazy Nights"
         ],
-        "ratingMin": 5
+        "ratingMin": 5,
+        "titleExcludes": [
+          "Roman Holiday",
+          "Mr. Bean's Holiday",
+          "Summer Holiday"
+        ]
       }
     },
     {
       "id": 409,
-      "number": 131,
+      "number": 146,
       "name": "SANTA'S LIST",
       "colorHex": "#2ECC71",
       "category": "seasonal",
@@ -3744,6 +3974,7 @@
           "Die Hard",
           "Die Hard 2",
           "Edward Scissorhands",
+          "Eight Crazy Nights",
           "Elf",
           "Ernest Saves Christmas",
           "Falling for Christmas",
@@ -3791,7 +4022,6 @@
           "Prep & Landing",
           "Reindeer",
           "Rise of the Guardians",
-          "Rocky IV",
           "Rudolph",
           "Rudolph the Red-Nosed Reindeer",
           "Santa",
@@ -3847,13 +4077,16 @@
           "Live Free or Die Hard",
           "Lethal Weapon 2",
           "Lethal Weapon 3",
-          "Lethal Weapon 4"
+          "Lethal Weapon 4",
+          "Roman Holiday",
+          "Mr. Bean's Holiday",
+          "Summer Holiday"
         ]
       }
     },
     {
       "id": 410,
-      "number": 132,
+      "number": 147,
       "name": "NAUGHTY LIST",
       "colorHex": "#C0392B",
       "category": "seasonal",
@@ -3894,6 +4127,7 @@
           "Die Hard",
           "Die Hard 2",
           "Edward Scissorhands",
+          "Eight Crazy Nights",
           "Elf",
           "Ernest Saves Christmas",
           "Falling for Christmas",
@@ -3941,7 +4175,6 @@
           "Prep & Landing",
           "Reindeer",
           "Rise of the Guardians",
-          "Rocky IV",
           "Rudolph",
           "Rudolph the Red-Nosed Reindeer",
           "Santa",
@@ -3994,13 +4227,16 @@
           "Live Free or Die Hard",
           "Lethal Weapon 2",
           "Lethal Weapon 3",
-          "Lethal Weapon 4"
+          "Lethal Weapon 4",
+          "Roman Holiday",
+          "Mr. Bean's Holiday",
+          "Summer Holiday"
         ]
       }
     },
     {
       "id": 411,
-      "number": 133,
+      "number": 148,
       "name": "NOSTALGEX CHRISTMAS",
       "colorHex": "#E74C3C",
       "category": "seasonal",
@@ -4041,6 +4277,7 @@
           "Die Hard",
           "Die Hard 2",
           "Edward Scissorhands",
+          "Eight Crazy Nights",
           "Elf",
           "Ernest Saves Christmas",
           "Falling for Christmas",
@@ -4088,7 +4325,6 @@
           "Prep & Landing",
           "Reindeer",
           "Rise of the Guardians",
-          "Rocky IV",
           "Rudolph",
           "Rudolph the Red-Nosed Reindeer",
           "Santa",
@@ -4138,140 +4374,69 @@
           "Live Free or Die Hard",
           "Lethal Weapon 2",
           "Lethal Weapon 3",
-          "Lethal Weapon 4"
+          "Lethal Weapon 4",
+          "Roman Holiday",
+          "Mr. Bean's Holiday",
+          "Summer Holiday"
         ]
       }
     },
     {
       "id": 412,
-      "number": 134,
-      "name": "HALLMARK",
+      "number": 149,
+      "name": "MISTLETOE",
       "colorHex": "#D98880",
       "category": "seasonal",
       "minItems": 3,
       "rules": {
         "type": "movie",
+        "matchTmdbGenres": true,
         "titleContains": [
-          "8-Bit Christmas",
-          "A Bad Moms Christmas",
-          "A Boy Called Christmas",
-          "A Castle for Christmas",
-          "A Charlie Brown Christmas",
-          "A Christmas Carol",
-          "A Christmas Prince",
-          "A Christmas Story",
-          "A Christmas Story Christmas",
-          "About a Boy",
-          "Anna and the Apocalypse",
-          "Arthur Christmas",
-          "Babes in Toyland",
-          "Bad Santa",
-          "Bad Santa 2",
-          "Batman Returns",
-          "Better Watch Out",
-          "Black Christmas",
-          "Bridget Jones's Diary",
           "Christmas",
-          "Christmas in Connecticut",
-          "Christmas with the Kranks",
-          "Daddy's Home 2",
-          "Deck the Halls",
-          "Die Hard",
-          "Die Hard 2",
-          "Edward Scissorhands",
-          "Elf",
-          "Ernest Saves Christmas",
-          "Falling for Christmas",
-          "Fatman",
-          "Four Christmases",
-          "Fred Claus",
-          "Frosty",
-          "Frosty the Snowman",
-          "Gremlins",
-          "Grinch",
-          "Hanukkah",
-          "Happiest Season",
-          "Holiday",
-          "Holiday Inn",
-          "Home Alone",
-          "Home Alone 2",
-          "Home Alone 3",
-          "How the Grinch Stole Christmas",
-          "It's a Wonderful Life",
-          "Jack Frost",
-          "Jingle",
-          "Jingle All the Way",
-          "Jingle Jangle",
-          "Just Friends",
-          "Klaus",
-          "Krampus",
-          "Kwanzaa",
-          "Last Christmas",
-          "Last Holiday",
-          "Lethal Weapon",
-          "Love Actually",
-          "Meet Me in St. Louis",
-          "Merry",
-          "Mickey's Christmas Carol",
-          "Miracle on 34th Street",
-          "Mistletoe",
-          "Mixed Nuts",
-          "National Lampoon's Christmas Vacation",
-          "Noel",
-          "Noelle",
-          "Nutcracker",
-          "Office Christmas Party",
-          "Olive the Other Reindeer",
-          "Prancer",
-          "Prep & Landing",
-          "Reindeer",
-          "Rise of the Guardians",
-          "Rocky IV",
-          "Rudolph",
-          "Rudolph the Red-Nosed Reindeer",
-          "Santa",
-          "Santa Claus: The Movie",
-          "Scrooge",
-          "Scrooged",
-          "Serendipity",
-          "Single All the Way",
-          "Snowman",
-          "Spirited",
-          "Spirited Away Christmas",
-          "Surviving Christmas",
-          "The Bishop's Wife",
-          "The Christmas Chronicles",
-          "The Christmas Chronicles 2",
-          "The Family Man",
-          "The Family Stone",
-          "The Grinch",
-          "The Holiday",
-          "The Knight Before Christmas",
-          "The Man Who Invented Christmas",
-          "The Muppet Christmas Carol",
-          "The Night Before",
-          "The Polar Express",
-          "The Ref",
-          "The Santa Clause",
-          "The Santa Clause 2",
-          "The Santa Clause 3",
-          "The Shop Around the Corner",
-          "The Star",
-          "The Year Without a Santa Claus",
-          "Trading Places",
-          "Unaccompanied Minors",
-          "Violent Night",
-          "While You Were Sleeping",
-          "White Christmas",
-          "Winter Wonderland",
+          "Christmases",
+          "Christmastime",
           "Xmas",
-          "Yuletide"
+          "X-Mas",
+          "Holiday",
+          "Holidays",
+          "Santa",
+          "Mistletoe",
+          "Noel",
+          "Merry",
+          "Jingle",
+          "Yuletide",
+          "Hanukkah",
+          "Chanukah",
+          "Kwanzaa",
+          "Reindeer",
+          "Sleigh",
+          "North Pole"
+        ],
+        "titleExcludes": [
+          "Roman Holiday",
+          "Summer Holiday"
+        ],
+        "keywords": [
+          "christmas",
+          "christmas romance",
+          "christmastime",
+          "christmas eve",
+          "christmas spirit",
+          "christmas party",
+          "christmas tree",
+          "holiday season",
+          "hanukkah",
+          "chanukah",
+          "xmas",
+          "santa claus"
         ],
         "genres": {
+          "requireAll": [
+            "Romance"
+          ],
           "exclude": [
             "Animation",
-            "Animated",
-            "Horror"
+            "Animated"
           ]
         },
         "contentRatings": [
@@ -4280,55 +4445,128 @@
           "TV-Y",
           "TV-Y7",
           "TV-G",
-          "TV-PG"
+          "TV-PG",
+          "NR",
+          "Not Rated"
         ],
-        "durationRange": {
-          "min": 80,
-          "max": 95
-        },
+        "allowUnrated": true,
         "yearRange": {
-          "min": 2005
+          "min": 1980
         },
-        "titleExcludes": [
-          "Die Hard with a Vengeance",
-          "A Good Day to Die Hard",
-          "Live Free or Die Hard",
-          "Lethal Weapon 2",
-          "Lethal Weapon 3",
-          "Lethal Weapon 4",
-          "The Santa Clause",
-          "Home Alone",
-          "Grinch"
-        ]
+        "durationRange": {
+          "min": 70,
+          "max": 120
+        }
       }
     },
     {
       "id": 413,
-      "number": 135,
+      "number": 150,
       "name": "CHRISTMAS SPECIALS",
       "colorHex": "#27AE60",
       "category": "seasonal",
-      "minItems": 3,
+      "minItems": 5,
       "rules": {
-        "type": "episode",
         "episodeTitleContains": [
           "Christmas",
+          "Christmases",
+          "Christmastime",
           "Xmas",
-          "Holiday",
-          "Santa",
-          "Yule",
-          "Noel",
-          "Festive",
-          "Grinch",
-          "Scrooge",
-          "Reindeer",
-          "Mistletoe",
-          "Snowman",
-          "Nutcracker",
+          "X-Mas",
           "Hanukkah",
+          "Chanukah",
+          "Hannukah",
+          "Kwanzaa",
+          "Chrismukkah",
+          "Festivus",
+          "Yuletide",
+          "Yule",
+          "Mistletoe",
+          "Nutcracker",
+          "Nutcrackers",
+          "Reindeer",
+          "Rudolph",
+          "North Pole",
+          "Sleigh",
+          "Santa Claus",
+          "Santa Clause",
+          "Secret Santa",
+          "Saint Nick",
+          "St. Nick",
+          "Jingle Bell",
+          "Jingle Bells",
+          "Deck the Halls",
+          "Silent Night",
+          "Feliz Navidad",
+          "Navidad",
+          "Krampus",
+          "Nativity",
+          "Winter Wonderland",
+          "Ho Ho Ho",
+          "Holiday Special",
+          "Eggnog",
+          "Season's Greetings"
+        ],
+        "episodeSeasonalTitleContains": [
+          "Holiday",
+          "Holidays",
+          "Santa",
           "Merry",
           "Jingle",
-          "North Pole"
+          "Noel",
+          "Grinch",
+          "Scrooge",
+          "Snowman",
+          "Snowmen",
+          "Elf",
+          "Elves",
+          "Gingerbread",
+          "Tinsel",
+          "Ornament",
+          "Tis the Season"
+        ],
+        "episodeAirWindow": {
+          "from": "11-25",
+          "to": "01-07"
+        },
+        "episodeSummaryContains": [
+          "Christmas",
+          "Christmases",
+          "Christmastime",
+          "Xmas",
+          "X-Mas",
+          "Hanukkah",
+          "Chanukah",
+          "Hannukah",
+          "Kwanzaa",
+          "Chrismukkah",
+          "Festivus",
+          "Yuletide",
+          "Santa Claus",
+          "Saint Nick",
+          "St. Nick",
+          "Krampus",
+          "Nativity"
+        ],
+        "episodeTitleExcludes": [
+          "Christmas Island",
+          "Santa Monica",
+          "Santa Barbara",
+          "Santa Fe",
+          "Santa Cruz",
+          "Santa Clara",
+          "Santa Clarita",
+          "Santa Ana",
+          "Santa Anas",
+          "Santa Rosa",
+          "Santa Maria",
+          "Santa Catalina",
+          "Santa Anita",
+          "Roman Holiday",
+          "Bank Holiday",
+          "Summer Holiday",
+          "Summer Holidays",
+          "Spring Holiday"
         ],
         "contentRatings": [
           "TV-PG",
@@ -4336,37 +4574,123 @@
           "TV-14",
           "TV-MA",
           "PG-13",
-          "R"
-        ]
+          "R",
+          "NR",
+          "Not Rated"
+        ],
+        "durationRange": {
+          "max": 65
+        }
       }
     },
     {
       "id": 414,
-      "number": 136,
+      "number": 151,
       "name": "KIDS CHRISTMAS TV",
       "colorHex": "#58D68D",
       "category": "seasonal",
-      "minItems": 3,
+      "minItems": 5,
       "rules": {
-        "type": "episode",
         "episodeTitleContains": [
           "Christmas",
+          "Christmases",
+          "Christmastime",
           "Xmas",
-          "Holiday",
-          "Santa",
-          "Yule",
-          "Noel",
-          "Festive",
-          "Grinch",
-          "Scrooge",
-          "Reindeer",
-          "Mistletoe",
-          "Snowman",
-          "Nutcracker",
+          "X-Mas",
           "Hanukkah",
+          "Chanukah",
+          "Hannukah",
+          "Kwanzaa",
+          "Chrismukkah",
+          "Festivus",
+          "Yuletide",
+          "Yule",
+          "Mistletoe",
+          "Nutcracker",
+          "Nutcrackers",
+          "Reindeer",
+          "Rudolph",
+          "North Pole",
+          "Sleigh",
+          "Santa Claus",
+          "Santa Clause",
+          "Secret Santa",
+          "Saint Nick",
+          "St. Nick",
+          "Jingle Bell",
+          "Jingle Bells",
+          "Deck the Halls",
+          "Silent Night",
+          "Feliz Navidad",
+          "Navidad",
+          "Krampus",
+          "Nativity",
+          "Winter Wonderland",
+          "Ho Ho Ho",
+          "Holiday Special",
+          "Eggnog",
+          "Season's Greetings"
+        ],
+        "episodeSeasonalTitleContains": [
+          "Holiday",
+          "Holidays",
+          "Santa",
           "Merry",
           "Jingle",
-          "North Pole"
+          "Noel",
+          "Grinch",
+          "Scrooge",
+          "Snowman",
+          "Snowmen",
+          "Elf",
+          "Elves",
+          "Gingerbread",
+          "Tinsel",
+          "Ornament",
+          "Tis the Season"
+        ],
+        "episodeAirWindow": {
+          "from": "11-25",
+          "to": "01-07"
+        },
+        "episodeSummaryContains": [
+          "Christmas",
+          "Christmases",
+          "Christmastime",
+          "Xmas",
+          "X-Mas",
+          "Hanukkah",
+          "Chanukah",
+          "Hannukah",
+          "Kwanzaa",
+          "Chrismukkah",
+          "Festivus",
+          "Yuletide",
+          "Santa Claus",
+          "Saint Nick",
+          "St. Nick",
+          "Krampus",
+          "Nativity"
+        ],
+        "episodeTitleExcludes": [
+          "Christmas Island",
+          "Santa Monica",
+          "Santa Barbara",
+          "Santa Fe",
+          "Santa Cruz",
+          "Santa Clara",
+          "Santa Clarita",
+          "Santa Ana",
+          "Santa Anas",
+          "Santa Rosa",
+          "Santa Maria",
+          "Santa Catalina",
+          "Santa Anita",
+          "Roman Holiday",
+          "Bank Holiday",
+          "Summer Holiday",
+          "Summer Holidays",
+          "Spring Holiday"
         ],
         "contentRatings": [
           "TV-Y",
@@ -4374,7 +4698,47 @@
           "TV-G",
           "G"
         ],
-        "allowUnrated": true
+        "allowUnrated": true,
+        "durationRange": {
+          "max": 65
+        }
+      }
+    },
+    {
+      "id": 422,
+      "number": 152,
+      "name": "TURKEY DAY",
+      "colorHex": "#B9770E",
+      "category": "seasonal",
+      "minItems": 5,
+      "rules": {
+        "episodeTitleContains": [
+          "Thanksgiving",
+          "Thanksgivings",
+          "Friendsgiving",
+          "Slapsgiving",
+          "Turkey Day"
+        ],
+        "episodeSeasonalTitleContains": [
+          "Turkey",
+          "Turkeys",
+          "Pilgrim",
+          "Pilgrims",
+          "Gobble",
+          "Mayflower",
+          "Cranberry"
+        ],
+        "episodeAirWindow": {
+          "from": "11-01",
+          "to": "11-30"
+        },
+        "episodeSummaryContains": [
+          "Thanksgiving",
+          "Friendsgiving"
+        ],
+        "durationRange": {
+          "max": 65
+        }
       }
     },
     {
@@ -4569,6 +4933,7 @@
           "Grudge Match",
           "Hocus Pocus",
           "Hotel Transylvania",
+          "Hubie",
           "Lord of the Rings",
           "Monster House",
           "Nightmare Before Christmas",
@@ -5007,6 +5372,11 @@
         "keywords": [
           "live action and animation"
         ],
+        "keywordsRequireAnyGenre": [
+          "Animation",
+          "Family",
+          "Comedy"
+        ],
         "contentRatings": [
           "G",
           "PG",
@@ -5059,6 +5429,23 @@
         "productionCompanies": [
           "Miramax",
           "Dimension Films"
+        ]
+      }
+    },
+    {
+      "id": 421,
+      "number": 118,
+      "name": "A24",
+      "colorHex": "#E5E5E5",
+      "category": "streamers",
+      "minItems": 3,
+      "rules": {
+        "type": "movie",
+        "studios": [
+          "A24"
+        ],
+        "productionCompanies": [
+          "A24"
         ]
       }
     },
@@ -5142,6 +5529,63 @@
             "Western"
           ]
         }
+      }
+    },
+    {
+      "id": 420,
+      "number": 55,
+      "name": "CRINGE TV",
+      "colorHex": "#F7DC6F",
+      "category": "essentials",
+      "minItems": 3,
+      "rules": {
+        "type": "episode",
+        "genres": {
+          "include": [
+            "Comedy",
+            "Documentary"
+          ]
+        },
+        "titleContains": [
+          "The Office",
+          "Extras",
+          "Curb Your Enthusiasm",
+          "Peep Show",
+          "Nathan for You",
+          "The Rehearsal",
+          "How To with John Wilson",
+          "The Comeback",
+          "I Think You Should Leave",
+          "Jury Duty",
+          "Alan Partridge",
+          "Summer Heights High",
+          "Hello Ladies",
+          "The Larry Sanders Show",
+          "Tim and Eric",
+          "The Chair Company",
+          "Who Is America",
+          "Da Ali G Show",
+          "The Inbetweeners",
+          "Flight of the Conchords"
+        ],
+        "keywords": [
+          "cringe",
+          "cringe comedy",
+          "awkwardness",
+          "awkward",
+          "awkward situation",
+          "socially awkward",
+          "embarrassment",
+          "uncomfortable",
+          "anti-humor"
+        ],
+        "keywordsRequireAnyGenre": [
+          "Comedy"
+        ],
+        "keywordGatedGenres": [
+          "Comedy",
+          "Documentary"
+        ]
       }
     }
   ]

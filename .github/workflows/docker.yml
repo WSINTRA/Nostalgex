@@ -1,0 +1,106 @@
+# Self-hosted web tuner image: ghcr.io/chadmueller/nostalgex
+#
+# Runs only on a `tuner-v*` tag (its own version line; `v1.0.x` still means the
+# Apple TV app reached Apple). Tag only when tuner files changed, after the PR
+# docker smoke in ci.yml and a local container run pass.
+#
+# The tagged commit must say the same version in package.json "tunerVersion", which
+# is what Settings shows on nostalgex.app and in the image. Bump it in the commit you
+# tag; the job stops before pushing anything if the two differ (RELEASING.md):
+#
+#   "tunerVersion": "1.0.3" in package.json, committed, then
+#   git tag tuner-v1.0.3 && git push origin tuner-v1.0.3
+#
+# Pushes 1.0.0, 1.0 and latest for amd64 and arm64, with an SBOM and provenance.
+# A new GHCR package starts private; flip it to public once, at launch.
+#
+# Enrichment needs the Supabase URL and anon key baked into the page. They are
+# public by design (row level security protects the table), so they are repo
+# *variables*, not secrets: Settings > Secrets and variables > Actions > Variables,
+# VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY. Unset, the image builds with
+# enrichment off.
+name: Docker image
+
+on:
+  push:
+    tags: ["tuner-v*"]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  image:
+    name: Build and push (amd64 + arm64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#tuner-v}" >> "$GITHUB_OUTPUT"
+
+      # nostalgex.app shows package.json "tunerVersion"; the image shows the tag's
+      # version. One release, one number: a tag without the bump fails here.
+      - name: Tag matches package.json tunerVersion
+        env:
+          TAG_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          committed="$(node -p "require('./package.json').tunerVersion")"
+          if [ "$committed" != "$TAG_VERSION" ]; then
+            echo "::error file=package.json::Tag ${GITHUB_REF_NAME} is $TAG_VERSION but package.json tunerVersion is $committed. Bump tunerVersion in the commit you tag."
+            exit 1
+          fi
+          echo "tunerVersion $committed matches ${GITHUB_REF_NAME}"
+
+      # The build stage runs on the runner's own platform and the runtime stage has
+      # no RUN steps, so QEMU is only a safety net for future changes.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/chadmueller/nostalgex
+          tags: |
+            type=match,pattern=tuner-v(\d+\.\d+\.\d+.*),group=1
+            type=match,pattern=tuner-v(\d+\.\d+)\.\d+$,group=1
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+          labels: |
+            org.opencontainers.image.title=Nostalgex web tuner
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+
+      - id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NOSTALGEX_TUNER_VERSION=${{ steps.version.outputs.version }}
+            VITE_SUPABASE_URL=${{ vars.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_ANON_KEY=${{ vars.VITE_SUPABASE_ANON_KEY }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/chadmueller/nostalgex
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: false

@@ -47,7 +47,7 @@
   }
 
   function mediaServerPlan(prior, counted) {
-    if (!prior) return [{ kind: 'userData', position: 0 }];
+    if (!prior) return []; // No baseline: skip cleanup instead of erasing real progress.
     if (counted) return [{ kind: 'userData', position: 0, playCount: prior.playCount + 1, played: true }];
     if (prior.resumePosition === 0 && prior.playCount === 0 && !prior.played) return [{ kind: 'markUnplayed' }];
     const step = { kind: 'userData', position: prior.resumePosition, playCount: prior.playCount, played: prior.played };
@@ -82,6 +82,44 @@
         return tail;
       },
       drain() { return tail; },
+    };
+  }
+
+  // Independent opt-ins. A legacy explicit choice seeds each missing new setting;
+  // an explicit new OFF always wins. Invalid/missing values remain private by default.
+  const reportingKeys = {
+    legacy: 'plex90_sync_activity', nowPlaying: 'plex90_now_playing_v1', markWatched: 'plex90_mark_watched_v1',
+  };
+  function loadReportingPreferences(storage) {
+    const read = key => { try { return storage.getItem(key); } catch (_) { return null; } };
+    const legacy = read(reportingKeys.legacy) === 'true';
+    const resolve = value => value === 'true' ? true : value === 'false' ? false : legacy;
+    return { nowPlaying: resolve(read(reportingKeys.nowPlaying)), markWatched: resolve(read(reportingKeys.markWatched)) };
+  }
+  function saveReportingPreferences(storage, options) {
+    // Persist the complete pair, so changing one toggle cannot later re-import a
+    // legacy ON into the other toggle after an application upgrade.
+    try {
+      storage.setItem(reportingKeys.nowPlaying, String(!!options.nowPlaying));
+      storage.setItem(reportingKeys.markWatched, String(!!options.markWatched));
+      storage.setItem(reportingKeys.legacy, String(!!options.nowPlaying && !!options.markWatched));
+    } catch (_) { /* This browser session still uses the explicit choice. */ }
+  }
+
+  // Shared by every tracker in this page. Turning a choice off invalidates queued
+  // writes from outgoing channels as well as the currently playing one.
+  function createReportingScope(initial) {
+    let nowPlaying = !!initial.nowPlaying, markWatched = !!initial.markWatched;
+    let activityEpoch = 0, markEpoch = 0;
+    return {
+      update(next) {
+        if (nowPlaying !== !!next.nowPlaying) { nowPlaying = !!next.nowPlaying; activityEpoch++; }
+        if (markWatched !== !!next.markWatched) { markWatched = !!next.markWatched; markEpoch++; }
+      },
+      get activityEpoch() { return activityEpoch; },
+      get markEpoch() { return markEpoch; },
+      allowsActivity(epoch) { return nowPlaying && epoch === activityEpoch; },
+      allowsMark(epoch) { return markWatched && epoch === markEpoch; },
     };
   }
 
@@ -233,6 +271,10 @@
   }
 
   const api = {
+    createReportingScope,
+    reportingKeys,
+    loadReportingPreferences,
+    saveReportingPreferences,
     plexPlan,
     mediaServerPlan,
     describe,

@@ -20,10 +20,13 @@
 <script src="scripts/nostalgex-music-brainz.js"></script>
 <script src="scripts/nostalgex-daily-manifest.js"></script>
 <script src="scripts/nostalgex-library-load.js"></script>
+<script src="scripts/nostalgex-season.js"></script>
 <script src="scripts/nostalgex-enrichment.js"></script>
 <script src="scripts/nostalgex-collections.js"></script>
 <script src="scripts/nostalgex-watch-state.js"></script>
 <script src="scripts/nostalgex-jellyfin-urls.js"></script>
+<script src="scripts/nostalgex-sleep-timer.js"></script>
+<script src="scripts/nostalgex-playback-info.js"></script>
 <style>
   :root {
     --bg: #080810;
@@ -540,6 +543,11 @@
   body.retro-mode .video-container {
     animation: crt-on 1.2s ease forwards, retro-flicker 0.15s linear infinite;
   }
+  /* Retro mode is for the picture. Until a channel plays, the video area holds
+     the loading screen, and a 150ms flicker with 80ms scanlines over it made a
+     TV browser's cursor lag and washed its colours out. */
+  body.retro-mode .player-screen:not(.has-channel) .video-container { animation: none; }
+  body.retro-mode .player-screen:not(.has-channel) .retro-overlay { display: none; }
 
   /* CRT screen curvature */
   body.retro-mode .video-container {
@@ -691,6 +699,19 @@
     line-height: 1.35;
   }
   .v-btn:hover .v-btn-short { color: #000; }
+
+  /* Sizes are for the 140px rail: 58px a button, 50px inside. The longest value is
+     59:59 (the countdown is capped there), 45px at 9px with no letter spacing. The
+     toolbar prefix outranks the compact and touch paddings further down. */
+  .v-btn-pair { display: flex; gap: 4px; width: 100%; flex-shrink: 0; }
+  .v-toolbar .v-btn-pair .v-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-left: 2px;
+    padding-right: 2px;
+    justify-content: center;
+  }
+  .v-toolbar .v-btn-pair .v-btn-value { letter-spacing: 0; white-space: nowrap; }
 
   /* ══════════════════════════════════════
      TOUCH TOP BAR (phones and tablets)
@@ -975,22 +996,6 @@
     gap: 24px;
     background: #000;
     z-index: 100;
-  }
-  .connect-crt-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 2;
-    background:
-      repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.1) 2px,
-        rgba(0,0,0,0.1) 4px
-      ),
-      radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.75) 100%);
-    animation: scanlines 0.08s linear infinite, retro-flicker 0.15s linear infinite;
   }
   .plex-logo {
     position: relative;
@@ -1717,6 +1722,42 @@
     color: rgba(0,255,255,0.35);
   }
 
+  /* Pointer-only ways to do what the keyboard does. A TV browser's remote moves
+     a cursor and sends OK as a tap; no arrow key, Escape or letter ever reaches
+     the page (measured in TV Bro on Google TV). */
+  .grid-page-btns { display: none; gap: 12px; justify-content: center; }
+  .grid-footer .grid-page-btns span { color: inherit; }
+  .grid-page, .fs-ctl, .config-close {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    background: rgba(0,0,0,0.8);
+    border: 2px solid var(--cyan);
+    border-radius: 0;
+    padding: 10px 14px;
+    cursor: pointer;
+  }
+  .grid-page:hover, .fs-ctl:hover, .config-close:hover,
+  .grid-page:focus-visible, .fs-ctl:focus-visible, .config-close:focus-visible {
+    background: var(--cyan); color: #000; outline: none;
+  }
+  .fs-controls { display: flex; gap: 14px; margin-top: 16px; }
+  .fs-ctl { font-size: 11px; padding: 14px 20px; }
+  .fs-overlay.visible .fs-controls { pointer-events: auto; }
+  .config-close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    z-index: 2;
+  }
+  /* A phone's centred logo is wide enough to run under the button, so start
+     the panel below it. */
+  @media (max-width: 560px) and (orientation: portrait) {
+    .config-overlay { padding-top: 68px; }
+    .config-panel { max-height: calc(100vh - 96px); }
+  }
+
   /* ══════════════════════════════════════
      CHANNEL CONFIG OVERLAY
   ══════════════════════════════════════ */
@@ -1992,6 +2033,16 @@
     color: var(--cyan);
     margin-right: 6px;
   }
+  /* The tuner's version, last thing in Settings, as quiet as the Apple TV app's
+     VERSION line. Selectable, so it can be pasted into a support message. */
+  .config-version {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.35);
+    user-select: text;
+  }
 
   /* Suggested channel rows */
   .config-suggested-row {
@@ -2172,25 +2223,58 @@
      Instagram joined the rail: 20px and 30px over. Tighten the padding and the
      gaps rather than drop a control. Touch pointers are excluded because there
      the rail is the bottom bar, which has its own sizing. */
+  /* SLEEP made it eight controls; at 1440x900 that ran 7px over until the gaps came
+     down by a pixel (measured with the rail beside the info panel). The rail is half
+     the window's height, and with eight rows the 900 step needs 893px, the 760 step
+     780px: 1280x800 ran 43px over and 1440x760 7px, so the two tighter steps start
+     higher than their names. */
   @media (pointer: fine) and (min-width: 1025px) and (max-height: 900px) {
-    .v-toolbar { padding: 10px 10px; gap: 6px; }
+    .v-toolbar { padding: 10px 10px; gap: 5px; }
     .v-btn { padding: 8px; gap: 4px; }
-    .v-coffee { margin-top: 6px; padding: 9px 8px; gap: 5px; }
-    .v-social { margin-top: 6px; padding: 8px; }
+    .v-coffee { margin-top: 4px; padding: 9px 8px; gap: 5px; }
+    .v-social { margin-top: 4px; padding: 8px; }
   }
-  @media (pointer: fine) and (min-width: 1025px) and (max-height: 760px) {
+  @media (pointer: fine) and (min-width: 1025px) and (max-height: 892px) {
     .v-toolbar { padding: 6px 10px; gap: 4px; }
     .v-btn { padding: 6px 8px; }
     .v-coffee { margin-top: 4px; padding: 7px 8px; gap: 4px; }
     .v-coffee svg { width: 26px; height: 26px; }
     .v-social { margin-top: 4px; padding: 6px; }
   }
-  @media (pointer: fine) and (min-width: 1025px) and (max-height: 700px) {
+  @media (pointer: fine) and (min-width: 1025px) and (max-height: 779px) {
     .v-toolbar { padding: 4px 10px; gap: 3px; }
     .v-btn { padding: 4px 8px; gap: 3px; }
     .v-coffee { margin-top: 3px; padding: 6px 8px; gap: 3px; }
     .v-coffee svg { width: 22px; height: 22px; }
     .v-social { margin-top: 3px; padding: 5px; }
+  }
+
+  /* TV browsers. A browser on a TV (TV Bro on Google TV, for one) reports a
+     mouse pointer and a small viewport, so it gets the desktop layout at about
+     twice the size it was drawn for: four guide rows, the rail cut off below
+     APPLE TV, the channel tag riding into the corner logo. Scale the whole page
+     so it lays out like a desktop window about 1440px wide. zoom also scales
+     100vw/100vh, so the body is sized back up to fill the screen. Measured in
+     Chrome 155 at 960x540 and 1280x720. Touch screens never match. */
+  @media (pointer: fine) and (orientation: landscape) and (max-width: 1280px) and (max-height: 720px) {
+    html { zoom: 0.875; }
+    body { width: calc(100vw / 0.875); height: calc(100vh / 0.875); }
+    .config-panel { width: min(1100px, calc(95vw / 0.875)); max-height: calc(85vh / 0.875); }
+  }
+  @media (pointer: fine) and (orientation: landscape) and (max-width: 1099px) and (max-height: 620px) {
+    html { zoom: 0.6667; }
+    body { width: calc(100vw / 0.6667); height: calc(100vh / 0.6667); }
+    .config-panel { width: min(1100px, calc(95vw / 0.6667)); max-height: calc(85vh / 0.6667); }
+    .v-toolbar { padding: 6px 10px; gap: 4px; }
+    .v-btn { padding: 6px 8px; }
+    .v-coffee { margin-top: 4px; padding: 7px 8px; gap: 4px; }
+    .v-coffee svg { width: 26px; height: 26px; }
+    .v-social { margin-top: 4px; padding: 6px; }
+  }
+  @media (pointer: fine) and (orientation: landscape) and (max-width: 1280px) and (max-height: 720px) {
+    .grid-key-hints { display: none; }
+    .grid-page-btns { display: flex; }
+    .grid-footer { padding: 6px 16px; }
   }
 
   /* ══════════════════════════════════════
@@ -2356,6 +2440,108 @@
   }
 
   /* ──────────────────────────────────────
+     Tablets: the rail comes back, the MENU button goes.
+
+     A phone hides six controls behind MENU because the guide needs every
+     pixel. A tablet does not: it has the width for a 140px rail beside the
+     video and the height to spare for it. Two ways to reach the same controls
+     would be worse than either one, so where the rail shows, the top bar, the
+     MENU button and the drawer are all display:none and the desktop corner
+     mark comes back.
+
+     Gated on the width the rail needs, not on a device name. pointer:coarse
+     keeps every laptop and desktop out, including a narrow window. Portrait
+     needs 700px: a phone in portrait is at most about 440px and a folding
+     phone opens to 674px, so both stay on the drawer, while the narrowest
+     tablet in portrait is 744px. Landscape needs 1000px with the same
+     min-height:501px and max-width:1366px as the tablet block above, which it
+     overrides: the narrowest tablet in landscape is 1133px and an unfolded
+     folding phone in landscape is 841px.
+  ────────────────────────────────────── */
+  @media (pointer: coarse) and (orientation: portrait) and (min-width: 700px),
+         (pointer: coarse) and (orientation: landscape) and (min-height: 501px)
+           and (min-width: 1000px) and (max-width: 1366px) {
+    .player-screen.layout-side.has-channel .v-toolbar { display: flex; }
+    .player-screen.has-channel .m-topbar { display: none; }
+    .m-menu-btn, .m-drawer, .m-drawer-scrim { display: none; }
+    /* The top bar carried the wordmark for the drawer layouts. Without it the
+       fixed corner mark is the logo again, exactly as on desktop. */
+    .player-screen.has-channel .player-logo { display: block; }
+
+    /* Same controls, same shape, sized for a thumb. The desktop rail packs a
+       button into 36px, which is under the 44px a touch target needs, so the
+       boxes grow and the padding and gaps shrink to pay for it. Measured at
+       1133x744 the uncompacted rail was 24px taller than its row and scrolled;
+       compacted it fits with room over. */
+    .v-toolbar { padding: 8px; gap: 6px; }
+    .v-toolbar .v-btn,
+    .v-toolbar .v-coffee,
+    .v-toolbar .v-social {
+      min-height: 44px;
+      justify-content: center;
+    }
+    .v-toolbar .v-btn { padding: 6px 8px; }
+    .v-toolbar .v-coffee { margin-top: 6px; padding: 8px; gap: 5px; }
+    .v-toolbar .v-coffee svg { width: 26px; height: 26px; }
+    .v-toolbar .v-social { margin-top: 6px; padding: 8px; }
+    /* [M] and [F] mean nothing without a keyboard, and most tablets have
+       none, so the rail uses the same short labels the drawer did. */
+    .v-toolbar .v-btn-label,
+    .v-toolbar .v-key { display: none; }
+    .v-toolbar .v-btn-short { display: block; }
+
+    /* Touch leaves :hover stuck on the last thing tapped, which would park a
+       solid cyan button in the rail until something else was pressed. */
+    @media (hover: none) {
+      .v-toolbar .v-btn:hover { background: rgba(0, 0, 0, 0.8); }
+      .v-toolbar .v-btn:hover .v-btn-short { color: rgba(0, 196, 255, 0.55); }
+      .v-toolbar .v-btn:hover .v-btn-value { color: var(--cyan); }
+      .v-toolbar .v-btn:hover .v-btn-value.off { color: var(--orange); }
+      .v-toolbar .v-coffee:hover { background: var(--yellow); border-color: var(--yellow); transform: none; }
+      .v-toolbar .v-social:hover { background: rgba(0, 0, 0, 0.8); transform: none; }
+      .v-toolbar .v-btn:active { background: rgba(0, 255, 255, 0.25); }
+      .v-toolbar .v-social:active { background: rgba(0, 196, 255, 0.14); }
+    }
+  }
+
+  /* Tablet portrait. Portrait stacks, so the rail has no column of its own to
+     stand in and all three arrangements were built and measured at 834x1194:
+
+       - rail beside the info panel under a full-width video: the video keeps
+         834x469, but the row under it grows from 148px to the rail's height
+         and the guide falls from 12 rows to 5. Too expensive.
+       - the desktop side layout, info and rail and video all in one row: the
+         video drops to 444px wide, less than the guide underneath it. The
+         video is the page.
+       - rail beside the video, info panel full width underneath, which is what
+         this is: the video goes from 834x469 to 694x390, the row is the
+         rail's height rather than the rail's height added to the video's, and
+         the guide goes up from 12 rows to 17.
+
+     The last one costs 17% of the video's width and buys five guide rows and
+     every control on screen, so that is the one. */
+  @media (pointer: coarse) and (orientation: portrait) and (min-width: 700px) {
+    .player-screen.layout-side.has-channel .video-area {
+      display: grid;
+      grid-template-columns: 140px minmax(0, 1fr);
+      grid-template-areas:
+        "rail  video"
+        "info  info";
+    }
+    /* grid-area beats the order:-1 the portrait block gives the video. */
+    .player-screen.layout-side.has-channel .video-container { grid-area: video; }
+    .player-screen.layout-side.has-channel .info-panel { grid-area: info; }
+    .player-screen.layout-side.has-channel .v-toolbar {
+      grid-area: rail;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    /* The rail is against the left edge here, not the info panel, so the fixed
+       corner mark landed on top of the SOUND button. Past the rail it sits over
+       the video exactly as it does on desktop. */
+    .player-screen.has-channel .player-logo { left: calc(140px + 24px); }
+  }
+
+  /* ──────────────────────────────────────
      Landscape phones: height is the scarce dimension, so the toolbar stays a
      vertical rail (a bottom bar would cost 56px of the 390 available) and
      everything shrinks.
@@ -2388,6 +2574,7 @@
       gap: 3px;
       margin-top: 0;
     }
+    .v-btn-pair { display: contents; }
     .v-toolbar .v-btn-label,
     .v-toolbar .v-key { display: none; }
     .v-toolbar .v-btn-short {
@@ -2705,6 +2892,193 @@
     .loading-library-first-hint { max-width: 60ch; }
     .loading-library-coffee { gap: 8px; }
   }
+  /* ══════════════════════════════════════
+     SLEEP TIMER, "STILL WATCHING?" AND PLAYBACK INFORMATION
+     Pointer first: a TV browser only ever sends clicks, so every one of these
+     opens, chooses and closes with a click, and nothing depends on a key.
+  ══════════════════════════════════════ */
+  .cfg-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 12px;
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.03);
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+  }
+  .cfg-row--wrap { flex-wrap: wrap; }
+  .cfg-row--wrap > div:first-child { flex: 1 1 260px; min-width: 0; }
+  .cfg-row-title { font-size: 22px; color: rgba(255,255,255,0.85); }
+  .cfg-row-desc { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px; }
+
+  .sleep-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sleep-chip, .nx-btn, .nx-close {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    line-height: 1.4;
+    color: var(--cyan);
+    background: rgba(0,0,0,0.8);
+    border: 2px solid var(--cyan);
+    border-radius: 0;
+    padding: 10px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .sleep-chip.active { background: var(--cyan); color: #000; }
+  .sleep-chip:hover, .nx-btn:hover, .nx-close:hover,
+  .sleep-chip:focus-visible, .nx-btn:focus-visible, .nx-close:focus-visible {
+    background: var(--cyan); color: #000; outline: none;
+  }
+
+  .nx-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.66);
+    z-index: 600;
+  }
+  .nx-scrim--top { z-index: 700; }
+  .nx-scrim[hidden], .nx-dialog[hidden], .sleep-grace[hidden] { display: none; }
+  .nx-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 601;
+    width: min(420px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: linear-gradient(135deg, #0a0a1a 0%, #0d0d20 100%);
+    border: 2px solid var(--cyan);
+    box-shadow: 0 0 40px rgba(0,196,255,0.18);
+  }
+  .nx-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .nx-dialog-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    line-height: 1.4;
+  }
+  .nx-close { width: 44px; height: 44px; padding: 0; font-size: 11px; }
+
+  .sleep-rows { display: flex; flex-direction: column; gap: 8px; }
+  .sleep-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 52px;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.8);
+    border: 2px solid rgba(0,196,255,0.45);
+    border-radius: 0;
+    cursor: pointer;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #fff;
+    text-align: left;
+  }
+  .sleep-row-value { color: rgba(255,255,255,0.7); }
+  .sleep-row.active { border-color: var(--cyan); }
+  .sleep-row.active .sleep-row-value { color: var(--cyan); }
+  .sleep-row:hover, .sleep-row:focus-visible { border-color: var(--cyan); background: rgba(0,196,255,0.16); outline: none; }
+
+  /* Over everything, including the settings and an element in full screen (the
+     element is moved into the full screen subtree while it shows). */
+  .sleep-grace {
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+    background: rgba(0,0,0,0.8);
+    border: 0;
+    cursor: pointer;
+    color: #fff;
+    font: inherit;
+  }
+  .sleep-grace:focus { outline: none; }
+  .sleep-grace-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    max-width: 100%;
+    padding: 40px 48px;
+    background: #0d0d12;
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 10px;
+    text-align: center;
+  }
+  .sleep-grace-title { font-family: 'Press Start 2P', monospace; font-size: 20px; letter-spacing: 2px; line-height: 1.4; }
+  .sleep-grace-count { font-family: 'Press Start 2P', monospace; font-size: 12px; letter-spacing: 2px; color: rgba(255,255,255,0.85); }
+  .sleep-grace-hint { font-size: 24px; color: rgba(255,255,255,0.65); letter-spacing: 1px; }
+
+  .nx-dialog--info { z-index: 701; width: min(680px, calc(100vw - 32px)); padding: 20px; gap: 12px; }
+  .pi-note { font-size: 18px; line-height: 1.25; color: rgba(255,255,255,0.6); }
+  .pi-rows {
+    display: grid;
+    grid-template-columns: minmax(150px, max-content) 1fr;
+    gap: 10px 20px;
+    align-items: baseline;
+    margin: 4px 0 6px;
+  }
+  .pi-rows dt {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.6);
+  }
+  .pi-rows dd { font-size: 24px; line-height: 1.1; color: #fff; overflow-wrap: anywhere; }
+  .pi-empty { grid-column: 1 / -1; font-size: 22px; color: rgba(255,255,255,0.8); }
+  #pi-back { align-self: flex-start; padding: 14px 20px; }
+
+  .sleep-ended {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 8;
+    width: min(440px, calc(100% - 32px));
+    padding: 22px 24px;
+    background: rgba(0,0,0,0.82);
+    border: 2px solid var(--cyan);
+    text-align: center;
+    pointer-events: none;
+  }
+  .sleep-ended[hidden] { display: none; }
+  .sleep-ended-title { font-family: 'Press Start 2P', monospace; font-size: 11px; letter-spacing: 2px; color: var(--cyan); line-height: 1.5; }
+  .sleep-ended-detail { font-size: 24px; color: rgba(255,255,255,0.8); margin-top: 10px; }
+
+  /* Phones: one column, label over value. */
+  @media (max-width: 560px) {
+    .pi-rows { grid-template-columns: 1fr; gap: 4px; }
+    .pi-rows dd { margin-bottom: 10px; font-size: 22px; }
+    .sleep-grace-card { padding: 28px 20px; }
+    .sleep-grace-title { font-size: 15px; }
+    .sleep-grace-hint { font-size: 21px; }
+    .cfg-row:not(.cfg-row--wrap) { flex-wrap: wrap; }
+  }
 </style>
 </head>
 <body>
@@ -2750,6 +3124,13 @@
     <button class="m-drawer-item" type="button" onclick="toggleRetroMode()">
       <span class="m-drawer-label">RETRO</span>
       <span class="m-drawer-value" id="dw-retro-val">ON</span>
+    </button>
+    <button class="m-drawer-item" type="button" onclick="closeDrawer(); openSleepDialog();" aria-haspopup="dialog">
+      <span class="m-drawer-label">SLEEP TIMER</span>
+      <span class="m-drawer-value off" id="dw-sleep-val">OFF</span>
+    </button>
+    <button class="m-drawer-item" type="button" onclick="closeDrawer(); openPlaybackInfo();" aria-haspopup="dialog">
+      <span class="m-drawer-label">PLAYBACK INFO</span>
     </button>
     <button class="m-drawer-item" type="button" onclick="closeDrawer(); showConfig();">
       <span class="m-drawer-label">SETTINGS</span>
@@ -2811,6 +3192,23 @@
         <span class="v-btn-short">RETRO</span>
         <span class="v-btn-value" id="tb-retro-val">ON</span>
       </button>
+      <!-- Sleep timer and playback information share a row: the rail was already full,
+           and a ninth full-width button pushed Instagram out of sight at most desktop
+           and TV sizes. Sleep opens the same small picker as the drawer row; it has no
+           key, since it is set once a night. INFO opens the panel from Settings >
+           PLAYBACK > VIEW. -->
+      <div class="v-btn-pair">
+        <button class="v-btn" type="button" id="tb-sleep" onclick="openSleepDialog()" aria-haspopup="dialog">
+          <span class="v-btn-label">SLEEP</span>
+          <span class="v-btn-short">SLEEP</span>
+          <span class="v-btn-value off" id="tb-sleep-val">OFF</span>
+        </button>
+        <button class="v-btn" type="button" id="tb-info" onclick="togglePlaybackInfo()" aria-haspopup="dialog" aria-label="Playback information">
+          <span class="v-btn-label">INFO</span>
+          <span class="v-btn-short">INFO</span>
+          <span class="v-btn-value v-key">[I]</span>
+        </button>
+      </div>
       <button class="v-btn" onclick="showConfig()">
         <span class="v-btn-label">SETTINGS</span>
         <span class="v-btn-short">SETTINGS</span>
@@ -2818,6 +3216,7 @@
       </button>
       <a class="v-btn v-btn--appletv" href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener noreferrer" aria-label="Download Nostalgex on Apple TV">
         <span class="v-btn-label">APPLE TV</span>
+        <span class="v-btn-short">APPLE TV</span>
         <span class="v-btn-value">[↓]</span>
       </a>
       <a class="v-coffee" href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener noreferrer" aria-label="Buy me a coffee to support Nostalgex">
@@ -2845,7 +3244,10 @@
       <!-- playsinline is load-bearing on iPhone: without it iOS refuses to run the
            video inline at all, hands playback to the native fullscreen player, and
            pauses on the way out. webkit-playsinline is the same promise for older iOS. -->
-      <video id="plex-video" autoplay muted playsinline webkit-playsinline></video>
+      <!-- The poster is a 1x1 transparent GIF. Android's web view draws a grey
+           box with a large play icon over a video with no poster while the next
+           channel loads; this tells it there is nothing to draw. -->
+      <video id="plex-video" autoplay muted playsinline webkit-playsinline poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
 
       <!-- Unmute button -->
       <button class="unmute-btn" id="unmute-btn">CLICK TO UNMUTE &nbsp;/&nbsp; M KEY</button>
@@ -2895,10 +3297,22 @@
         <div class="fs-overlay-title" id="fs-overlay-title"></div>
         <div class="fs-overlay-bar"><div class="fs-overlay-progress" id="fs-overlay-progress"></div></div>
         <div class="fs-overlay-time" id="fs-overlay-time"></div>
+        <div class="fs-controls" id="fs-controls">
+          <button class="fs-ctl" type="button" data-fs="prev" aria-label="Previous channel">CH -</button>
+          <button class="fs-ctl" type="button" data-fs="next" aria-label="Next channel">CH +</button>
+          <button class="fs-ctl" type="button" data-fs="sound" aria-label="Sound">SOUND <span id="fs-sound-val">OFF</span></button>
+          <button class="fs-ctl" type="button" data-fs="exit" aria-label="Exit full screen">EXIT FULL SCREEN</button>
+        </div>
       </div>
 
       <!-- Clock -->
       <div class="clock-display" id="clock-display">00:00:00</div>
+
+      <!-- Shown after the sleep timer stopped playback, until the next tune. -->
+      <div class="sleep-ended" id="sleep-ended" hidden>
+        <div class="sleep-ended-title">SLEEP TIMER ENDED</div>
+        <div class="sleep-ended-detail">Pick a channel to start watching again.</div>
+      </div>
 
 
       <!-- Active channel display (fallback when no video) -->
@@ -2927,7 +3341,6 @@
 
   <!-- Plex connect screen (direct child of player-screen to avoid stacking context issues) -->
   <div class="plex-connect" id="plex-connect">
-    <div class="connect-crt-overlay"></div>
     <div class="plex-logo">
       <img src="./logo/nostalgex-white.svg" alt="NOSTALGEX">
     </div>
@@ -2964,7 +3377,11 @@
     </div>
     <div class="grid-body" id="grid-body"></div>
     <div class="grid-footer">
-      <span>[ENTER]</span> TUNE IN  <span>[UP/DOWN]</span> BROWSE
+      <div class="grid-key-hints"><span>[ENTER]</span> TUNE IN  <span>[UP/DOWN]</span> BROWSE</div>
+      <div class="grid-page-btns">
+        <button class="grid-page" type="button" data-dir="-1" aria-label="Scroll the guide up">&#9650; UP</button>
+        <button class="grid-page" type="button" data-dir="1" aria-label="Scroll the guide down">&#9660; DOWN</button>
+      </div>
     </div>
   </div>
 
@@ -2973,6 +3390,7 @@
 
 <!-- CHANNEL CONFIG OVERLAY -->
 <div class="config-overlay" id="config-overlay">
+  <button class="config-close" type="button" onclick="hideConfig()" aria-label="Close settings">CLOSE</button>
   <div class="config-panel">
     <div class="config-header">
       <img src="./logo/nostalgex-white.svg" alt="Nostalgex">
@@ -3019,10 +3437,33 @@
       <div class="config-section-label" style="margin-top: 28px;">PLAYBACK</div>
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.08); border-radius: 6px;">
         <div>
-          <div style="font-size: 22px; color: rgba(255,255,255,0.85);">Sync activity to server</div>
-          <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">Off by default. When on, your server sees what's playing and a film you watch most of counts as watched. Channel surfing never fills your Continue Watching.</div>
+          <div style="font-size: 22px; color: rgba(255,255,255,0.85);">Show Now Playing</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">Show the current program on your server. Marking a title watched is a separate choice.</div>
         </div>
-        <button class="plex-btn" id="cfg-plexsync-toggle" style="font-size: 11px; padding: 12px 22px;" onclick="toggleSyncActivity()">OFF</button>
+        <button class="plex-btn" id="cfg-nowplaying-toggle" style="font-size: 11px; padding: 12px 22px;" onclick="toggleNowPlaying()" aria-label="Show Now Playing" aria-pressed="false">OFF</button>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; padding: 16px 20px; background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.08); border-radius: 6px;">
+        <div>
+          <div style="font-size: 22px; color: rgba(255,255,255,0.85);">Mark Watched</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">Count a watch when you join near the start and watch at least 75%. Works with Show Now Playing off.</div>
+        </div>
+        <button class="plex-btn" id="cfg-markwatched-toggle" style="font-size: 11px; padding: 12px 22px;" onclick="toggleMarkWatched()" aria-label="Mark Watched" aria-pressed="false">OFF</button>
+      </div>
+      <p style="font-size: 12px; color: rgba(255,255,255,0.45);">Both are off on a new install. Existing Report Playback choices are preserved. Jellyfin and Emby session reporting restores prior watch state when the session ends; cleanup requires a working connection.</p>
+      <div class="cfg-row cfg-row--wrap">
+        <div>
+          <div class="cfg-row-title">Sleep timer</div>
+          <div class="cfg-row-desc">Stops playback when time's up, after a 20 second "Still watching?" check. Keeps counting when you change channels.</div>
+        </div>
+        <div class="sleep-chips" id="cfg-sleep-chips" role="group" aria-label="Sleep timer"></div>
+      </div>
+      <!-- Last in PLAYBACK on purpose: it is for checking on a stream, not for changing it. -->
+      <div class="cfg-row">
+        <div>
+          <div class="cfg-row-title">Playback information</div>
+          <div class="cfg-row-desc">How this program is playing: direct or through your server, player size, source codecs, and why a fallback happened.</div>
+        </div>
+        <button class="plex-btn" id="cfg-playback-info-btn" type="button" style="font-size: 11px; padding: 12px 22px;" onclick="openPlaybackInfo()" aria-haspopup="dialog">VIEW</button>
       </div>
 
       <div class="config-section-label" style="margin-top: 28px;">LANGUAGE</div>
@@ -3030,7 +3471,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.08); border-radius: 6px;">
           <div>
             <div style="font-size: 18px; color: rgba(255,255,255,0.85);">Audio language</div>
-            <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">Preferred audio track when multiple languages are available (Jellyfin)</div>
+            <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">Preferred audio track when multiple languages are available (Jellyfin and Emby)</div>
           </div>
           <select id="cfg-audio-lang" style="background: rgba(0,0,0,0.6); color: #fff; border: 2px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 8px 12px; font-family: inherit; font-size: 13px; cursor: pointer;" onchange="setAudioLanguage(this.value)">
             <option value="__system__">Auto</option>
@@ -3057,7 +3498,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.08); border-radius: 6px;">
           <div>
             <div style="font-size: 18px; color: rgba(255,255,255,0.85);">Subtitle language</div>
-            <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">Language for subtitles when enabled (C key in fullscreen, Jellyfin)</div>
+            <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">Language for subtitles when enabled (C key in fullscreen, Jellyfin and Emby)</div>
           </div>
           <select id="cfg-subtitle-lang" style="background: rgba(0,0,0,0.6); color: #fff; border: 2px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 8px 12px; font-family: inherit; font-size: 13px; cursor: pointer;" onchange="setSubtitleLanguage(this.value)">
             <option value="__system__">Auto (browser)</option>
@@ -3084,7 +3525,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.08); border-radius: 6px;">
           <div>
             <div style="font-size: 18px; color: rgba(255,255,255,0.85);">Auto subtitles for foreign audio</div>
-            <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">If nothing plays in your audio language, show subtitles automatically (Jellyfin, fullscreen)</div>
+            <div style="font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 4px;">If nothing plays in your audio language, show subtitles automatically (Jellyfin and Emby, fullscreen)</div>
           </div>
           <button class="plex-btn" id="cfg-auto-subs" style="font-size: 11px; padding: 12px 22px;" onclick="toggleAutoSubsForeignAudio()">ON</button>
         </div>
@@ -3092,7 +3533,7 @@
     </div>
 
     <div id="config-tab-server" style="display:none">
-      <div class="config-section-label">PLEX ACCOUNT</div>
+      <div class="config-section-label" id="cfg-account-label">PLEX ACCOUNT</div>
       <div id="config-plex-status" style="margin-bottom: 24px; padding: 16px 20px; background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.08); border-radius: 6px;">
         <div style="font-size: 26px; color: rgba(255,255,255,0.5); letter-spacing: 1px;" id="cfg-server-name">Not connected</div>
         <div style="margin-top: 12px; display: flex; gap: 16px;">
@@ -3159,7 +3600,7 @@
         <div class="help-row"><div class="help-key">M</div><div class="help-desc">Mute / unmute</div></div>
         <div class="help-row"><div class="help-key">F</div><div class="help-desc">Fullscreen</div></div>
         <div class="help-row"><div class="help-key">B</div><div class="help-desc">Toggle retro mode (4:3 + CRT)</div></div>
-        <div class="help-row"><div class="help-key">C</div><div class="help-desc">Toggle subtitles (Jellyfin, in fullscreen)</div></div>
+        <div class="help-row"><div class="help-key">C</div><div class="help-desc">Toggle subtitles (Jellyfin and Emby, in fullscreen)</div></div>
 
         <div class="help-section-label">GUIDE</div>
         <div class="help-row"><div class="help-key">G</div><div class="help-desc">Fullscreen + guide overlay</div></div>
@@ -3189,6 +3630,8 @@
       <div class="config-footer-hint"><span>[DEL]</span> REMOVE</div>
       <div class="config-footer-hint"><span>[☕]</span> <a href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener noreferrer" style="color: rgba(0,255,255,0.45); text-decoration: none; border-bottom: 1px solid rgba(0,255,255,0.16); padding-bottom: 2px;">BUY ME A COFFEE</a></div>
     </div>
+    <!-- WEB TUNER 1.0.3, or WEB TUNER 1.0.3 · DOCKER. Filled in by loadTunerVersion(). -->
+    <div class="config-version" id="cfg-tuner-version" hidden></div>
   </div>
 </div>
 
@@ -3198,6 +3641,41 @@
 
 <!-- Retro mode toast -->
 <div class="retro-toast" id="retro-toast"></div>
+
+<!-- SLEEP TIMER picker. Opened from the rail and the drawer; Settings > PLAYBACK has the
+     same choices inline. Same rows as the Apple TV panel. -->
+<div class="nx-scrim" id="sleep-scrim" hidden></div>
+<div class="nx-dialog" id="sleep-dialog" role="dialog" aria-modal="true" aria-labelledby="sleep-dialog-title" hidden>
+  <div class="nx-dialog-head">
+    <span class="nx-dialog-title" id="sleep-dialog-title">SLEEP TIMER</span>
+    <button class="nx-close" type="button" onclick="closeSleepDialog()" aria-label="Close sleep timer">X</button>
+  </div>
+  <div class="sleep-rows" id="sleep-rows"></div>
+</div>
+
+<!-- "Still watching?" when the sleep timer reaches zero. Any click, tap or key keeps
+     watching; left alone for 20 seconds, playback stops. A button so a TV browser's OK,
+     which only ever arrives as a click, lands on it wherever the cursor is. -->
+<button class="sleep-grace" id="sleep-grace" type="button" hidden aria-live="assertive">
+  <span class="sleep-grace-card">
+    <span class="sleep-grace-title">STILL WATCHING?</span>
+    <span class="sleep-grace-count" id="sleep-grace-count">SLEEPING IN 0:20</span>
+    <span class="sleep-grace-hint" id="sleep-grace-hint">CLICK OR PRESS ANY KEY TO KEEP WATCHING</span>
+  </span>
+</button>
+
+<!-- PLAYBACK INFORMATION, opened from the rail (or the I key), the drawer and
+     Settings > PLAYBACK. Read only, refreshed every second while open. Never shows an
+     address, token, session or item id. -->
+<div class="nx-scrim nx-scrim--top" id="pi-scrim" hidden></div>
+<div class="nx-dialog nx-dialog--info" id="pi-panel" role="dialog" aria-modal="true" aria-labelledby="pi-title" hidden>
+  <div class="nx-dialog-head">
+    <span class="nx-dialog-title" id="pi-title">PLAYBACK INFORMATION</span>
+  </div>
+  <p class="pi-note" id="pi-note"></p>
+  <dl class="pi-rows" id="pi-rows"></dl>
+  <button class="nx-btn" id="pi-back" type="button" onclick="closePlaybackInfo()" aria-label="Close playback information">BACK</button>
+</div>
 
 <script>
   // ══════════════════════════════════════
@@ -3297,10 +3775,11 @@
     }
   }
 
+  // When a seasonal package is in season (its invite, its guide lead, its Settings
+  // note): scripts/nostalgex-season.js, which mirrors ChannelBundle.swift and shares
+  // scripts/season-golden.json with the Apple TV tests.
   function isBundleInSeason(bundle) {
-    if (!bundle.activeMonths) return true;
-    const currentMonth = new Date().getMonth() + 1; // 1-12
-    return bundle.activeMonths.includes(currentMonth);
+    return globalThis.NostalgexSeason.isInSeason(bundle, new Date());
   }
 
   // What the guide prints. `id` is the stable key (collections live at 1,000,000+,
@@ -3308,13 +3787,10 @@
   function chNum(ch) { return ch.number || ch.id; }
 
   // Mirrors GuideChannelOrder.swift: a seasonal package can be switched on any month,
-  // and for the month it runs it leads the guide as a block, in its bundle's order,
+  // and while it is in season it leads the guide as a block, in its bundle's order,
   // above channel one. Numbers are untouched.
   function seasonalLeadIDs() {
-    const now = new Date();
-    return bundles
-      .filter(b => b.activeMonths && enabledBundleIDs.has(b.id) && isBundleInSeason(b))
-      .flatMap(b => b.channelIDs || []);
+    return globalThis.NostalgexSeason.seasonalLeadIDs(bundles, enabledBundleIDs, new Date());
   }
 
   function sortChannelsForGuide(list) {
@@ -3349,14 +3825,10 @@
     renderActiveGuide();
   }
   function seasonalBundleOnOffer() {
-    return bundles.find(b => b.activeMonths && isBundleInSeason(b)
-      && !enabledBundleIDs.has(b.id) && !isSeasonalPromptSilenced(b.id)) || null;
+    return globalThis.NostalgexSeason.bundleToOffer(bundles, enabledBundleIDs, new Date(), isSeasonalPromptSilenced);
   }
   function seasonalHeadline(bundle) {
-    if (bundle.id === 'seasonal') return "IT'S OCTOBER. ARE YOU READY TO SCREAM?";
-    if (bundle.id === 'tis-the-season') return "IT'S DECEMBER. DECK THE CHANNELS.";
-    const month = new Date().toLocaleString('en-US', { month: 'long' }).toUpperCase();
-    return `IT'S ${month}. ${bundle.name} IS ON.`;
+    return globalThis.NostalgexSeason.inviteHeadline(bundle, new Date());
   }
 
   function applyBundleFilter() {
@@ -3420,6 +3892,7 @@
             description: b.description || '',
             channelIDs: b.channelIDs || [],
             activeMonths: b.activeMonths || null,
+            seasonStart: b.seasonStart || null,
             enabled: enabledBundleIDs.has(b.id),
           }));
         }
@@ -3432,6 +3905,10 @@
             titleContains: r.titleContains || [],
             editorialTitles: r.editorialTitles || [],
             manifestExclusive: !!r.manifestExclusive,
+            // Optional scope: the lock only applies to items of this type and library
+            // source (see exclusiveRuleApplies in nostalgex-channel-filter.cjs).
+            type: r.type || null,
+            source: r.source || null,
           }));
         }
 
@@ -3513,12 +3990,13 @@
   }
 
   function filterItems(items, rules, channelID, category) {
-    if (!rules) return [...items];
     const CF = channelFilter();
     if (!CF) {
       console.error('NostalgexChannelFilter missing — is scripts/nostalgex-channel-filter.cjs loaded?');
-      return [];
+      return rules ? [] : [...items];
     }
+    // Emby Dolby Vision profile 5 is on no channel (CF.isLeftOffChannels), rules or not.
+    if (!rules) return [...CF.onChannels(items, mediaBackend)];
     const channel = { id: channelID, rules, category };
     // Exclusivity goes through the shared filter, which builds the same
     // artist-then-title haystack Swift does. A local copy of this lived here and
@@ -3527,6 +4005,7 @@
     const pool = CF.filterPool(items, channel, {
       manifest: channelMembershipManifest,
       exclusiveRules,
+      backend: mediaBackend,
     });
     // A Settings blacklist used to be filtered out here. The tab is gone, so a
     // list saved under plex90_blacklist is no longer read: titles hidden through
@@ -3599,14 +4078,141 @@
   // requests for a single dead segment while an unrelated channel played.
   let activeTranscodeSession = null;
 
+  // Jellyfin and Emby speak the same MediaBrowser API, so they share every path below.
+  // The few places they differ are in scripts/nostalgex-jellyfin-urls.js. One backend
+  // at a time, as always: there is no mixing of server types in one lineup.
+  function isMediaBrowserBackend(backend = mediaBackend) {
+    return backend === 'jellyfin' || backend === 'emby';
+  }
+
+  // PLAYBACK INFORMATION for the programme on screen (scripts/nostalgex-playback-info.js).
+  // One generation per programme. A server-stream retry after a failed direct play is
+  // the same programme, so it keeps the generation and starts a new attempt.
+  let playbackInfo = null;
+  let playbackInfoGeneration = 0;
+  // Set when the sleep timer stopped playback, cleared by the next tune.
+  let sleepStoppedPlayback = false;
+
+  function beginPlaybackInfo(item) {
+    if (item._retryHls && item._infoGeneration && playbackInfo
+        && playbackInfo.generation === item._infoGeneration) {
+      return item._infoGeneration;
+    }
+    playbackInfoGeneration += 1;
+    const backend = isDemoMode ? 'demo' : mediaBackend;
+    playbackInfo = NostalgexPlaybackInfo.create({
+      generation: playbackInfoGeneration,
+      backend,
+      qualityAtTune: NostalgexPlaybackInfo.webQualityLabel(backend),
+      videoCodec: item.videoCodec,
+      audioCodec: item.audioCodec,
+    });
+    return playbackInfoGeneration;
+  }
+
+  // Ready is marked by the attempt that registered for it, and only while that attempt
+  // is still the current one for this programme, so a late event from an earlier
+  // programme or a replaced attempt cannot describe the new one.
+  function watchPlaybackInfoReady(video, request, generation, attempt) {
+    if (attempt == null) return;
+    const info = playbackInfo;
+    const mark = () => {
+      if (!ownsPlaybackRequest(request)) return;
+      if (info === playbackInfo && info.markReady(generation, attempt)) stop();
+    };
+    const onTime = () => { if (!video.paused && video.readyState >= 3) mark(); };
+    const stop = () => {
+      video.removeEventListener('playing', mark);
+      video.removeEventListener('timeupdate', onTime);
+    };
+    video.addEventListener('playing', mark);
+    video.addEventListener('timeupdate', onTime);
+    request.cleanups.push(stop);
+  }
+
+  function playbackInfoRows() {
+    const video = document.getElementById('plex-video');
+    if (!activePlaybackRequest || !playbackInfo || playbackInfo.generation !== playbackInfoGeneration) return [];
+    return playbackInfo.rows(video ? video.videoWidth : 0, video ? video.videoHeight : 0);
+  }
+
+  // A tune owns its resolver, loader, callbacks and server session. Abort saves work;
+  // the generation/reference check is what prevents an ignored abort or a queued event
+  // from an older tune (including A -> B -> A) from touching the current selection.
+  let playbackRequestGeneration = 0;
+  let activePlaybackRequest = null;
+
+  function ownsPlaybackRequest(request) {
+    return !!request && activePlaybackRequest === request
+      && request.generation === playbackRequestGeneration
+      && !request.controller.signal.aborted
+      && currentChannel === request.channelId
+      && mediaBackend === request.backend
+      && (!isMediaBrowserBackend(request.backend) || jellyfinUserId === request.userId)
+      && plexServerUrl === request.serverUrl && plexToken === request.token;
+  }
+
+  function stopTranscodeSession(session) {
+    if (!session || session.stopped || !session.id) return;
+    // A server may reuse an id. A late result must never release the current owner.
+    if (activeTranscodeSession && activeTranscodeSession !== session
+        && activeTranscodeSession.backend === session.backend
+        && activeTranscodeSession.serverUrl === session.serverUrl
+        && activeTranscodeSession.id === session.id) return;
+    session.stopped = true;
+    let url;
+    let options = { keepalive: true };
+    if (isMediaBrowserBackend(session.backend)) {
+      // Jellyfin and Emby alike. On Emby 4.10.1.0 this alone ends the encode within a
+      // second (measured), so there is no Sessions/Playing/Stopped here.
+      url = `${session.serverUrl}/Videos/ActiveEncodings`
+        + `?deviceId=${encodeURIComponent(session.deviceId)}&playSessionId=${encodeURIComponent(session.id)}`;
+      url = NostalgexJellyfinUrls.withApiKey(url, session.token);
+      options.method = 'DELETE';
+      options.headers = { Authorization: session.authorization };
+    } else {
+      url = `${session.serverUrl}/video/:/transcode/universal/stop`
+        + `?session=${encodeURIComponent(session.id)}&X-Plex-Token=${encodeURIComponent(session.token)}`;
+    }
+    // Always use the outgoing session's captured credentials and exact id. Never stop
+    // by device alone: a late resolver could otherwise terminate the newly tuned stream.
+    fetch(url, options).catch(() => {});
+  }
+
   function stopActiveTranscode() {
     const session = activeTranscodeSession;
     activeTranscodeSession = null;
-    if (!session || mediaBackend === 'jellyfin') return;
-    const url = `${session.serverUrl}/video/:/transcode/universal/stop`
-      + `?session=${encodeURIComponent(session.id)}&X-Plex-Token=${encodeURIComponent(session.token)}`;
-    // Best effort: the channel has already moved on either way.
-    fetch(url, { keepalive: true }).catch(() => {});
+    stopTranscodeSession(session);
+  }
+
+  function invalidatePlaybackRequest() {
+    const request = activePlaybackRequest;
+    activePlaybackRequest = null;
+    playbackRequestGeneration += 1;
+    if (request) {
+      request.controller.abort();
+      request.cleanups.forEach(cleanup => cleanup());
+      request.cleanups.length = 0;
+    }
+    disarmPlayRetry();
+    clearSubtitleTracks();
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    stopActiveTranscode();
+    currentPlayingItem = null;
+    if (playbackInfo) playbackInfo.invalidateAttempt();
+  }
+
+  function beginPlaybackRequest(item, channel) {
+    invalidatePlaybackRequest();
+    const request = {
+      generation: playbackRequestGeneration, controller: new AbortController(), cleanups: [],
+      item, channelId: channel.id, backend: mediaBackend,
+      serverUrl: plexServerUrl, token: plexToken,
+      deviceId: getClientId(), userId: jellyfinUserId,
+      authorization: isMediaBrowserBackend(mediaBackend) ? jellyfinAuthHeader() : null,
+    };
+    activePlaybackRequest = request;
+    return request;
   }
   let appState = 'connect'; // 'connect' | 'player' | 'guide' | 'config'
   let discoveredGenres = {}; // { genreName: itemCount }
@@ -3616,12 +4222,12 @@
   let activeSuggestedTab = 'movie'; // 'general' | 'movie' | 'tv' | 'music'
   let retroMode = localStorage.getItem('plex90_retro_mode') !== 'false';
 
-  // Report playback to the server (timeline/scrobble on Plex, session lifecycle on
-  // Jellyfin) so items surface in "Continue Watching" and play counts grow. Off by
-  // default, mirroring tvOS: channel surfing tunes past dozens of programs and
-  // reporting each one buries the household's real "Continue Watching" row. An
-  // explicit choice is stored either way, so opting in survives this default.
-  let syncPlexActivity = localStorage.getItem('plex90_sync_activity') === 'true';
+  // Independent opt-ins, private by default. Existing REPORT PLAYBACK choices
+  // seed both controls, while an explicit new choice always wins.
+  const reportingPreferences = NostalgexWatchState.loadReportingPreferences(localStorage);
+  let nowPlayingReportingEnabled = reportingPreferences.nowPlaying;
+  let markWatched = reportingPreferences.markWatched;
+  const reportingScope = NostalgexWatchState.createReportingScope(reportingPreferences);
 
   // Subtitles (Jellyfin, fullscreen-only — mirrors the tvOS app). Off by default.
   let subtitlesEnabled = localStorage.getItem('plex90_subtitles_enabled') === 'true';
@@ -3633,6 +4239,8 @@
   let currentPlayingItem = null;
   const activeSubtitleTracks = [];
   const activeSubtitleBlobUrls = [];
+  let subtitleRequestGeneration = 0;
+  let subtitleRequestController = null;
 
   // ══════════════════════════════════════
   // INITIALIZE
@@ -3692,7 +4300,34 @@
       videoMuted = false;
       document.getElementById('unmute-btn').style.display = 'none';
       updateToolbarSound();
+      rememberSound();
     });
+
+    // Sound comes back on if the viewer left it on. A page that plays by itself
+    // starts muted, and a browser only lets it unmute inside a press (unmuting
+    // outside one pauses the video), so the saved choice waits for the first
+    // click, tap or key. pointerdown is not used: a touch pointerdown is not a
+    // press that lets a page unmute.
+    let soundWanted = false;
+    try { soundWanted = localStorage.getItem('plex90_sound_on') === 'true'; } catch (e) {}
+    if (soundWanted) {
+      const restoreSound = (e) => {
+        document.removeEventListener('click', restoreSound, true);
+        document.removeEventListener('keydown', restoreSound, true);
+        if (!videoMuted) return;
+        // A press on a sound control flips it itself; unmuting here too would
+        // leave it off.
+        if (e.type === 'click' && e.target.closest && e.target.closest('#unmute-btn, [onclick="toggleMute()"], [data-fs="sound"]')) return;
+        if (e.type === 'keydown' && (e.key === 'm' || e.key === 'M')) return;
+        const video = document.getElementById('plex-video');
+        video.muted = false;
+        videoMuted = false;
+        document.getElementById('unmute-btn').style.display = 'none';
+        updateToolbarSound();
+      };
+      document.addEventListener('click', restoreSound, true);
+      document.addEventListener('keydown', restoreSound, true);
+    }
 
     // Reflect the saved retro state across all controls on load
     updateRetroControls();
@@ -3712,6 +4347,14 @@
       const drawer = document.getElementById('m-drawer');
       if (drawer && drawer.contains(e.target)) return;
       if (menuBtn && menuBtn.contains(e.target)) return;
+      closeDrawer();
+    });
+    // Rotating a tablet from a drawer layout into a rail layout takes the MENU
+    // button away under an open drawer, which would leave the sheet and its
+    // scrim on screen with nothing to close them.
+    window.addEventListener('resize', () => {
+      if (!document.body.classList.contains('drawer-open')) return;
+      if (menuBtn && menuBtn.offsetParent !== null) return;
       closeDrawer();
     });
     // Escape closes and Tab stays inside. Everything else falls through, so
@@ -3738,6 +4381,26 @@
       }
     }, true);
 
+    // Guide paging for pointer-only remotes (shown at TV sizes).
+    document.querySelectorAll('.grid-page').forEach(btn => btn.addEventListener('click', () => {
+      const body = document.getElementById('grid-body');
+      body.scrollBy({ top: Number(btn.dataset.dir) * body.clientHeight * 0.8, behavior: 'smooth' });
+    }));
+
+    // Full screen: a click or an OK press on the picture brings up the info bar
+    // with channel and exit buttons, since a cursor remote has no arrow keys.
+    document.getElementById('video-container').addEventListener('click', (e) => {
+      if (!isVideoFullscreen()) return;
+      const ctl = e.target.closest('.fs-ctl');
+      if (ctl) {
+        if (ctl.dataset.fs === 'prev') prevChannel();
+        else if (ctl.dataset.fs === 'next') nextChannel();
+        else if (ctl.dataset.fs === 'sound') toggleMute();
+        else if (ctl.dataset.fs === 'exit') { toggleFullscreen(); return; }
+      }
+      showFsOverlayFor(5000);
+    });
+
     // Wire up grid row clicks
     document.getElementById('grid-body').addEventListener('click', (e) => {
       const row = e.target.closest('.grid-row');
@@ -3746,7 +4409,7 @@
       if (promoType === 'email') { window.__openPromoModal && window.__openPromoModal(); return; }
       if (promoType === 'coffee') { window.open('https://buymeacoffee.com/chadmueller', '_blank', 'noopener'); return; }
       const channelId = parseInt(row.dataset.channelId);
-      if (channelId) switchChannel(channelId);
+      if (channelId) tuneFromGuide(channelId);
     });
 
     // Wire up config channel row clicks
@@ -4121,7 +4784,9 @@
       fragment.appendChild(row);
 
       if (i === promoCoffeeAt) fragment.appendChild(buildPromoRow('coffee'));
+      // selfhost:strip:start
       if (i === promoEmailAt) fragment.appendChild(buildPromoRow('email'));
+      // selfhost:strip:end
     });
     gridBody.appendChild(fragment);
   }
@@ -4249,6 +4914,9 @@
     if (currentChannel === channelId) return;
 
     clearVideoError();
+    sleepStoppedPlayback = false;
+    const sleepEnded = document.getElementById('sleep-ended');
+    if (sleepEnded) sleepEnded.hidden = true;
     currentChannel = channelId;
     appState = 'player';
     document.getElementById('player-screen').classList.add('has-channel');
@@ -4262,7 +4930,7 @@
     const now = ch.schedule[0];
     const next = ch.schedule[1];
 
-    if (!now) return;
+    if (!now) { stopVideo(); return; }
 
     // Gentle tuning haze on channel change — a soft fade (via the overlay's 0.35s CSS
     // transition) at a restrained peak, not a hard full-brightness flash. Skipped when
@@ -4345,7 +5013,7 @@
   // URL causes 400s on segments AND lets Jellyfin copy h265 video through (black screen +
   // audio). The DeviceProfile's DirectPlayProfiles deliberately omit h265 so the server
   // always transcodes it. Falls back to a hand-built URL if PlaybackInfo is unavailable.
-  async function getJellyfinTranscodeUrl(item) {
+  async function getJellyfinTranscodeUrl(item, request) {
     const msid = item.partKey || item.ratingKey;
     const startTicks = item.offsetSeconds ? Math.floor(item.offsetSeconds) * 10000000 : 0;
     // No StartTimeTicks on the fallback URL. Jellyfin copies the master's query string onto
@@ -4360,12 +5028,26 @@
     // 400. A direct play that failed lands here, because PlaybackInfo offers no
     // TranscodingUrl for a file it thinks the browser can already play.
     const fallback = NostalgexJellyfinUrls.fallbackHlsUrl({
-      serverUrl: plexServerUrl,
+      serverUrl: request.serverUrl,
       itemId: item.ratingKey,
       mediaSourceId: msid,
-      token: plexToken,
-      deviceId: getClientId(),
+      token: request.token,
+      deviceId: request.deviceId,
     });
+    const result = (url, sessionId = null) => ({
+      url,
+      session: {
+        backend: request.backend, serverUrl: request.serverUrl, token: request.token,
+        deviceId: request.deviceId, authorization: request.authorization,
+        id: (url && new URL(url, request.serverUrl).searchParams.get('PlaySessionId')) || sessionId,
+      },
+    });
+    // A forced track in the viewer's subtitle language is burned in; nothing else is. See
+    // point 10 in scripts/nostalgex-jellyfin-urls.js. Noted on the request so the tuner's own
+    // subtitles do not draw the same track a second time.
+    const burn = NostalgexJellyfinUrls.forcedSubtitleToBurn(item.subtitles,
+      lang => langMatches(lang, resolveSubtitleLanguage()));
+    request.burnedSubtitleIndex = burn ? burn.index : null;
     const deviceProfile = {
       MaxStreamingBitrate: 120000000,
       DirectPlayProfiles: [
@@ -4376,35 +5058,45 @@
           Context: 'Streaming', MaxAudioChannels: '2', MinSegments: 1, BreakOnNonKeyFrames: true },
       ],
       CodecProfiles: [],
-      SubtitleProfiles: [],
+      // Every subtitle format as a separate file, and no subtitle stream in the video (below):
+      // the tuner fetches its own WebVTT. Otherwise the server burns a track into the picture.
+      // See point 8 in scripts/nostalgex-jellyfin-urls.js. Encode only for the forced track.
+      SubtitleProfiles: NostalgexJellyfinUrls.subtitleProfiles(burn ? 'Encode' : 'External'),
     };
     try {
-      const res = await fetch(`${plexServerUrl}/Items/${item.ratingKey}/PlaybackInfo?userId=${encodeURIComponent(jellyfinUserId)}`, {
+      const res = await fetch(`${request.serverUrl}/Items/${item.ratingKey}/PlaybackInfo?userId=${encodeURIComponent(request.userId)}`, {
         method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': jellyfinAuthHeader() },
+        signal: request.controller.signal,
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': request.authorization },
         body: JSON.stringify((() => {
           const body = {
             DeviceProfile: deviceProfile,
             MaxStreamingBitrate: 120000000,
             StartTimeTicks: startTicks,
             MediaSourceId: msid,
+            SubtitleStreamIndex: burn ? burn.index : NostalgexJellyfinUrls.NO_SUBTITLE_STREAM,
           };
           const pickedAudio = pickAudioStream(item.audioStreams || []);
           if (pickedAudio) body.AudioStreamIndex = pickedAudio.index;
+          // Emby only: after a failed direct play, turn off direct play AND direct stream,
+          // or Emby offers the same file again and no TranscodingUrl. Jellyfin's body is
+          // unchanged (an empty object here).
+          Object.assign(body, NostalgexJellyfinUrls.serverStreamOnlyFields(request.backend, !!item._retryHls));
           return body;
         })()),
       });
-      if (!res.ok) return fallback;
+      if (!res.ok) return ownsPlaybackRequest(request) ? result(fallback) : null;
       const data = await res.json();
       const sources = data.MediaSources || [];
       const source = sources.find(s => s.Id === msid) || sources[0];
       if (source && source.TranscodingUrl) {
-        return NostalgexJellyfinUrls.withApiKey(`${plexServerUrl}${source.TranscodingUrl}`, plexToken);
+        return result(NostalgexJellyfinUrls.withApiKey(request.serverUrl + source.TranscodingUrl, request.token), data.PlaySessionId);
       }
-      return fallback;
+      return ownsPlaybackRequest(request) ? result(fallback) : result(null, data.PlaySessionId);
     } catch (e) {
+      if (!ownsPlaybackRequest(request) || e.name === 'AbortError') return null;
       console.warn('[Nostalgex] PlaybackInfo failed, using fallback transcode URL:', e);
-      return fallback;
+      return ownsPlaybackRequest(request) ? result(fallback) : null;
     }
   }
 
@@ -4429,189 +5121,189 @@
   // fewer pulses (createPulseBackoff); nothing here changes the user's setting.
   let playbackTracker = null;
 
-  function makePlaybackTracker(item) {
+  function makePlaybackTracker(item, initialOptions = { nowPlaying: nowPlayingReportingEnabled, markWatched }, scope = reportingScope) {
     const WS = window.NostalgexWatchState;
     const queue = WS.sharedQueue;
     const totalSec = (item.duration || 0) * 60;
     const seekOffset = Math.floor(item.offsetSeconds || 0);
-    const entryFrac = totalSec > 0 ? seekOffset / totalSec : 1;
-    const sessionID = (crypto.randomUUID ? crypto.randomUUID() : 'sess-' + Date.now());
     const rk = item.ratingKey;
-    // Per-item server creds so multi-server Plex reports to the right server.
     const serverUrl = item.serverUrl || plexServerUrl;
     const serverToken = item.serverToken || plexToken;
-    const isPlex = mediaBackend !== 'jellyfin';
+    // Jellyfin and Emby report through /Sessions/Playing; everything else is Plex.
+    const isPlex = mediaBackend !== 'jellyfin' && mediaBackend !== 'emby';
+    // Keep the server/profile captured at tune-in for late cleanup after disconnect.
+    const auth = isPlex ? null : jellyfinAuthHeader();
     const guard = isPlex
-      ? WS.plexGuard({
-          serverUrl,
-          authQuery: `X-Plex-Token=${encodeURIComponent(serverToken)}`
-            + `&X-Plex-Client-Identifier=${encodeURIComponent(getClientId())}`
-            + `&X-Plex-Product=Nostalgex&X-Plex-Platform=Web`,
-        })
-      : WS.mediaServerGuard({ serverUrl: plexServerUrl, userId: jellyfinUserId, authHeader: jellyfinAuthHeader });
-
+      ? WS.plexGuard({ serverUrl, authQuery: `X-Plex-Token=${encodeURIComponent(serverToken)}`
+          + `&X-Plex-Client-Identifier=${encodeURIComponent(getClientId())}`
+          + '&X-Plex-Product=Nostalgex&X-Plex-Platform=Web' })
+      : WS.mediaServerGuard({ serverUrl, userId: jellyfinUserId, authHeader: auth });
     const backoff = WS.createPulseBackoff();
+    let options = { nowPlaying: !!initialOptions.nowPlaying, markWatched: !!initialOptions.markWatched };
+    let activityEpoch = 0;
+    let watchedEpoch = 0;
+    let leg = null;
     const t = {
-      eligibleEntry: entryFrac <= 0.15,
-      activeWatchSeconds: 0,
-      watchStart: null,
-      scrobbled: false,
-      stopped: false,
-      started: false,
-      timer: null,
-      prior: null,      // what the server held before the first report (null = unreadable)
-      captureQueued: false,
-      captured: false,  // the read has finished
-      paused: false,    // Plex Now Playing shows a pause as a pause
+      eligibleEntry: totalSec > 0 && seekOffset / totalSec <= 0.15,
+      activeWatchSeconds: 0, watchStart: null, stopped: false, ready: false, timer: null,
+      prior: null, captureQueued: false, captured: false,
+      dirty: false, counted: false, pendingMarkEpoch: null, paused: false,
     };
+    const uuid = () => crypto.randomUUID ? crypto.randomUUID() : 'sess-' + Date.now() + '-' + Math.random();
 
     function accumulate() {
       if (t.watchStart == null) return;
-      t.activeWatchSeconds += (Date.now() - t.watchStart) / 1000;
+      t.activeWatchSeconds += Math.max(0, (Date.now() - t.watchStart) / 1000);
       t.watchStart = null;
     }
-    // Jellyfin/Emby position. Plex reports never carry one.
-    function timeMs() {
-      return (seekOffset * 1000) + Math.round(t.activeWatchSeconds * 1000);
-    }
-
-    // One report through the queue. Pulses wait out the backoff; everything else goes.
-    // `now` (page unloading) sends immediately with keepalive instead of queueing.
-    function report(doFetch, opts) {
-      const o = opts || {};
-      if (o.pulse && !backoff.allowPulse()) return;
-      const run = () => doFetch(!!o.now).then(r => backoff.record(!!(r && r.ok)), () => backoff.record(false));
-      if (o.now) run(); else queue.enqueue(run);
-    }
-
-    // ── Plex reporting (position-free) ──
-    function plexTimeline(state, opts) {
-      const reported = state === 'playing' && t.paused ? 'paused' : state;
-      const u = guard.timelineUrl(rk, reported, sessionID);
-      report(keepalive => fetch(u, { method: 'PUT', headers: { 'Accept': 'application/json' }, keepalive }), opts);
-    }
-    function plexScrobble() {
-      const u = guard.scrobbleUrl(rk);
-      queue.enqueue(() => fetch(u, { headers: { 'Accept': 'application/json' } }).catch(() => {}));
-    }
-
-    // ── Jellyfin / Emby reporting ──
-    // Both bump PlayCount on the start report and store the stop position; the cleanup
-    // writes the exact final state back (prior, or prior + 1 watch when the gate passed).
-    function jfPost(path, opts) {
-      const body = JSON.stringify({
-        ItemId: rk,
-        PlaySessionId: sessionID,
-        MediaSourceId: item.partKey || rk,
-        PositionTicks: timeMs() * 10000, // ms -> 100ns ticks
-        IsPaused: false,
-      });
-      report(keepalive => fetch(`${plexServerUrl}${path}`, {
-        method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': jellyfinAuthHeader() },
-        body,
-        keepalive,
-      }), opts);
-    }
-
-    // Read the prior state once, queued ahead of the first report.
+    function timeMs() { return seekOffset * 1000 + Math.round(t.activeWatchSeconds * 1000); }
     function captureOnce() {
       if (t.captureQueued) return;
       t.captureQueued = true;
       queue.enqueue(async () => {
         t.prior = await guard.capture(rk, item.type);
         t.captured = true;
-        console.log('[Tracker] PRIOR', rk, t.prior ? JSON.stringify(t.prior) : 'none (Plex film, or unreadable)');
       });
     }
-    // Put Continue Watching / Resume back. `unloading`: the page is going away, so send
-    // now with keepalive instead of waiting on the queue (best effort).
     function cleanup(unloading) {
-      if (!t.started) return;
-      const counted = t.scrobbled;
-      if (unloading) {
-        guard.restore(rk, t.captured ? t.prior : null, counted, { keepalive: true });
-        return;
-      }
-      queue.enqueue(() => guard.restore(rk, t.prior, counted));
+      const run = () => {
+        if (!t.dirty) return;
+        return guard.restore(rk, t.captured ? t.prior : null, t.counted, { keepalive: !!unloading });
+      };
+      if (unloading) run(); else queue.enqueue(run);
     }
-
-    function reportProgress() {
-      if (isPlex) plexTimeline('playing', { pulse: true });
-      else jfPost('/Sessions/Playing/Progress', { pulse: true });
+    function activity(state, opts) {
+      const stopping = state === 'stopped';
+      if (!leg || (!stopping && !options.nowPlaying)) return;
+      const currentLeg = leg;
+      const epoch = activityEpoch;
+      const scopeEpoch = scope.activityEpoch;
+      const o = opts || {};
+      if (o.pulse && !backoff.allowPulse()) return;
+      // A new opt-in needs the original state before Jellyfin's start report, or before
+      // a possible Plex episode scrobble. Plex Now Playing alone performs no such read.
+      if (!isPlex || options.markWatched) captureOnce();
+      const position = timeMs() * 10000;
+      const run = async () => {
+        if (!stopping && (epoch !== activityEpoch || !options.nowPlaying || !scope.allowsActivity(scopeEpoch))) return;
+        if (stopping && !currentLeg.started) return;
+        if (!isPlex && !t.prior) return; // No safe restoration baseline: do not start a session.
+        const reported = state === 'playing' && t.paused ? 'paused' : state;
+        let url, init;
+        if (isPlex) {
+          url = guard.timelineUrl(rk, reported, currentLeg.id);
+          init = { method: 'PUT', headers: { Accept: 'application/json' }, keepalive: !!o.now };
+        } else {
+          const path = stopping ? '/Sessions/Playing/Stopped'
+            : currentLeg.started ? '/Sessions/Playing/Progress' : '/Sessions/Playing';
+          // Never let a Now Playing-only stop itself count as a completed watch.
+          const ticks = stopping
+            ? Math.min(position, Math.floor(totalSec * 0.89 * 10000000)) : position;
+          url = serverUrl + path;
+          init = { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: auth },
+            body: JSON.stringify({ ItemId: rk, PlaySessionId: currentLeg.id, MediaSourceId: item.partKey || rk,
+              PositionTicks: ticks, IsPaused: t.paused }), keepalive: !!o.now };
+          t.dirty = true;
+        }
+        currentLeg.started = !stopping;
+        try { const response = await fetch(url, init); backoff.record(!!(response && response.ok)); }
+        catch (_) { backoff.record(false); }
+      };
+      if (o.now) run(); else queue.enqueue(run);
     }
-    // Plex: timeline never bumps the view count, so we scrobble explicitly when the
-    // hybrid gate passes. Jellyfin/Emby: mark played unless the position is already past
-    // the server's own completion line (the stop report counts it there).
+    function beginActivity() {
+      if (!options.nowPlaying || !t.ready || leg) return;
+      leg = { id: uuid(), started: false };
+      activity('playing');
+    }
+    function endActivity(unloading) {
+      if (!leg) return;
+      activity('stopped', { now: !!unloading });
+      leg = null;
+    }
     function evaluateAndScrobble() {
-      if (t.scrobbled) return;
-      if (!t.eligibleEntry || totalSec <= 0) return;
-      if (t.activeWatchSeconds / totalSec < 0.75) return;
-      const fraction = timeMs() / (totalSec * 1000);
-      t.scrobbled = true;
-      if (isPlex) plexScrobble();
-      else if (fraction < 0.9) {
-        const u = guard.markPlayedUrl(rk);
-        queue.enqueue(() => fetch(u, { method: 'POST', headers: { 'Authorization': jellyfinAuthHeader() } }).catch(() => {}));
-      }
-      console.log('[Tracker] SCROBBLE', item.title);
+      if (!options.markWatched || t.counted || t.pendingMarkEpoch === watchedEpoch) return;
+      if (!t.eligibleEntry || totalSec <= 0 || t.activeWatchSeconds / totalSec < 0.75) return;
+      captureOnce();
+      const epoch = watchedEpoch;
+      const scopeEpoch = scope.markEpoch;
+      t.pendingMarkEpoch = epoch;
+      queue.enqueue(async () => {
+        if (!options.markWatched || epoch !== watchedEpoch || !scope.allowsMark(scopeEpoch)) {
+          if (t.pendingMarkEpoch === epoch) t.pendingMarkEpoch = null;
+          return;
+        }
+        // A failed baseline read skips this session, including Mark Watched.
+        if (!isPlex && !t.prior) return;
+        // This records the attempted count, as in the native tracker. It is not a
+        // claim of server acknowledgement. Cleanup runs behind this operation.
+        t.counted = true;
+        t.dirty = true;
+        const url = isPlex ? guard.scrobbleUrl(rk) : guard.markPlayedUrl(rk);
+        try { await fetch(url, isPlex ? { headers: { Accept: 'application/json' } }
+          : { method: 'POST', headers: { Authorization: auth } }); } catch (_) {}
+      });
     }
     function tick() {
       if (t.stopped) return;
       accumulate();
       const video = document.getElementById('plex-video');
       if (video && !video.paused && !video.ended) t.watchStart = Date.now();
-      reportProgress();
+      activity('playing', { pulse: true });
       evaluateAndScrobble();
     }
-
     return {
-      // Begin the session once playback actually starts. Idempotent.
       onReady() {
-        if (t.stopped || t.started) return;
-        t.started = true;
+        if (t.stopped || t.ready) return;
+        t.ready = true;
         t.watchStart = Date.now();
-        captureOnce();
-        if (isPlex) plexTimeline('playing');
-        else jfPost('/Sessions/Playing');
+        if (options.markWatched) captureOnce();
+        beginActivity();
         t.timer = setInterval(tick, 10000);
       },
-      // `fromPlayer`: the video element itself paused or played (not a hidden tab), so
-      // Plex Now Playing shows it right away instead of on the next pulse.
       onPause(fromPlayer) {
         if (t.stopped) return;
         accumulate();
-        if (fromPlayer && isPlex && t.started && !t.paused) { t.paused = true; plexTimeline('paused'); }
+        if (fromPlayer && !t.paused) { t.paused = true; activity('paused'); }
       },
       onResume(fromPlayer) {
-        if (t.stopped || !t.started) return;
+        if (t.stopped || !t.ready) return;
         t.watchStart = Date.now();
-        if (fromPlayer && isPlex && t.paused) { t.paused = false; plexTimeline('playing'); }
+        if (fromPlayer && t.paused) { t.paused = false; activity('playing'); }
       },
-      // Flush, send the stop report, do a final scrobble check, then clean up.
-      // `unloading` (pagehide) sends now with keepalive instead of waiting on the queue.
+      updateReporting(next) {
+        scope.update(next);
+        if (t.stopped) return;
+        const nowChanged = options.nowPlaying !== !!next.nowPlaying;
+        const markChanged = options.markWatched !== !!next.markWatched;
+        if (!nowChanged && !markChanged) return;
+        // Invalidate queued starts/pulses and marks before cleanup. Stops retain their
+        // own session identity and remain valid even if the user opts in again quickly.
+        if (nowChanged) activityEpoch++;
+        if (markChanged) { watchedEpoch++; t.pendingMarkEpoch = null; }
+        if (nowChanged && options.nowPlaying) endActivity(false);
+        options = { nowPlaying: !!next.nowPlaying, markWatched: !!next.markWatched };
+        if (nowChanged && !options.nowPlaying) cleanup(false);
+        if (options.markWatched && t.ready) captureOnce();
+        if (nowChanged && options.nowPlaying) beginActivity();
+      },
       stop(unloading) {
         if (t.stopped) return;
         t.stopped = true;
-        if (t.timer) { clearInterval(t.timer); t.timer = null; }
+        if (t.timer) clearInterval(t.timer);
         accumulate();
-        const now = unloading ? { now: true } : null;
-        if (t.started) {
-          // Plex stop is position-free, so it can never write a resume point.
-          if (isPlex) plexTimeline('stopped', now);
-          else jfPost('/Sessions/Playing/Stopped', now);
-        }
+        endActivity(!!unloading);
         if (!unloading) evaluateAndScrobble();
         cleanup(!!unloading);
       },
-      // Tear down without further progress (the user turned reporting off mid-program).
-      // Plex gets one position-free stop so Now Playing clears; Jellyfin/Emby get no stop
-      // (it would store a position or mark the item played) and the cleanup restores UserData.
       abandon() {
         if (t.stopped) return;
+        activityEpoch++; watchedEpoch++;
+        options = { nowPlaying: false, markWatched: false };
+        endActivity(false);
         t.stopped = true;
-        if (t.timer) { clearInterval(t.timer); t.timer = null; }
-        if (isPlex && t.started) plexTimeline('stopped');
+        if (t.timer) clearInterval(t.timer);
+        accumulate();
         cleanup(false);
       },
     };
@@ -4624,16 +5316,20 @@
   // rejected every play() the schedule made outside a gesture.
   let pendingPlayRetry = null;
   function startVideoPlayback(video) {
+    const request = activePlaybackRequest;
+    if (!ownsPlaybackRequest(request)) return;
     const p = video.play();
     if (!p || !p.catch) return;
     p.catch(e => {
+      if (!ownsPlaybackRequest(request)) return;
       console.warn('Playback blocked, will retry on the next tap or key:', e);
-      armPlayRetry(video);
+      armPlayRetry(video, request);
     });
   }
-  function armPlayRetry(video) {
+  function armPlayRetry(video, request) {
     if (pendingPlayRetry) return;   // one armed listener, not one per refused play
     const retry = () => {
+      if (!ownsPlaybackRequest(request)) return;
       disarmPlayRetry();
       // Only chase it if the element still wants to be playing (the viewer did not
       // deliberately pause, and the channel did not move on).
@@ -4653,6 +5349,13 @@
   }
 
   async function playCurrentItem(item, channel) {
+    const request = beginPlaybackRequest(item, channel);
+    const infoGeneration = beginPlaybackInfo(item);
+    const video = document.getElementById('plex-video');
+    video.onplaying = video.onwaiting = video.onpause = video.onended = video.onerror = video.ontimeupdate = null;
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
     // Finalize the previous program's tracker before starting a new one.
     if (playbackTracker) { playbackTracker.stop(); playbackTracker = null; }
 
@@ -4668,7 +5371,6 @@
 
     clearVideoError();
     disarmPlayRetry();   // a retry armed for the outgoing program must not start this one
-    const video = document.getElementById('plex-video');
 
     // Hide the text display
     document.getElementById('channel-display').classList.remove('active');
@@ -4677,14 +5379,21 @@
     // container does NOT reveal the codec (an mp4 can hold HEVC). So decide by the actual
     // video/audio codec when we have it; the video.onerror handler falls back to transcode
     // if we still guess wrong. canDirectPlay is function-scoped so onerror can read it.
-    // Release the outgoing transcode before a new session id is minted below, or we would
-    // be stopping the id we are about to start (and never releasing the old one).
-    stopActiveTranscode();
 
     let streamUrl;
     let canDirectPlay = false;
-    if (mediaBackend === 'jellyfin') {
-      const msid = item.partKey || item.ratingKey;   // partKey holds the MediaSourceId for Jellyfin
+    // PLAYBACK INFORMATION: what this try is, and why, recorded the moment it is decided,
+    // as on tvOS, so the panel says why while a server stream is still being negotiated.
+    // The reason is an observed decision, never a guess at a cause.
+    let infoDelivery = 'unknown';
+    const beginInfoAttempt = () => {
+      infoDelivery = canDirectPlay ? 'directPlay' : 'serverStream';
+      const reason = canDirectPlay ? 'none' : (item._retryHls ? 'directPlayFailed' : 'serverStreamSelected');
+      watchPlaybackInfoReady(video, request, infoGeneration,
+        playbackInfo && playbackInfo.beginAttempt(infoGeneration, infoDelivery, reason));
+    };
+    if (isMediaBrowserBackend(mediaBackend)) {
+      const msid = item.partKey || item.ratingKey;   // partKey holds the MediaSourceId for Jellyfin and Emby
       const container = (item.container || '').toLowerCase();
       const vcodec = (item.videoCodec || '').toLowerCase();
       const acodec = (item.audioCodec || '').toLowerCase();
@@ -4694,6 +5403,7 @@
       // Only direct-play when we KNOW the codecs are browser-safe. Unknown video codec →
       // transcode (safer than a decode failure).
       canDirectPlay = !item._forceTranscode && containerOK && videoOK && audioOK;
+      beginInfoAttempt();
       if (canDirectPlay) {
         // stream.mp4 for the mp4/m4v/mov family: Jellyfin labels a static stream by file
         // name, so an MP4 saved as .mkv would otherwise come back video/x-matroska.
@@ -4707,11 +5417,19 @@
           audioStreamIndex: pickedAudio ? pickedAudio.index : null,
         });
       } else {
-        // Let Jellyfin build the transcode URL (valid PlaySessionId, forced h264/aac).
-        streamUrl = await getJellyfinTranscodeUrl(item);
+        // Let the server build the transcode URL (valid PlaySessionId, forced h264/aac).
+        const resolved = await getJellyfinTranscodeUrl(item, request);
+        if (!ownsPlaybackRequest(request)) {
+          stopTranscodeSession(resolved && resolved.session);
+          return;
+        }
+        if (!resolved) return;
+        streamUrl = resolved.url;
+        activeTranscodeSession = resolved.session;
       }
     } else {
       canDirectPlay = !item._forceTranscode && item.partKey && ['mp4', 'webm', 'mov'].includes(item.container);
+      beginInfoAttempt();
 
       // Use per-item server credentials for multi-server support; fall back to primary
       const itemServerUrl = item.serverUrl || plexServerUrl;
@@ -4724,7 +5442,7 @@
         // HLS transcode - works for all formats
         const transcodeSessionId = (crypto.randomUUID && crypto.randomUUID())
           || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-        activeTranscodeSession = { id: transcodeSessionId, serverUrl: itemServerUrl, token: itemServerToken };
+        activeTranscodeSession = { backend: request.backend, id: transcodeSessionId, serverUrl: itemServerUrl, token: itemServerToken };
         streamUrl = `${itemServerUrl}/video/:/transcode/universal/start.m3u8`
           + `?path=${encodeURIComponent('/library/metadata/' + item.ratingKey)}`
           + `&mediaIndex=0&partIndex=0&protocol=hls`
@@ -4740,21 +5458,15 @@
       }
     }
 
-    // Destroy the previous loader so it cannot sit there requesting segments of a session
-    // that has already been released above.
-    if (hlsInstance) {
-      hlsInstance.destroy();
-      hlsInstance = null;
-    }
+    if (!ownsPlaybackRequest(request)) return;
 
     // Track the live item and clear any previous subtitle tracks/blobs.
     currentPlayingItem = item;
     clearSubtitleTracks();
 
-    // Spin up a fresh playback tracker for this program (Now Playing + scrobble).
-    // When activity sync is off we leave it null — every call site guards on it, so
-    // no timeline/scrobble is ever sent and nothing lands in Continue Watching.
-    playbackTracker = syncPlexActivity ? makePlaybackTracker(item) : null;
+    // Track the live program even with both reporting choices off, so an explicit
+    // opt-in can take effect without restarting the live stream.
+    playbackTracker = makePlaybackTracker(item);
 
     // Check if it's an HLS stream
     const isHLS = streamUrl.includes('.m3u8');
@@ -4767,6 +5479,7 @@
       hlsInstance.loadSource(streamUrl);
       hlsInstance.attachMedia(video);
       hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (!ownsPlaybackRequest(request)) return;
         startVideoPlayback(video);
       });
       // One recovery attempt per kind, per program. The flags live out here on purpose:
@@ -4788,6 +5501,7 @@
         (Hls.ErrorDetails && Hls.ErrorDetails.LEVEL_EMPTY_ERROR) || 'levelEmptyError',
       ]);
       hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+        if (!ownsPlaybackRequest(request)) return;
         if (!data.fatal) return;
         if (DEAD_STREAM_DETAILS.has(data.details)) {
           try { thisInstance.destroy(); } catch (e) {}
@@ -4802,11 +5516,15 @@
         }
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR && !networkRetried) {
           networkRetried = true;
+          watchPlaybackInfoReady(video, request, infoGeneration,
+            playbackInfo && playbackInfo.beginAttempt(infoGeneration, infoDelivery, 'playerRetry'));
           thisInstance.startLoad();
           return;
         }
         if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !mediaRecovered) {
           mediaRecovered = true;
+          watchPlaybackInfoReady(video, request, infoGeneration,
+            playbackInfo && playbackInfo.beginAttempt(infoGeneration, infoDelivery, 'playerRetry'));
           thisInstance.recoverMediaError();
           return;
         }
@@ -4827,17 +5545,23 @@
     } else if (isHLS && video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari native HLS
       video.src = streamUrl;
-      video.addEventListener('loadedmetadata', () => {
+      const onMetadata = () => {
+        if (!ownsPlaybackRequest(request)) return;
         if (item.offsetSeconds) video.currentTime = item.offsetSeconds;
         startVideoPlayback(video);
-      }, { once: true });
+      };
+      video.addEventListener('loadedmetadata', onMetadata, { once: true });
+      request.cleanups.push(() => video.removeEventListener('loadedmetadata', onMetadata));
     } else {
       // Direct play (mp4, webm)
       video.src = streamUrl;
-      video.addEventListener('loadedmetadata', () => {
+      const onMetadata = () => {
+        if (!ownsPlaybackRequest(request)) return;
         if (item.offsetSeconds) video.currentTime = item.offsetSeconds;
         startVideoPlayback(video);
-      }, { once: true });
+      };
+      video.addEventListener('loadedmetadata', onMetadata, { once: true });
+      request.cleanups.push(() => video.removeEventListener('loadedmetadata', onMetadata));
     }
 
     // Attach subtitles (no-ops unless enabled + Jellyfin + fullscreen).
@@ -4852,9 +5576,12 @@
     let stallTimer = null;
     let lastTime = -1;
     const clearStall = () => { if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; } };
+    request.cleanups.push(clearStall);
     const armStall = () => {
+      if (!ownsPlaybackRequest(request)) return;
       clearStall();
       stallTimer = setTimeout(() => {
+        if (!ownsPlaybackRequest(request)) return;
         if (!video.paused && !video.ended && video.currentTime === lastTime) {
           console.warn('[PLEX 90] Stall detected, skipping:', item.title);
           clearStall();
@@ -4867,6 +5594,7 @@
     // Drive the playback tracker off real player events. Using on* assignment (not
     // addEventListener) so each new program replaces the handler instead of leaking one.
     video.onplaying = () => {
+      if (!ownsPlaybackRequest(request)) return;
       consecutivePlaybackFailures = 0;   // something actually played; the run is broken
       armStall();
       if (playbackTracker) {
@@ -4875,17 +5603,18 @@
       }
     };
     video.onwaiting = armStall;
-    video.onpause = () => { if (playbackTracker) playbackTracker.onPause(true); };
+    video.onpause = () => { if (ownsPlaybackRequest(request) && playbackTracker) playbackTracker.onPause(true); };
 
     // Handle video ending - advance to next item
-    video.onended = () => { clearStall(); onItemEnded(channel); };
+    video.onended = () => { if (!ownsPlaybackRequest(request)) return; clearStall(); onItemEnded(channel); };
     video.onerror = () => {
+      if (!ownsPlaybackRequest(request)) return;
       const code = video.error?.code;
       // Decode/format failure on a direct play → retry once via transcode. Keep partKey so
       // Jellyfin/Plex still gets the right media source id (don't null it).
       if (canDirectPlay && !item._retryHls) {
         console.warn('[PLEX 90] Direct play failed, retrying via transcode…');
-        playCurrentItem({ ...item, _forceTranscode: true, _retryHls: true }, channel);
+        playCurrentItem({ ...item, _forceTranscode: true, _retryHls: true, _infoGeneration: infoGeneration }, channel);
         return;
       }
       // MediaError: 1 aborted, 2 network, 3 decode, 4 source not supported. Same verdict
@@ -4903,6 +5632,8 @@
   // of racing through the schedule, because that means the server, not the file.
   const MAX_CONSECUTIVE_FAILURES = 3;
   function failCurrentItem(channel, item, failure) {
+    const request = activePlaybackRequest;
+    if (!ownsPlaybackRequest(request) || request.item !== item) return;
     consecutivePlaybackFailures += 1;
     console.warn('[PLEX 90] Playback failed', item && item.title,
       `(${consecutivePlaybackFailures}/${MAX_CONSECUTIVE_FAILURES})`);
@@ -4910,11 +5641,12 @@
     showPlaybackFailure(failure, willSkip);
     if (!willSkip) return;   // three in a row points at the server; park rather than spin
     // Five seconds, same as the Apple TV: long enough to read why.
-    setTimeout(() => {
-      if (currentChannel !== (channel && channel.id)) return;  // user already tuned away
+    const skipTimer = setTimeout(() => {
+      if (!ownsPlaybackRequest(request)) return;
       clearVideoError();
       onItemEnded(channel);
     }, 5000);
+    request.cleanups.push(() => clearTimeout(skipTimer));
   }
 
   function onItemEnded(channel) {
@@ -4932,6 +5664,7 @@
   }
 
   function stopVideo() {
+    invalidatePlaybackRequest();
     // Finalize any in-flight watch session (flush + scrobble check) before tearing down.
     if (playbackTracker) { playbackTracker.stop(); playbackTracker = null; }
     disarmPlayRetry();
@@ -5539,6 +6272,10 @@
     } else {
       // Left fullscreen — remove subtitle tracks.
       clearSubtitleTracks();
+      // The info bar lives inside the video, so it would sit over the small picture.
+      if (fsOverlayTimer) clearTimeout(fsOverlayTimer);
+      fsOverlayVisible = false;
+      document.getElementById('fs-overlay').classList.remove('visible');
     }
   });
 
@@ -5569,6 +6306,7 @@
   // Playing; Jellyfin/Emby: restores UserData). The page is going away, so the tracker
   // sends with keepalive instead of waiting on its queue.
   window.addEventListener('pagehide', () => { if (playbackTracker) playbackTracker.stop(true); });
+  window.addEventListener('pagehide', invalidatePlaybackRequest);
 
   function toggleMute() {
     const video = document.getElementById('plex-video');
@@ -5576,11 +6314,16 @@
     videoMuted = video.muted;
     document.getElementById('unmute-btn').style.display = video.muted ? 'block' : 'none';
     updateToolbarSound();
+    rememberSound();
+  }
+
+  function rememberSound() {
+    try { localStorage.setItem('plex90_sound_on', videoMuted ? 'false' : 'true'); } catch (e) {}
   }
 
   function updateToolbarSound() {
     // The rail and the touch drawer each carry their own copy of the value.
-    for (const id of ['tb-sound-val', 'dw-sound-val']) {
+    for (const id of ['tb-sound-val', 'dw-sound-val', 'fs-sound-val']) {
       const el = document.getElementById(id);
       if (!el) continue;
       el.textContent = videoMuted ? 'OFF' : 'ON';
@@ -5640,6 +6383,279 @@
     fetchPlexLibrary();
   }
 
+  /* ══════════════════════════════════════
+     SLEEP TIMER
+     Parity with tvOS (SleepTimerLogic and the sleep timer in AppState+Playback.swift):
+     15, 30 or 60 minutes, a countdown wherever the choice is shown, then "Still
+     watching?" for 20 seconds, then playback stops and full screen closes. It survives
+     channel changes and a reload turns it off. The timer itself, and the tests for its
+     expiry and cancel, are in scripts/nostalgex-sleep-timer.js.
+  ══════════════════════════════════════ */
+  let sleepTicker = null;
+  let sleepDialogReturnFocus = null;
+  // OFF (0) first, then the presets, plus a running duration that is no longer offered.
+  const sleepRowMinutes = (state) => [0].concat(NostalgexSleepTimer.offeredMinutes(state.armed ? state.minutes : null));
+
+  const sleepTimer = NostalgexSleepTimer.createSleepTimer({
+    onChange: renderSleepControls,
+    onGraceStart: showSleepGrace,
+    onExpire: expireSleepPlayback,
+  });
+
+  function sleepChoice(minutes) {
+    if (minutes > 0) sleepTimer.start(minutes);
+    else sleepTimer.cancel();
+  }
+
+  // One renderer for every place the timer shows: the rail, the drawer, the picker,
+  // Settings > PLAYBACK and the "Still watching?" prompt. Runs on every change and once
+  // a second while a timer is armed.
+  function renderSleepControls(state = sleepTimer.state()) {
+    const ST = NostalgexSleepTimer;
+    // Capped at 59:59, so the first second of a 1 HR timer reads 59:59, not 1:00:00,
+    // and the half-width rail button never has to fit hours.
+    const countdown = state.armed ? ST.countdownLabel(Math.min(state.remainingSeconds, 3599)) : 'OFF';
+    for (const id of ['tb-sleep-val', 'dw-sleep-val']) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.textContent = countdown;
+      el.classList.toggle('off', !state.armed);
+    }
+    const rail = document.getElementById('tb-sleep');
+    if (rail) rail.setAttribute('aria-label', state.armed ? `Sleep timer, ${countdown} left` : 'Sleep timer, off');
+
+    const minutesList = sleepRowMinutes(state);
+    // Settings > PLAYBACK: OFF, 15 MIN, 30 MIN, 1 HR. The running one carries its countdown.
+    const chips = document.getElementById('cfg-sleep-chips');
+    if (chips) {
+      if (chips.dataset.minutes !== minutesList.join(',')) {
+        chips.textContent = '';
+        for (const m of minutesList) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'sleep-chip';
+          b.dataset.minutes = String(m);
+          b.addEventListener('click', () => sleepChoice(m));
+          chips.appendChild(b);
+        }
+        chips.dataset.minutes = minutesList.join(',');
+      }
+      for (const b of chips.querySelectorAll('.sleep-chip')) {
+        const m = Number(b.dataset.minutes);
+        const active = m === 0 ? !state.armed : (state.armed && state.minutes === m);
+        b.textContent = m > 0 && active ? `${ST.label(m)} ${countdown}` : ST.label(m);
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-pressed', String(active));
+      }
+    }
+    // The picker: the same rows as the Apple TV panel. OFF says ACTIVE when nothing is
+    // armed; the armed row shows the time left.
+    const rows = document.getElementById('sleep-rows');
+    if (rows) {
+      if (rows.dataset.minutes !== minutesList.join(',')) {
+        rows.textContent = '';
+        for (const m of minutesList) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'sleep-row';
+          b.dataset.minutes = String(m);
+          const l = document.createElement('span'); l.className = 'sleep-row-label';
+          const v = document.createElement('span'); v.className = 'sleep-row-value';
+          b.append(l, v);
+          b.addEventListener('click', () => { sleepChoice(m); closeSleepDialog(); });
+          rows.appendChild(b);
+        }
+        rows.dataset.minutes = minutesList.join(',');
+      }
+      for (const b of rows.querySelectorAll('.sleep-row')) {
+        const m = Number(b.dataset.minutes);
+        const active = m === 0 ? !state.armed : (state.armed && state.minutes === m);
+        b.querySelector('.sleep-row-label').textContent = ST.label(m);
+        b.querySelector('.sleep-row-value').textContent = active ? (m === 0 ? 'ACTIVE' : countdown) : '';
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-pressed', String(active));
+      }
+    }
+
+    const grace = document.getElementById('sleep-grace');
+    if (grace) {
+      if (state.graceActive) {
+        document.getElementById('sleep-grace-count').textContent =
+          `SLEEPING IN ${ST.countdownLabel(state.graceRemainingSeconds)}`;
+      } else if (!grace.hidden) {
+        grace.hidden = true;
+      }
+    }
+
+    const ticking = state.armed || state.graceActive;
+    if (ticking && !sleepTicker) {
+      sleepTicker = setInterval(() => { sleepTimer.revalidate(); renderSleepControls(); }, 1000);
+    } else if (!ticking && sleepTicker) {
+      clearInterval(sleepTicker);
+      sleepTicker = null;
+    }
+  }
+
+  function sleepDialogFocusables() {
+    const dialog = document.getElementById('sleep-dialog');
+    return dialog ? [...dialog.querySelectorAll('button')] : [];
+  }
+  function isSleepDialogOpen() {
+    const dialog = document.getElementById('sleep-dialog');
+    return !!dialog && !dialog.hidden;
+  }
+  function openSleepDialog() {
+    sleepDialogReturnFocus = document.activeElement;
+    renderSleepControls();
+    document.getElementById('sleep-scrim').hidden = false;
+    document.getElementById('sleep-dialog').hidden = false;
+    const active = document.querySelector('#sleep-rows .sleep-row.active') || sleepDialogFocusables()[0];
+    if (active) active.focus({ preventScroll: true });
+  }
+  function closeSleepDialog() {
+    if (!isSleepDialogOpen()) return;
+    document.getElementById('sleep-scrim').hidden = true;
+    document.getElementById('sleep-dialog').hidden = true;
+    const back = sleepDialogReturnFocus && document.contains(sleepDialogReturnFocus) ? sleepDialogReturnFocus : null;
+    sleepDialogReturnFocus = null;
+    if (back && typeof back.focus === 'function') back.focus({ preventScroll: true });
+  }
+
+  // The prompt has to be inside whatever is full screen, or it is not drawn at all.
+  function placeSleepGrace() {
+    const grace = document.getElementById('sleep-grace');
+    const host = document.fullscreenElement || document.body;
+    if (grace && grace.parentNode !== host) host.appendChild(grace);
+  }
+
+  function showSleepGrace() {
+    closeSleepDialog();
+    const video = document.getElementById('plex-video');
+    // iPhone's own full screen player covers the page and nothing can sit on top of it.
+    // Leaving it resumes the picture inline (webkitendfullscreen), and the prompt shows.
+    if (!document.fullscreenElement && video && video.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
+      try { video.webkitExitFullscreen(); } catch (e) {}
+    }
+    placeSleepGrace();
+    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    document.getElementById('sleep-grace-hint').textContent = coarse
+      ? 'TAP ANYWHERE TO KEEP WATCHING' : 'CLICK OR PRESS ANY KEY TO KEEP WATCHING';
+    const grace = document.getElementById('sleep-grace');
+    grace.hidden = false;
+    renderSleepControls();
+    try { grace.focus({ preventScroll: true }); } catch (e) {}
+  }
+
+  // Any input while the prompt is up keeps watching and uses the timer up, as on tvOS.
+  // Taken before the shortcuts see it, so the key that wakes you does not also change channel.
+  function keepWatchingFromGrace(e) {
+    if (!sleepTimer.state().graceActive) return false;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+    }
+    sleepTimer.keepAwake();
+    return true;
+  }
+
+  // What tvOS does at zero: report the stop, pause, drop the server's stream, leave full
+  // screen, back to the guide. Not a sign out: the sign-in stays. The web adds a short
+  // note on the picture, because a stopped <video> here has no play button to explain it.
+  function expireSleepPlayback() {
+    document.getElementById('sleep-grace').hidden = true;
+    stopVideo();
+    sleepStoppedPlayback = true;
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      const video = document.getElementById('plex-video');
+      if (video && video.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
+        try { video.webkitExitFullscreen(); } catch (e) {}
+      }
+    }
+    const ended = document.getElementById('sleep-ended');
+    if (ended && currentChannel) ended.hidden = false;
+    if (currentChannel && !guideVisible) showGuide();
+  }
+
+  // The guide's own way to tune. Choosing the channel that is already on normally does
+  // nothing; after the sleep timer stopped it, it starts that channel again. Nothing in
+  // the background goes through here, so a library refresh never restarts playback.
+  function tuneFromGuide(channelId) {
+    if (sleepStoppedPlayback && channelId === currentChannel) currentChannel = null;
+    switchChannel(channelId);
+  }
+
+  /* ══════════════════════════════════════
+     PLAYBACK INFORMATION PANEL (rail, I key, drawer, Settings > PLAYBACK)
+     Parity with the tvOS panel from PR #26. Rows come from playbackInfoRows(); the
+     model and its tests are in scripts/nostalgex-playback-info.js.
+  ══════════════════════════════════════ */
+  let playbackInfoTimer = null;
+  let playbackInfoReturnFocus = null;
+
+  function isPlaybackInfoOpen() {
+    const panel = document.getElementById('pi-panel');
+    return !!panel && !panel.hidden;
+  }
+  function renderPlaybackInfo() {
+    const rows = playbackInfoRows();
+    document.getElementById('pi-note').textContent = rows.length && playbackInfo
+      ? playbackInfo.evidenceNote
+      : 'Playback information is unavailable for this program.';
+    const list = document.getElementById('pi-rows');
+    list.textContent = '';
+    if (!rows.length) {
+      const empty = document.createElement('div');
+      empty.className = 'pi-empty';
+      empty.textContent = 'Playback information is unavailable.';
+      list.appendChild(empty);
+      return;
+    }
+    for (const row of rows) {
+      const dt = document.createElement('dt'); dt.textContent = row.label;
+      const dd = document.createElement('dd'); dd.textContent = row.value;
+      dd.dataset.row = row.id;
+      list.append(dt, dd);
+    }
+  }
+  function openPlaybackInfo() {
+    playbackInfoReturnFocus = document.activeElement;
+    renderPlaybackInfo();
+    document.getElementById('pi-scrim').hidden = false;
+    document.getElementById('pi-panel').hidden = false;
+    document.getElementById('pi-back').focus({ preventScroll: true });
+    if (playbackInfoTimer) clearInterval(playbackInfoTimer);
+    playbackInfoTimer = setInterval(renderPlaybackInfo, 1000);
+  }
+  function closePlaybackInfo() {
+    if (!isPlaybackInfoOpen()) return;
+    document.getElementById('pi-scrim').hidden = true;
+    document.getElementById('pi-panel').hidden = true;
+    if (playbackInfoTimer) { clearInterval(playbackInfoTimer); playbackInfoTimer = null; }
+    const back = playbackInfoReturnFocus && document.contains(playbackInfoReturnFocus) ? playbackInfoReturnFocus : null;
+    playbackInfoReturnFocus = null;
+    if (back && typeof back.focus === 'function') back.focus({ preventScroll: true });
+  }
+  function togglePlaybackInfo() {
+    if (isPlaybackInfoOpen()) closePlaybackInfo(); else openPlaybackInfo();
+  }
+
+  (() => {
+    document.getElementById('sleep-scrim').addEventListener('click', closeSleepDialog);
+    document.getElementById('pi-scrim').addEventListener('click', closePlaybackInfo);
+    document.getElementById('sleep-grace').addEventListener('click', keepWatchingFromGrace);
+    // Capture on window runs before every document listener, the shortcuts included.
+    window.addEventListener('keydown', (e) => { if (sleepTimer.state().graceActive) keepWatchingFromGrace(e); }, true);
+    document.addEventListener('fullscreenchange', () => {
+      if (sleepTimer.state().graceActive) placeSleepGrace();
+    });
+    // A hidden tab runs timers late. Catch up the moment it is visible again.
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { sleepTimer.revalidate(); renderSleepControls(); } });
+    renderSleepControls();
+  })();
+
   let vhsTimer = null;
 
   function runVhsSweep() {
@@ -5680,10 +6696,15 @@
     if (cfg) { cfg.textContent = retroMode ? 'ON' : 'OFF'; cfg.classList.toggle('on', retroMode); }
   }
 
-  // Sync-activity toggle (Continue Watching / play counts). Reflect state on the button.
   function updateSyncActivityControls() {
-    const cfg = document.getElementById('cfg-plexsync-toggle');
-    if (cfg) { cfg.textContent = syncPlexActivity ? 'ON' : 'OFF'; cfg.classList.toggle('on', syncPlexActivity); }
+    for (const [id, enabled] of [['cfg-nowplaying-toggle', nowPlayingReportingEnabled], ['cfg-markwatched-toggle', markWatched]]) {
+      const button = document.getElementById(id);
+      if (button) {
+        button.textContent = enabled ? 'ON' : 'OFF';
+        button.classList.toggle('on', enabled);
+        button.setAttribute('aria-pressed', String(enabled));
+      }
+    }
   }
 
   // Foreign-audio auto-subtitles toggle. Reflect state on the button.
@@ -5700,14 +6721,20 @@
     loadSubtitleForCurrentItem(currentPlayingItem);
   }
 
-  function toggleSyncActivity() {
-    syncPlexActivity = !syncPlexActivity;
-    localStorage.setItem('plex90_sync_activity', syncPlexActivity);
-    // If we're turning it off mid-program, abandon the live tracker so no further
-    // reports fire; it restores whatever the reports already sent wrote to Continue
-    // Watching. Turning it on takes effect on the next program.
-    if (!syncPlexActivity && playbackTracker) { playbackTracker.abandon(); playbackTracker = null; }
+  function applyReportingPreferences() {
+    const options = { nowPlaying: nowPlayingReportingEnabled, markWatched };
+    NostalgexWatchState.saveReportingPreferences(localStorage, options);
+    reportingScope.update(options);
+    if (playbackTracker) playbackTracker.updateReporting(options);
     updateSyncActivityControls();
+  }
+  function toggleNowPlaying() {
+    nowPlayingReportingEnabled = !nowPlayingReportingEnabled;
+    applyReportingPreferences();
+  }
+  function toggleMarkWatched() {
+    markWatched = !markWatched;
+    applyReportingPreferences();
   }
 
   function toggleRetroMode() {
@@ -5755,8 +6782,11 @@
     return (navigator.language || 'en').split('-')[0].toLowerCase();
   }
 
-  function pickSubtitle(subs) {
-    if (!Array.isArray(subs) || subs.length === 0) return null;
+  function pickSubtitle(allSubs) {
+    // Only text tracks become WebVTT; a PGS or VobSub track comes back empty or as an error
+    // (point 9 in scripts/nostalgex-jellyfin-urls.js), so it must not win over an SRT.
+    const subs = Array.isArray(allSubs) ? allSubs.filter(s => NostalgexJellyfinUrls.isTextSubtitle(s.codec)) : [];
+    if (subs.length === 0) return null;
     const pref = resolveSubtitleLanguage();
     // Prefer non-forced matching lang, then forced, then nothing (don't show wrong language)
     return subs.find(s => !s.forced && langMatches(s.lang, pref))
@@ -5790,12 +6820,16 @@
     return true;
   }
 
-  // Jellyfin transcodes any subtitle to WebVTT at this endpoint. partKey holds the MediaSourceId.
+  // Jellyfin and Emby both serve any subtitle as WebVTT at this endpoint (Emby 4.10.1.0: an
+  // external .srt came back text/vtt, measured). partKey holds the MediaSourceId.
   function buildSubtitleUrl(item, sub) {
     return `${plexServerUrl}/Videos/${item.ratingKey}/${item.partKey}/Subtitles/${sub.index}/Stream.vtt?api_key=${plexToken}`;
   }
 
   function clearSubtitleTracks() {
+    subtitleRequestGeneration += 1;
+    if (subtitleRequestController) subtitleRequestController.abort();
+    subtitleRequestController = null;
     const video = document.getElementById('plex-video');
     activeSubtitleTracks.forEach(t => { try { t.remove(); } catch (e) {} });
     activeSubtitleBlobUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} });
@@ -5811,16 +6845,26 @@
   // crossorigin attribute (which would subject the media stream itself to CORS and could
   // break playback on servers that currently work without CORS headers).
   async function loadSubtitleForCurrentItem(item) {
+    const request = activePlaybackRequest;
+    if (!ownsPlaybackRequest(request) || currentPlayingItem !== item || request.item !== item) return;
+    clearSubtitleTracks();
+    const generation = subtitleRequestGeneration;
+    const controller = new AbortController();
+    subtitleRequestController = controller;
+    const ownsSubtitle = () => ownsPlaybackRequest(request) && currentPlayingItem === item
+      && generation === subtitleRequestGeneration && !controller.signal.aborted && isVideoFullscreen();
     const autoForeign = item && shouldAutoEnableSubs(item.audioStreams || []);
-    if ((!subtitlesEnabled && !autoForeign) || mediaBackend !== 'jellyfin') return;
+    if ((!subtitlesEnabled && !autoForeign) || !isMediaBrowserBackend(mediaBackend)) return;
     if (!isVideoFullscreen()) return;  // fullscreen-only, matching tvOS
     if (!item || !Array.isArray(item.subtitles) || item.subtitles.length === 0) return;
     const sub = pickSubtitle(item.subtitles);
     if (!sub) return;
+    if (request.burnedSubtitleIndex === sub.index) return;  // already in the picture
     try {
-      const res = await fetch(buildSubtitleUrl(item, sub));
-      if (!res.ok) return;
+      const res = await fetch(buildSubtitleUrl(item, sub), { signal: controller.signal });
+      if (!ownsSubtitle() || !res.ok) return;
       const vtt = await res.text();
+      if (!ownsSubtitle()) return;
       const url = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }));
       const video = document.getElementById('plex-video');
       const track = document.createElement('track');
@@ -5832,9 +6876,10 @@
       video.appendChild(track);
       activeSubtitleTracks.push(track);
       activeSubtitleBlobUrls.push(url);
-      track.addEventListener('load', () => { if (track.track) track.track.mode = 'showing'; });
-      setTimeout(() => { if (track.track) track.track.mode = 'showing'; }, 300);
+      track.addEventListener('load', () => { if (ownsSubtitle() && track.track) track.track.mode = 'showing'; });
+      setTimeout(() => { if (ownsSubtitle() && track.track) track.track.mode = 'showing'; }, 300);
     } catch (e) {
+      if (!ownsSubtitle() || e.name === 'AbortError') return;
       console.warn('[Nostalgex] Subtitle load failed:', e);
     }
   }
@@ -5843,7 +6888,7 @@
     audioLanguage = val;
     localStorage.setItem('plex90_audio_language', val);
     // Restart playback on current item so the new audio track takes effect
-    if (currentPlayingItem && mediaBackend === 'jellyfin' && currentChannel) {
+    if (currentPlayingItem && isMediaBrowserBackend(mediaBackend) && currentChannel) {
       const ch = CHANNELS.find(c => c.id === currentChannel);
       if (ch) playCurrentItem(currentPlayingItem, ch);
     }
@@ -5863,7 +6908,7 @@
     const toast = document.getElementById('retro-toast');
     if (toast) {
       toast.textContent = subtitlesEnabled
-        ? (mediaBackend === 'jellyfin' ? 'CAPTIONS ON (FULLSCREEN)' : 'CAPTIONS: JELLYFIN ONLY')
+        ? (isMediaBrowserBackend(mediaBackend) ? 'CAPTIONS ON (FULLSCREEN)' : 'CAPTIONS: JELLYFIN AND EMBY ONLY')
         : (autoForeign ? 'CAPTIONS OFF (AUTO: FOREIGN AUDIO)' : 'CAPTIONS OFF');
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 1400);
@@ -5893,6 +6938,18 @@
         el.classList.remove('visible');
       }, 5000);
     }
+  }
+
+  function showFsOverlayFor(ms) {
+    const el = document.getElementById('fs-overlay');
+    fsOverlayVisible = true;
+    el.classList.add('visible');
+    updateFsOverlay();
+    if (fsOverlayTimer) clearTimeout(fsOverlayTimer);
+    fsOverlayTimer = setTimeout(() => {
+      fsOverlayVisible = false;
+      el.classList.remove('visible');
+    }, ms);
   }
 
   function updateFsOverlay() {
@@ -5991,7 +7048,9 @@
 
     visibleBundles.forEach((bundle, idx) => {
       const isEnabled = enabledBundleIDs.has(bundle.id);
-      const inSeason = isBundleInSeason(bundle);
+      // A seasonal bundle works in every month; outside its month the row says when
+      // it is spotlighted, like the Apple TV row ("Spotlighted OCT").
+      const spotlight = isBundleInSeason(bundle) ? '' : globalThis.NostalgexSeason.seasonalSpotlightLabel(bundle, new Date());
       const isFocused = idx === bundleFocusIndex;
       const channelCount = bundle.channelIDs.length;
 
@@ -6025,7 +7084,7 @@
             ${escapeHtml(bundle.name)}
           </div>
           <div style="font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px; letter-spacing: 1px;">
-            ${escapeHtml(bundle.description || '')}${!inSeason ? ' (OFF SEASON)' : ''}
+            ${escapeHtml(bundle.description || '')}${spotlight ? ` · ${escapeHtml(spotlight)}` : ''}
           </div>
         </div>
         <div style="text-align: right; flex-shrink: 0;">
@@ -6147,6 +7206,44 @@
     renderSuggestedList();
   }
 
+  // ── Web tuner version (bottom of Settings) ──────────────────
+  // So support can ask which tuner someone is running, the way VERSION 1.0.26 (50)
+  // sits at the bottom of the Apple TV app's Settings.
+  //   nostalgex.app  WEB TUNER 1.0.3           the build's meta tag (package.json
+  //                                            "tunerVersion", see scripts/tuner-version.mjs)
+  //   Docker         WEB TUNER 1.0.3 · DOCKER  the container's config.json, written at
+  //                                            start by docker/40-config.sh; the meta
+  //                                            tag if that has none
+  // Anything that is not a release number (dev, empty, a missing file) shows nothing.
+  const TUNER_RELEASE_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+
+  function cleanTunerVersion(value) {
+    const v = typeof value === 'string' ? value.trim() : '';
+    return v.length <= 40 && TUNER_RELEASE_VERSION.test(v) ? v : '';
+  }
+
+  function pageMeta(name) {
+    const el = document.querySelector(`meta[name="${name}"]`);
+    return (el && el.getAttribute('content')) || '';
+  }
+
+  async function loadTunerVersion() {
+    const el = document.getElementById('cfg-tuner-version');
+    if (!el) return;
+    const docker = pageMeta('nostalgex-build') === 'selfhost';
+    let version = '';
+    if (docker) {
+      try {
+        const res = await fetch('config.json', { cache: 'no-store' });
+        if (res && res.ok) version = cleanTunerVersion(((await res.json()) || {}).tunerVersion);
+      } catch (err) { /* no config.json: fall back to the build's own */ }
+    }
+    if (!version) version = cleanTunerVersion(pageMeta('nostalgex-tuner-version'));
+    el.textContent = version ? `WEB TUNER ${version}${docker ? ' \u00b7 DOCKER' : ''}` : '';
+    el.hidden = !version;
+  }
+  loadTunerVersion();
+
   function showConfig() {
     configVisible = true;
     appState = 'config';
@@ -6252,10 +7349,21 @@
   let selectedServerIndices = new Set(); // indices into discoveredServers (multi-select)
   let selectedServers = []; // [{name, url, token, connections}] — all connected servers
 
+  // crypto.randomUUID only exists on secure pages (https, localhost). A self-hosted
+  // tuner on plain http gets the same v4 shape from getRandomValues, which works anywhere.
+  function randomClientId() {
+    if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    const b = crypto.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+  }
+
   function getClientId() {
     let id = localStorage.getItem('plex90_client_id');
     if (!id) {
-      id = crypto.randomUUID();
+      id = randomClientId();
       localStorage.setItem('plex90_client_id', id);
     }
     return id;
@@ -6272,11 +7380,33 @@
   let mediaBackend = sessionStorage.getItem('plex90_backend') || 'plex';
   let jellyfinUserId = sessionStorage.getItem('plex90_jellyfin_user_id') || '';
 
-  // Jellyfin MediaBrowser auth header (mirrors the tvOS JellyfinAPIService).
+  // Jellyfin MediaBrowser auth header (mirrors the tvOS JellyfinAPIService). Emby takes the
+  // same header (EmbyAPIService.authorizationHeader), so both backends use this one.
   function jellyfinAuthHeader() {
     const fields = ['Client="Nostalgex"', 'Device="Browser"', `DeviceId="${getClientId()}"`, 'Version="1.0"'];
     if (plexToken) fields.push(`Token="${plexToken}"`);
     return 'MediaBrowser ' + fields.join(', ');
+  }
+
+  // Switches a Jellyfin sign-in to Emby, or the other way, once the server has said which
+  // it is, and saves that so it sticks. Before the web tuner had an Emby option, Emby
+  // users signed in through the Jellyfin one and were saved as 'jellyfin', and their
+  // library never loaded (Emby answers /UserViews with a 404). Same token, same user id,
+  // same address: only the backend name changes, so nobody has to sign in again.
+  function adoptMediaBrowserKind(kind) {
+    if (!isMediaBrowserBackend(kind) || !isMediaBrowserBackend(mediaBackend) || kind === mediaBackend) return false;
+    console.log(`[Nostalgex] This server is ${BACKEND_NAMES[kind]}, not ${BACKEND_NAMES[mediaBackend]}. Switching the saved sign-in over.`);
+    mediaBackend = kind;
+    try { sessionStorage.setItem('plex90_backend', kind); } catch (e) {}
+    try {
+      const saved = JSON.parse(localStorage.getItem('plex90_saved_auth') || 'null');
+      if (saved && isMediaBrowserBackend(saved.backend) && saved.serverUrl === plexServerUrl) {
+        saved.backend = kind;
+        localStorage.setItem('plex90_saved_auth', JSON.stringify(saved));
+      }
+    } catch (e) {}
+    updateConfigPlexStatus();
+    return true;
   }
 
   async function startPlexAuth() {
@@ -6624,18 +7754,29 @@
     try {
       let valid = false;
 
-      if (mediaBackend === 'jellyfin') {
-        // Jellyfin: check server reachability. A 401 on a public endpoint means something
-        // is genuinely wrong; a network error means server is offline — trust saved token.
+      if (isMediaBrowserBackend(mediaBackend)) {
+        // Jellyfin and Emby: check server reachability. A 401 on a public endpoint means
+        // something is genuinely wrong; a network error means server is offline, so trust
+        // the saved token.
         try {
           const res = await fetch(`${storedUrl}/System/Info/Public`, { headers: { 'Accept': 'application/json' } });
           if (res.status === 401 || res.status === 403) {
             tokenRevoked = true;
           } else {
             valid = true; // server reachable; even non-200 means address is correct
+            // The same answer says whether it is Jellyfin or Emby. An Emby server saved
+            // as Jellyfin (signed in before the Emby option existed) moves over here.
+            if (res.ok) {
+              const info = await res.json().catch(() => null);
+              const kind = NostalgexJellyfinUrls.serverKindFromPublicInfo(info);
+              if (kind && kind !== mediaBackend) {
+                plexServerUrl = storedUrl;
+                adoptMediaBrowserKind(kind);
+              }
+            }
           }
         } catch {
-          valid = true; // server offline/unreachable — trust saved credentials
+          valid = true; // server offline/unreachable, trust saved credentials
         }
       } else {
         // Plex: validate against plex.tv first; 401 = token revoked; network error = try server
@@ -6673,8 +7814,9 @@
             }
           } catch {
             // A saved http:// server on this https page is the browser blocking
-            // mixed content, which never resolves on its own — not a blip.
-            if (/^http:\/\//i.test(storedUrl || '')) {
+            // mixed content, which never resolves on its own — not a blip. A
+            // self-hosted tuner on plain http has no such block.
+            if (location.protocol === 'https:' && /^http:\/\//i.test(storedUrl || '')) {
               mixedContentBlocked = true;
             }
             // Otherwise: both plex.tv and the server were unreachable (network blip
@@ -6745,6 +7887,8 @@
     // Close modal first so user sees immediate feedback
     document.getElementById('config-overlay').classList.remove('open');
     configVisible = false;
+    sleepTimer.cancel();
+    closePlaybackInfo();
 
     plexToken = null;
     plexServerUrl = null;
@@ -6799,6 +7943,11 @@
     const btn = document.getElementById('cfg-plex-btn');
     const listWrap = document.getElementById('cfg-server-list');
     const listEl = document.getElementById('cfg-server-list-items');
+    const accountLabel = document.getElementById('cfg-account-label');
+    if (accountLabel) {
+      accountLabel.textContent = plexConnected && isMediaBrowserBackend(mediaBackend)
+        ? `${backendDisplayName().toUpperCase()} SERVER` : 'PLEX ACCOUNT';
+    }
 
     if (plexConnected && plexServerName) {
       nameEl.textContent = plexServerName;
@@ -6955,7 +8104,6 @@
       bundles,
       enabledBundleIDs,
       allChannelsUnfiltered,
-      isBundleInSeason,
     });
 
     allItemsCache = allItems;
@@ -7117,7 +8265,7 @@
     if (!allItemsCache.length) return 0;
     const LL = globalThis.NostalgexLibraryLoad;
     const poolIDs = LL.staticChannelIDsForPoolBuild({
-      buildAll: false, bundles, enabledBundleIDs, allChannelsUnfiltered, isBundleInSeason,
+      buildAll: false, bundles, enabledBundleIDs, allChannelsUnfiltered,
     });
     const changed = [];
     for (const ch of allChannelsUnfiltered) {
@@ -7169,7 +8317,9 @@
   // key has to outlive a change of connection: the machine identifier, as on tvOS, or
   // 'plex' for a single server restored without one. Never the URL.
   function collectionServerKeyForItem(it) {
-    return mediaBackend === 'jellyfin' ? 'jellyfin' : (it.serverID || 'plex');
+    // 'jellyfin' for Emby too: collections switched on by an Emby user who signed in through
+    // the Jellyfin option keep their keys after the switch to Emby.
+    return isMediaBrowserBackend(mediaBackend) ? 'jellyfin' : (it.serverID || 'plex');
   }
 
   function restoreCollectionsFromCache() {
@@ -7205,7 +8355,7 @@
     };
     let found = [];
     let anyOK = false;
-    if (mediaBackend === 'jellyfin') {
+    if (isMediaBrowserBackend(mediaBackend)) {
       const headers = { 'Accept': 'application/json', 'Authorization': jellyfinAuthHeader() };
       const getJSON = async (path) => {
         const res = await fetch(`${plexServerUrl}${path}`, { headers });
@@ -7254,7 +8404,8 @@
     // Films and episodes, with episodes grouped by show, so a collection of shows
     // expands to the episodes already loaded. This indexed films only, which is where
     // a collection of shows lost every member.
-    const indexByServer = CL.indexLibrary(allItemsCache, collectionServerKeyForItem);
+    // Items no channel may take (Emby Dolby Vision profile 5) are not members either.
+    const indexByServer = CL.indexLibrary(channelFilter().onChannels(allItemsCache, mediaBackend), collectionServerKeyForItem);
     // What the app compares against (its `allChannels`): every stock channel built with
     // enough to air, whether or not its bundle is switched on. Fold targets are the
     // FRANCHISES bundle's channels among them (`availableStockFranchiseChannelIDs`).
@@ -7334,13 +8485,14 @@
   }
 
   async function fetchLibraryFromServer(options = {}) {
-    if (mediaBackend === 'jellyfin') return fetchJellyfinLibraryFromServer(options);
+    if (isMediaBrowserBackend(mediaBackend)) return fetchJellyfinLibraryFromServer(options);
     return fetchPlexLibraryFromServer(options);
   }
 
-  // Jellyfin library scan. Mirrors fetchPlexLibraryFromServer's orchestration but hits
-  // Jellyfin endpoints and maps BaseItemDto -> the shared item shape. ProviderIds.Tmdb
-  // becomes tmdbID so the same channel rules + membership manifest match as on Plex.
+  // Jellyfin and Emby library scan. Mirrors fetchPlexLibraryFromServer's orchestration but
+  // hits the MediaBrowser endpoints and maps BaseItemDto -> the shared item shape.
+  // ProviderIds.Tmdb becomes tmdbID so the same channel rules + membership manifest match
+  // as on Plex. The one Emby difference here is where the libraries are listed.
   async function fetchJellyfinLibraryFromServer(options = {}) {
     const LL = globalThis.NostalgexLibraryLoad;
     const background = options.background === true;
@@ -7350,11 +8502,22 @@
     LL.refreshStepRail(false);
     await LL.pulsePhase('preparing', buildAll && LL.isFirstLibraryLoad() ? 'First setup' : 'Updating lineup');
     if (bundles.length) await LL.pulsePhase('preparing', `${bundles.length} bundles · ${enabledBundleIDs.size} on`);
-    await LL.pulsePhase('scanningLibrary', 'Connecting to Jellyfin');
+    await LL.pulsePhase('scanningLibrary', `Connecting to ${backendDisplayName()}`);
 
     const headers = { 'Accept': 'application/json', 'Authorization': jellyfinAuthHeader() };
 
-    const viewsRes = await fetch(`${plexServerUrl}/UserViews?userId=${encodeURIComponent(jellyfinUserId)}`, { headers });
+    // /UserViews on Jellyfin, /Users/{id}/Views on Emby (scripts/nostalgex-jellyfin-urls.js).
+    const viewsUrl = (backend) => plexServerUrl + NostalgexJellyfinUrls.userViewsPath(backend, jellyfinUserId);
+    let viewsRes = await fetch(viewsUrl(mediaBackend), { headers });
+    // Backstop for an Emby server still saved as Jellyfin, if the start-up check could not
+    // tell: Emby answers /UserViews with a 404. One more request, only on that 404.
+    if (viewsRes.status === 404 && mediaBackend === 'jellyfin') {
+      const embyRes = await fetch(viewsUrl('emby'), { headers });
+      if (embyRes.ok) {
+        adoptMediaBrowserKind('emby');
+        viewsRes = embyRes;
+      }
+    }
     const viewsData = await viewsRes.json();
     const views = viewsData.Items || [];
     LL.state.scanTotalSections = views.length;
@@ -7408,12 +8571,15 @@
       // Capture the actual video/audio codec so playback can decide direct-play vs
       // transcode by what the browser can really decode — container alone lies (an
       // mp4 can hold HEVC, which browsers can't play).
-      let videoCodec = null, audioCodec = null, subtitles = [], audioStreams = [];
+      let videoCodec = null, audioCodec = null, subtitles = [], audioStreams = [], doviProfile = null;
       if (src && Array.isArray(src.MediaStreams)) {
         const v = src.MediaStreams.find(s => s.Type === 'Video');
         const allAudio = src.MediaStreams.filter(s => s.Type === 'Audio');
         const a = allAudio[0];
         if (v && v.Codec) videoCodec = String(v.Codec).toLowerCase();
+        // Emby only (Jellyfin has no ExtendedVideoSubType): a profile 5 file goes on no
+        // channel (NostalgexChannelFilter.isLeftOffChannels).
+        if (v) doviProfile = NostalgexJellyfinUrls.embyDoviProfile(v.ExtendedVideoSubType);
         if (a && a.Codec) audioCodec = String(a.Codec).toLowerCase();
         audioStreams = allAudio.map(s => ({
           index: s.Index,
@@ -7432,7 +8598,7 @@
             external: !!s.IsExternal,
           }));
       }
-      return { msid: src ? src.Id : null, container, videoCodec, audioCodec, subtitles, audioStreams };
+      return { msid: src ? src.Id : null, container, videoCodec, audioCodec, subtitles, audioStreams, doviProfile };
     }
 
     let allItems = [];
@@ -7471,6 +8637,13 @@
                     meta: [`"${epTitle}"`, seTag, formatDuration(durationMin)].filter(Boolean).join(' · '),
                     summary: ep.Overview || show.Overview || '',
                     year: show.ProductionYear || '',
+                    // First-aired date, as JellyfinAPIService/EmbyAPIService.swift do
+                    // (episode, else show, date part only). The holiday TV channels read
+                    // it to tell a December "Holiday" episode from a trip to Rome.
+                    originallyAvailableAt: (() => {
+                      const d = ep.PremiereDate || show.PremiereDate;
+                      return d ? String(d).slice(0, 10) : null;
+                    })(),
                     contentRating: show.OfficialRating || ep.OfficialRating || '',
                     duration: durationMin,
                     ratingKey: ep.Id,
@@ -7493,6 +8666,7 @@
                     librarySource: isMusicVideoSection ? 'musicVideo' : 'tv',
                     tmdbID: showTmdb,
                     subtitles: mi.subtitles,
+                    doviProfile: mi.doviProfile,
                   };
                 }).filter(Boolean);
               } catch (e) { return []; }
@@ -7551,6 +8725,7 @@
               librarySource: isMusicVideo ? 'musicVideo' : 'movie',
               tmdbID: tmdbFromProviderIds(jf.ProviderIds),
               subtitles: mi.subtitles,
+              doviProfile: mi.doviProfile,
             });
           });
           LL.state.scanItemsFound = allItems.length;
@@ -7561,7 +8736,12 @@
     }
 
     const withTmdb = allItems.filter(i => i.tmdbID).length;
-    console.log(`[Jellyfin] LIBRARY: ${allItems.length} items, ${withTmdb} with tmdbID`);
+    console.log(`[${backendDisplayName()}] LIBRARY: ${allItems.length} items, ${withTmdb} with tmdbID`);
+    if (mediaBackend === 'emby') {
+      // They stay in the library; the channel filter keeps them out of every pool.
+      const leftOff = allItems.length - channelFilter().onChannels(allItems, mediaBackend).length;
+      console.log(`[Emby] CHANNELS: ${leftOff} Dolby Vision profile 5 item(s) left off channels`);
+    }
 
     allItems = await finalizeLibraryWithMusicBrainz(allItems, {
       buildAllChannels: buildAll,
@@ -7754,6 +8934,10 @@
                     let partKey = null;
                     let container = null;
                     const epMedia = pickBestVersion(ep.Media, m => m.bitrate, m => resolutionHeight(m.videoResolution));
+                    // Codecs only feed PLAYBACK INFORMATION; Plex's direct play choice still
+                    // goes by container alone.
+                    const epVideoCodec = epMedia && epMedia.videoCodec ? String(epMedia.videoCodec).toLowerCase() : null;
+                    const epAudioCodec = epMedia && epMedia.audioCodec ? String(epMedia.audioCodec).toLowerCase() : null;
                     if (epMedia) {
                       container = epMedia.container;
                       if (epMedia.Part && epMedia.Part[0]) {
@@ -7774,11 +8958,16 @@
                       meta: [`"${epTitle}"`, seTag, formatDuration(durationMin)].filter(Boolean).join(' · '),
                       summary: ep.summary || show.summary || '',
                       year: show.year || '',
+                      // First-aired date, as PlexAPIService.makeEpisodeItem does (episode,
+                      // else show). The holiday TV channels read it.
+                      originallyAvailableAt: ep.originallyAvailableAt || show.originallyAvailableAt || null,
                       contentRating: show.contentRating || ep.contentRating || '',
                       duration: durationMin,
                       ratingKey: ep.ratingKey,
                       partKey: partKey,
                       container: container,
+                      videoCodec: epVideoCodec,
+                      audioCodec: epAudioCodec,
                       genres: showGenres,
                       rating: show.rating || 0,
                       userRating: show.userRating || 0,
@@ -7835,6 +9024,9 @@
           let partKey = null;
           let container = null;
           const itemMedia = pickBestVersion(item.Media, m => m.bitrate, m => resolutionHeight(m.videoResolution));
+          // For PLAYBACK INFORMATION only (see the episode loop above).
+          const itemVideoCodec = itemMedia && itemMedia.videoCodec ? String(itemMedia.videoCodec).toLowerCase() : null;
+          const itemAudioCodec = itemMedia && itemMedia.audioCodec ? String(itemMedia.audioCodec).toLowerCase() : null;
           if (itemMedia) {
             container = itemMedia.container;
             if (itemMedia.Part && itemMedia.Part[0]) {
@@ -7871,6 +9063,8 @@
             ratingKey: item.ratingKey,
             partKey: partKey,
             container: container,
+            videoCodec: itemVideoCodec,
+            audioCodec: itemAudioCodec,
             genres: genres,
             rating: item.rating || 0,
             userRating: item.userRating || 0,
@@ -7983,26 +9177,32 @@
       console.error('Library fetch error:', err);
       globalThis.NostalgexLibraryLoad?.hide();
       const errorEl = document.getElementById('plex-error-label');
-      if (mediaBackend === 'jellyfin') {
+      if (isMediaBrowserBackend(mediaBackend)) {
+        // A self-hosted tuner on plain http: no mixed content, and no nostalgex.app.
+        const selfHttp = location.protocol === 'http:';
+        const NAME = backendDisplayName().toUpperCase();
         errorEl.textContent = err && err.plexStatus
-          ? 'JELLYFIN SESSION ENDED. RECONNECT AT NOSTALGEX.APP/WEB-TUNER'
+          ? (selfHttp ? `${NAME} SESSION ENDED. RECONNECT TO SIGN IN AGAIN` : `${NAME} SESSION ENDED. RECONNECT AT NOSTALGEX.APP/WEB-TUNER`)
           : mixedContentBlocked
           ? 'YOUR SERVER USES HTTP. BROWSERS BLOCK THAT ON A SECURE PAGE. USE AN HTTPS URL, OR THE APPLE TV APP FOR A LOCAL SERVER'
-          : 'COULD NOT REACH JELLYFIN SERVER. IT HAS TO ANSWER OVER HTTPS — A PLAIN LAN SERVER NEEDS THE APPLE TV APP';
+          : selfHttp
+          ? `COULD NOT REACH ${NAME} SERVER. CHECK THAT IT IS RUNNING AND REACHABLE FROM THIS DEVICE`
+          : `COULD NOT REACH ${NAME} SERVER. IT HAS TO ANSWER OVER HTTPS. A PLAIN LAN SERVER NEEDS THE APPLE TV APP`;
         errorEl.style.display = 'block';
-        // For Jellyfin errors don't show the Plex connect button — direct them back to the connect page
+        // For Jellyfin and Emby errors don't show the Plex connect button. Send them back to the connect page.
         const actionsEl = document.getElementById('plex-actions');
         if (actionsEl) actionsEl.style.display = 'none';
         const reconnectEl = document.getElementById('plex-reconnect-jf');
         if (!reconnectEl) {
           const btn = document.createElement('a');
           btn.id = 'plex-reconnect-jf';
-          btn.href = '/web-tuner';
+          btn.href = 'web-tuner';
           btn.className = 'plex-btn';
-          btn.textContent = 'RECONNECT JELLYFIN';
+          btn.textContent = `RECONNECT ${NAME}`;
           btn.style.cssText = 'display:inline-block;margin-top:16px;text-decoration:none;';
           errorEl.insertAdjacentElement('afterend', btn);
         } else {
+          reconnectEl.textContent = `RECONNECT ${NAME}`;
           reconnectEl.style.display = '';
         }
       } else {
@@ -8092,6 +9292,26 @@
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
     const key = e.key;
+
+    // The two small dialogs sit above everything and keep the keys while they are open.
+    // Enter and Space reach the focused button on their own.
+    if (isPlaybackInfoOpen()) {
+      if (key === 'Escape' || key === 'Backspace' || key === 'i' || key === 'I') { closePlaybackInfo(); e.preventDefault(); }
+      else if (key === 'Tab' || key.startsWith('Arrow')) { document.getElementById('pi-back').focus(); e.preventDefault(); }
+      return;
+    }
+    if (isSleepDialogOpen()) {
+      if (key === 'Escape' || key === 'Backspace') { closeSleepDialog(); e.preventDefault(); return; }
+      if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'Tab') {
+        const items = sleepDialogFocusables();
+        const back = key === 'ArrowUp' || (key === 'Tab' && e.shiftKey);
+        const at = items.indexOf(document.activeElement);
+        const next = at === -1 ? 0 : (at + (back ? -1 : 1) + items.length) % items.length;
+        if (items[next]) items[next].focus({ preventScroll: true });
+        e.preventDefault();
+      }
+      return;
+    }
 
     // Config mode
     if (appState === 'config') {
@@ -8193,7 +9413,7 @@
       if (key === 'Enter') {
         const enabled = getEnabledChannels();
         const ch = enabled[guideFocusIndex];
-        if (ch) switchChannel(ch.id);
+        if (ch) tuneFromGuide(ch.id);
         e.preventDefault();
         return;
       }
@@ -8292,6 +9512,11 @@
       e.preventDefault();
       return;
     }
+    if ((key === 'i' || key === 'I') && !isVideoFullscreen()) {
+      openPlaybackInfo();
+      e.preventDefault();
+      return;
+    }
     // Number keys for direct channel tuning
     const num = parseInt(key);
     if (num >= 1 && num <= 9) {
@@ -8308,6 +9533,7 @@
   init();
 </script>
 
+<!-- selfhost:strip:start -->
 <!-- Email signup modal -->
 <div class="promo-modal" id="promo-modal" role="dialog" aria-modal="true" aria-labelledby="promo-modal-title">
   <div class="promo-modal__inner">
@@ -8384,5 +9610,6 @@
   window.__openPromoModal = openPromoModal;
 })();
 </script>
+<!-- selfhost:strip:end -->
 </body>
 </html>
